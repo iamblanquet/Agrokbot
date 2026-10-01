@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: campo-agrookool
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATA_DIR
+        value: /data
+      - key: PASSWORD_LOGIN_ENABLED
+        value: "true"
+      - key: ERP_MODE
+        value: live
+      - key: ERP_ALLOW_HTTP
+        value: "false"
+      - key: TELEGRAM_MODE
+        value: live
+      - key: TELEGRAM_POLLING
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: APP_USER
+        value: admin
+      - key: APP_PASSWORD
+        sync: false
+      - key: ERP_API_URL
+        sync: false
+      - key: ERP_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: TELEGRAM_ALLOWED_USERS
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      - key: APP_DOMAIN
+        sync: false
+    disk:
+      name: campo-agrookool-data
+      mountPath: /data
+      sizeGB: 1

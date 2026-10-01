@@ -1,0 +1,37 @@
+services:
+  campo:
+    build: .
+    ports:
+      - "127.0.0.1:${APP_PORT:-8787}:8080"
+    environment:
+      PASSWORD_LOGIN_ENABLED: ${PASSWORD_LOGIN_ENABLED:-true}
+      APP_USER: ${APP_USER:-dev}
+      APP_RESPONSIBLE_NAME: ${APP_RESPONSIBLE_NAME:-}
+      ENFORCE_RESPONSIBLE_ACCESS: ${ENFORCE_RESPONSIBLE_ACCESS:-false}
+      USER_RESPONSIBLE_MAP: ${USER_RESPONSIBLE_MAP:-}
+      APP_PASSWORD: ${APP_PASSWORD:-campo-demo-2026}
+      ERP_MODE: ${ERP_MODE:-demo}
+      ERP_ALLOW_HTTP: ${ERP_ALLOW_HTTP:-false}
+      ERP_API_URL: ${ERP_API_URL:-}
+      ERP_API_KEY: ${ERP_API_KEY:-}
+      TELEGRAM_MODE: ${TELEGRAM_MODE:-demo}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      TELEGRAM_ALLOWED_USERS: ${TELEGRAM_ALLOWED_USERS:-}
+      TELEGRAM_POLLING: ${TELEGRAM_POLLING:-true}
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - campo-data:/data
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  campo-data:
+    name: ${CAMPO_DATA_VOLUME:-${COMPOSE_PROJECT_NAME}_campo-data}

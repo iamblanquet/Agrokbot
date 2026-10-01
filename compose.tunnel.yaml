@@ -1,0 +1,7 @@
+services:
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://campo:8080
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true

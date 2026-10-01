@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2c4001">
+  <meta name="description" content="AGROKOOL Campo · Seguimiento de proyectos y reportes operativos sin conexión.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/agrokool-mark.png">
+  <link rel="apple-touch-icon" href="/agrokool-mark.png">
+  <link rel="stylesheet" href="/style.css">
+  <title>AGROKOOL · Campo</title>
+  <script src="/storage.js" defer></script>
+  <script src="/api-client.js" defer></script>
+  <script src="/sync.js" defer></script>
+  <script src="/auth.js" defer></script>
+  <script src="/app.js" defer></script>
+  <script src="/admin.js" defer></script>
+</head>
+<body>
+  <div id="login" class="login-layout" hidden>
+    <section class="login-brand">
+      <div class="login-brand-header">
+        <div class="brand-badge">
+          <span class="brand-mark-svg"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg></span>
+          <span class="brand-badge-text">AGROKOOL</span>
+        </div>
+        <span class="system-tag">MÓDULO DE CAMPO</span>
+      </div>
+      <div class="login-brand-body">
+        <p class="eyebrow">TECNOLOGÍA EN CAMPO</p>
+        <h1>Operaciones agrícolas en tiempo real.<br><span class="hero-accent">Con o sin señal.</span></h1>
+        <p class="hero-desc">Proyectos, avances de cuadrillas, maquinaria y evidencia fotográfica sincronizada directamente con Telegram y tu ERP.</p>
+        <div class="feature-pills">
+          <span class="feature-pill"><span class="pill-dot"></span> PWA Offline 100%</span>
+          <span class="feature-pill"><span class="pill-dot"></span> Reportes a Telegram</span>
+          <span class="feature-pill"><span class="pill-dot"></span> Control de Cuadrilla</span>
+        </div>
+      </div>
+      <div class="login-foot">
+        <span>AGROKOOL &copy; 2026</span>
+        <span class="foot-sep">•</span>
+        <span>SISTEMA DE GESTIÓN OPERATIVA</span>
+      </div>
+    </section>
+    <section class="login-form-wrap">
+      <form id="login-form" class="auth-card">
+        <div class="auth-card-head">
+          <span class="auth-logo-svg"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-primary);margin-bottom:8px;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg></span>
+          <span class="eyebrow">ACCESO OPERATIVO</span>
+          <h2>Inicia tu jornada</h2>
+          <p class="muted">Ingresa tu PIN para sincronizar tus proyectos asignados.</p>
+        </div>
+        <div class="form-group">
+          <label for="username">Usuario</label>
+          <div class="input-wrap">
+            <span class="input-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+            <input id="username" autocomplete="username" required placeholder="Ej. operador1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">PIN de acceso</label>
+          <div class="input-wrap">
+            <span class="input-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+            <input id="password" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="PIN de 4 a 8 dígitos">
+          </div>
+        </div>
+        <p id="login-error" class="error" role="alert"></p>
+        <button class="btn primary full login-btn" type="submit">Entrar a mis proyectos <span class="arrow-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span></button>
+        <button id="telegram-login" class="btn full" type="button" hidden>Entrar con Telegram</button>
+        <div class="login-note-box">
+          <span class="note-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span>
+          <p class="login-note">La primera conexión descarga la información. Después puedes capturar avances y fotos en campo sin necesidad de internet.</p>
+        </div>
+      </form>
+    </section>
+  </div>
+  <div id="app" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-brand-block">
+        <a class="brand" href="/">
+          <span class="brand-mark-svg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg></span>
+          <div class="brand-text-block">
+            <span class="brand-name">AGROKOOL</span>
+            <span class="brand-app">CAMPO OPERACIONES</span>
+          </div>
+        </a>
+      </div>
+      <p class="nav-label">ESPACIO DE TRABAJO</p>
+      <nav aria-label="Navegación principal">
+        <button class="nav-item active" data-view="projects"><span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></span> Proyectos</button>
+        <button class="nav-item" data-view="employees"><span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span> Empleados</button>
+        <button hidden class="nav-item" data-view="reports"><span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span> Mis reportes <span id="pending-count" class="nav-count">0</span></button>
+        <button hidden class="nav-item" data-view="telegram"><span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></span> Temas de Telegram</button>
+        <button hidden class="nav-item" data-view="settings"><span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span> Conexiones</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="offline-card">
+          <div class="offline-card-header">
+            <span class="offline-symbol"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+            <span class="offline-badge">OFFLINE READY</span>
+          </div>
+          <strong>Listo para salir a campo</strong>
+          <p id="cache-note">Descargando proyectos…</p>
+        </div>
+        <button id="install" class="btn sidebar-install" hidden>Instalar aplicación</button>
+        <div class="profile">
+          <span id="avatar" class="avatar">D</span>
+          <div class="profile-info">
+            <strong id="profile-user">dev</strong>
+            <small>Operador de campo</small>
+          </div>
+          <button id="logout" class="icon-btn logout-btn" aria-label="Cerrar sesión" title="Cerrar sesión"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
+        </div>
+      </div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <span class="breadcrumb">Operaciones <span class="breadcrumb-sep">/</span> <strong id="breadcrumb-current">Proyectos</strong></span>
+        </div>
+        <div class="topbar-actions">
+          <span id="network" class="connection online">Con conexión</span>
+          <button id="sync" class="btn small sync-btn"><svg class="sync-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> <span>Sincronizar</span></button>
+        </div>
+      </header>
+      <div id="global-banner" class="banner" role="status" hidden></div>
+      <main id="main" tabindex="-1"></main>
+      <footer><span>AGROKOOL CAMPO · OPERACIONES AGRÍCOLAS</span><span id="last-sync">Sincronización pendiente</span></footer>
+    </div>
+  </div>
+  <dialog id="report-dialog" class="modern-sheet-dialog" aria-labelledby="report-heading">
+    <div class="sheet-handle"></div>
+    <form id="report-form">
+      <div class="dialog-heading">
+        <div>
+          <p class="dialog-eyebrow"><span class="eyebrow-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg></span> DIARIO OPERATIVO</p>
+          <h2 id="report-heading">Registrar avance</h2>
+        </div>
+        <button id="close-dialog" type="button" class="icon-btn close-dialog-btn" aria-label="Cerrar formulario"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+
+      <div id="report-task" class="report-task-badge"></div>
+
+      <!-- Fecha de operación y Avance acum. (%) -->
+      <div class="form-grid-pair">
+        <div class="field-wrap">
+          <label for="operation-date">Fecha de operación</label>
+          <div class="input-date-wrap">
+            <input id="operation-date" type="date" required>
+          </div>
+        </div>
+        <div class="field-wrap">
+          <label for="progress-value">Avance acum. (%)</label>
+          <div class="input-percent-wrap">
+            <input id="progress-value" type="number" min="0" max="100" step="0.01" required placeholder="0">
+            <span class="percent-suffix">%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Responsable de la tarea -->
+      <div class="field-wrap">
+        <div class="label-with-tag">
+          <label for="report-author">Responsable de la tarea</label>
+          <span class="badge-erp-status">ASIGNADO EN ERP</span>
+          <small id="author-hint" class="muted" hidden></small>
+        </div>
+        <div class="input-person-wrap">
+          <span class="person-icon-prefix"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+          <input id="report-author" maxlength="80" required readonly placeholder="Nombre completo">
+        </div>
+      </div>
+
+      <!-- Avance de esta jornada y Unidad -->
+      <div class="form-grid-pair">
+        <div class="field-wrap">
+          <label for="work-quantity">Avance de esta jornada</label>
+          <input id="work-quantity" type="number" min="0" max="100000000" step="0.01" required placeholder="2.5">
+        </div>
+        <div class="field-wrap">
+          <label for="work-unit">Unidad</label>
+          <div class="custom-select-wrap">
+            <select id="work-unit">
+              <option value="ha">Hectáreas (ha)</option>
+              <option value="m">Metros (m)</option>
+              <option value="m²">Metros cuadrados (m²)</option>
+              <option value="m³">Metros cúbicos (m³)</option>
+              <option value="km">Kilómetros (km)</option>
+              <option value="unidades">Unidades</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <p class="footnote-asterisk">* La cantidad de esta jornada se guarda además del porcentaje acumulado de la tarea.</p>
+
+      <!-- Trabajo realizado y observaciones -->
+      <div class="field-wrap">
+        <label for="notes">Trabajo realizado y observaciones</label>
+        <textarea id="notes" rows="4" maxlength="2000" required placeholder="Describe qué se realizó, resultados y pendientes…"></textarea>
+      </div>
+
+      <!-- Cuadrilla y Maquinaria -->
+      <section id="crew-picker" aria-label="Personal en campo"></section>
+      <section class="capture-section" aria-labelledby="machinery-heading">
+        <div class="section-heading">
+          <h3 id="machinery-heading"><svg class="section-title-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg> Maquinaria</h3>
+          <button id="add-machine" type="button" class="btn small"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Añadir máquina</button>
+        </div>
+        <div id="machinery-rows"></div>
+      </section>
+
+      <!-- Estatus operativo de la jornada (Paro) - Ubicado abajo -->
+      <section class="stoppage-banner-card" aria-labelledby="operation-heading">
+        <div class="stoppage-banner-main">
+          <div class="stoppage-icon-box">
+            <span class="stoppage-cloud-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg></span>
+          </div>
+          <div class="stoppage-text-block">
+            <span id="operation-heading" class="stoppage-eyebrow">ESTATUS OPERATIVO DE LA JORNADA</span>
+            <span class="stoppage-title">Día sin actividad (Paro)</span>
+          </div>
+          <label class="ios-switch" for="work-stopped">
+            <input id="work-stopped" type="checkbox" role="switch">
+            <span class="ios-slider"></span>
+          </label>
+        </div>
+        <fieldset id="stop-reasons" hidden>
+          <legend>Motivo del paro operativo</legend>
+          <div class="stop-options">
+            <label><input type="radio" name="stop-reason" value="Lluvia"><span>Lluvia</span></label>
+            <label><input type="radio" name="stop-reason" value="Sin Material"><span>Sin Material</span></label>
+            <label><input type="radio" name="stop-reason" value="Sin Cuadrilla"><span>Sin Cuadrilla</span></label>
+            <label><input type="radio" name="stop-reason" value="Sin Máquina"><span>Sin Máquina</span></label>
+            <label><input type="radio" name="stop-reason" value="Descanso"><span>Descanso</span></label>
+            <label><input type="radio" name="stop-reason" value="Otro"><span>Otro</span></label>
+          </div>
+          <div id="stop-other-wrap" hidden>
+            <label for="stop-other">Describe el motivo</label>
+            <input id="stop-other" maxlength="200" placeholder="Motivo del paro">
+          </div>
+          <p class="capture-note">El avance de jornada será cero y se conservará el porcentaje acumulado.</p>
+        </fieldset>
+      </section>
+
+      <!-- Evidencias fotográficas - Ubicado abajo -->
+      <section class="evidence-box-card" aria-labelledby="photos-heading">
+        <h3 id="photos-heading" class="box-section-title"><span class="title-camera-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></span> Evidencias fotográficas</h3>
+        <label class="upload-dropzone" for="report-photos">
+          <div class="dropzone-camera-badge">
+            <span class="camera-svg"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></span>
+          </div>
+          <strong class="dropzone-label">Tomar foto o subir evidencia</strong>
+          <span id="photo-dropzone-subtitle" class="dropzone-sub">Ninguna foto seleccionada (toca para adjuntar)</span>
+          <input id="report-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+        </label>
+        <div class="evidence-disclaimer">
+          <span class="disclaimer-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span>
+          <p class="disclaimer-text">Las fotos se optimizan y guardan localmente. Al sincronizar se enviarán a <strong>Telegram</strong>. No se transfieren al ERP.</p>
+        </div>
+        <p id="photo-status" role="status"></p>
+        <div id="photo-previews" class="photo-grid"></div>
+      </section>
+
+      <p class="capture-note">La hora y el estado de conexión se registran al guardar la captura. El reporte se guarda primero en este dispositivo y se enviará al recuperar la conexión.</p>
+      <p id="form-error" class="error" role="alert"></p>
+
+      <!-- Bottom Sticky Action Buttons matching the screenshot -->
+      <div class="modal-footer-actions">
+        <button id="discard-report" type="button" class="btn-action-discard">Descartar</button>
+        <button id="save-progress-btn" class="btn-action-save" type="submit">
+          <span class="check-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Guardar avance
+        </button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="employee-dialog" aria-labelledby="employee-heading">
+    <form id="employee-form"><div class="dialog-heading"><h2 id="employee-heading">Nuevo empleado</h2><button type="button" id="close-employee" class="icon-btn" aria-label="Cerrar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+    <label for="employee-name">Nombre completo</label><input id="employee-name" maxlength="80" required autocomplete="off">
+    <fieldset class="employee-roles"><legend>Roles que puede desempeñar</legend><label><input type="checkbox" name="employee-role" value="operator"> Operador</label><label><input type="checkbox" name="employee-role" value="technician"> Técnico</label><label><input type="checkbox" name="employee-role" value="assistant"> Auxiliar</label></fieldset>
+    <p id="employee-error" class="error" role="alert"></p><button class="btn primary full" type="submit">Guardar empleado</button></form>
+  </dialog>
+  <dialog id="delete-employee-dialog" aria-labelledby="delete-employee-heading"><h2 id="delete-employee-heading">Eliminar empleado</h2><p id="delete-employee-description"></p><p class="muted">Sus participaciones en reportes anteriores y pendientes se conservan.</p><p id="delete-employee-error" class="error" role="alert"></p><div class="employee-actions"><button id="cancel-delete-employee" class="btn">Cancelar</button><button id="confirm-delete-employee" class="btn danger">Eliminar empleado</button></div></dialog>
+  <dialog id="photo-dialog" aria-label="Evidencia fotográfica"><button id="close-photo" type="button" class="btn small">Cerrar foto</button><img id="full-photo" alt="Evidencia fotográfica ampliada"></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>
