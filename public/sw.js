@@ -1,5 +1,5 @@
-const CACHE = 'campo-shell-v13';
-const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/auth.js', '/storage.js', '/sync.js', '/admin.js', '/api-client.js', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'campo-shell-v26';
+const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/auth.js', '/storage.js', '/sync.js', '/admin.js', '/monitor.js', '/api-client.js', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/agrokool-mark.png', '/agrokool-mark-white.png', '/agrokool-logo.png', '/agrokool-logo-white.png', '/isologo-agk.png', '/agrokool-verde.png', '/agrokool-gold.png', '/agrokool-horizontal.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });

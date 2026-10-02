@@ -31,7 +31,7 @@ async function api(path,body){
   }
 }
 function showLogin(){ $('#app').hidden=true;$('#login').hidden=false;$('#username').value=state.user || ''; }
-function showApp(){ $('#login').hidden=true;$('#app').hidden=false;$('#profile-user').textContent=state.user;$('#avatar').textContent=state.user.slice(0,1).toUpperCase();if(state.isAdmin&&!$('[data-view="admin"]')){const b=document.createElement('button');b.className='nav-item';b.dataset.view='admin';b.textContent='⚙ Administración';b.onclick=()=>{state.view='admin';render();};document.querySelector('nav')?.append(b);}render(); }
+function showApp(){ $('#login').hidden=true;$('#app').hidden=false;$('#profile-user').textContent=state.user;$('#avatar').textContent=state.user.slice(0,1).toUpperCase();if(state.isAdmin&&!$('[data-view="admin"]')){const b=document.createElement('button');b.className='nav-item';b.dataset.view='admin';b.textContent='⚙ Administración';b.onclick=()=>{state.view='admin';render();};document.querySelector('nav')?.append(b);}if(state.isAdmin&&!$('[data-view="monitor"]')){const m=document.createElement('button');m.className='nav-item';m.dataset.view='monitor';m.textContent='⚡ Monitoreo';m.onclick=()=>{state.view='monitor';render();};document.querySelector('nav')?.append(m);}render(); }
 function updateChrome(){
   const connected=online()&&state.reachable;
   $('#network').className=`connection ${connected?'online':'offline'}`;
@@ -42,7 +42,7 @@ function updateChrome(){
   $('#cache-note').textContent=state.catalog.fetchedAt?`${state.catalog.projects.length} proyectos disponibles en este dispositivo.`:'Conecta para descargar tus proyectos.';
   $('#last-sync').textContent=state.catalog.fetchedAt?`DATOS DESCARGADOS · ${prettyDate(state.catalog.fetchedAt)}`:'DATOS AÚN NO DESCARGADOS';
   document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===state.view));
-  $('#breadcrumb-current').textContent=({projects:'Proyectos',employees:'Empleados',reports:'Mis reportes',telegram:'Temas de Telegram',settings:'Conexiones'})[state.view];
+  $('#breadcrumb-current').textContent=({projects:'Proyectos',employees:'Empleados',reports:'Mis reportes',telegram:'Temas de Telegram',settings:'Conexiones',admin:'Administración',monitor:'Monitoreo'})[state.view];
 }
 function statusInfo(value){return ({pending:['Pendiente de sincronizar','amber'],conflict:['No registrado: conflicto','amber'],invalid:['No registrado: datos rechazados','red'],erp_sending:['Registrando en ERP','blue'],erp_review:['Verificar en ERP','red'],erp_rejected:['Rechazado por ERP','red'],telegram_pending:['ERP guardado · envío pendiente','blue'],telegram_sending:['Enviando a Telegram','blue'],telegram_failed:['ERP guardado · envío fallido','amber'],telegram_review:['ERP guardado · verificar envío','amber'],published:['Publicado en Telegram','green'],demo_published:['Publicado · simulación','green']})[value] || [value,''];}
 function badge(value){const [label,color]=statusInfo(value);return `<span class="status ${color}">${esc(label)}</span>`;}
@@ -51,7 +51,7 @@ function heading(title,subtitle,action=''){return `<div class="page-heading"><di
 window.campoUi={ $, esc, heading, api, toast };
 function taskById(id){return state.catalog.tasks.find(t=>t.id===id);}
 function projectById(id){return state.catalog.projects.find(p=>p.id===id);}
-function render(){updateChrome();({projects:renderProjects,employees:renderEmployees,reports:renderReports,telegram:renderTelegram,settings:renderSettings,admin:()=>window.campoAdmin?.render?.()})[state.view]();}
+function render(){updateChrome();({projects:renderProjects,employees:renderEmployees,reports:renderReports,telegram:renderTelegram,settings:renderSettings,admin:()=>window.campoAdmin?.render?.(),monitor:()=>window.campoMonitor?.render?.()})[state.view]();}
 function renderProjects(){
   const projects=state.catalog.projects,tasks=state.catalog.tasks;
   if(!state.selected||!projectById(state.selected))state.selected=projects[0]?.id;
@@ -152,7 +152,97 @@ $('#report-form').onsubmit=async event=>{
 async function refresh(){return window.campoSync.refresh({state,api});}
 async function sync(){return window.campoSync.sync({state,api,online,banner,updateChrome,reloadLocal,render});}
 async function login(body){return window.campoAuth.login({body,state,api,storage:window.campoStorage,reloadLocal,showApp,sync});}
-$('#username').hidden=true;$('#username').required=false;document.querySelector('label[for="username"]')?.setAttribute('hidden','');$('#login-form').onsubmit=async event=>{event.preventDefault();const button=$('#login-form button[type=submit]');button.disabled=true;$('#login-error').textContent='';try{await login({user:'',password:$('#password').value});$('#password').value='';}catch(error){$('#login-error').textContent=error.message;}finally{button.disabled=false;}};
+$('#username').hidden=true;$('#username').required=false;document.querySelector('label[for="username"]')?.setAttribute('hidden','');
+const pinDots = document.querySelectorAll('.pin-dot');
+function syncPinDots() {
+  const pwdVal = $('#password')?.value || '';
+  pinDots.forEach((dot, idx) => {
+    dot.classList.toggle('filled', idx < pwdVal.length);
+  });
+}
+
+$('#login-form').onsubmit=async event=>{
+  event.preventDefault();
+  const button=$('#login-form button[type=submit]');
+  button.disabled=true;
+  $('#login-error').innerHTML='';
+  try{
+    await login({user:'',password:$('#password').value});
+    $('#password').value='';
+    syncPinDots();
+  }catch(error){
+    $('#login-error').innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path fill-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" clip-rule="evenodd"/></svg> <span>${esc(error.message)}</span>`;
+    syncPinDots();
+  }finally{
+    button.disabled=false;
+  }
+};
+
+const togglePwdBtn=$('#toggle-password-visibility');
+if(togglePwdBtn){
+  togglePwdBtn.onclick=()=>{
+    const pwd=$('#password');
+    if(pwd.type==='password'){
+      pwd.type='text';
+      togglePwdBtn.innerHTML='<svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    }else{
+      pwd.type='password';
+      togglePwdBtn.innerHTML='<svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    }
+  };
+}
+
+const forgotPinBtn=$('#forgot-pin-btn');
+if(forgotPinBtn){
+  forgotPinBtn.onclick=(e)=>{
+    e.preventDefault();
+    toast('Solicita a tu supervisor o administrador que consulte o reasigne tu PIN de acceso.');
+  };
+}
+
+// Wire Numeric Touchpanel
+document.querySelectorAll('.numpad-btn[data-val]').forEach(key => {
+  key.addEventListener('click', (e) => {
+    e.preventDefault();
+    const pwd = $('#password');
+    if (pwd && pwd.value.length < 8) {
+      pwd.value += key.getAttribute('data-val');
+      syncPinDots();
+      $('#login-error').textContent = '';
+    }
+  });
+});
+
+const clearKey = $('#btn-clear');
+if (clearKey) {
+  clearKey.addEventListener('click', (e) => {
+    e.preventDefault();
+    const pwd = $('#password');
+    if (pwd) {
+      pwd.value = '';
+      syncPinDots();
+      $('#login-error').textContent = '';
+    }
+  });
+}
+
+const backKey = $('#btn-backspace');
+if (backKey) {
+  backKey.addEventListener('click', (e) => {
+    e.preventDefault();
+    const pwd = $('#password');
+    if (pwd) {
+      pwd.value = pwd.value.slice(0, -1);
+      syncPinDots();
+      $('#login-error').textContent = '';
+    }
+  });
+}
+
+const pwdField = $('#password');
+if (pwdField) {
+  pwdField.addEventListener('input', syncPinDots);
+}
 async function logout(){return window.campoAuth.logout({state,api,storage:window.campoStorage,showLogin,toast});}
 function exportPending(){const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),user:state.user,reports:state.local},null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`campo-pendientes-${today()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
 $('#logout').onclick=logout;$('#sync').onclick=()=>sync();
