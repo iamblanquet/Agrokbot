@@ -11,6 +11,7 @@ import unittest
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 import server
@@ -173,6 +174,26 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(self.request('/api/admin/users/delete', {'username': 'emp002'})[0], 200)
         self.assertEqual(self.request('/api/logout', {})[0], 200)
         self.assertEqual(self.request('/api/login', {'user': '', 'password': '5678'})[0], 401)
+
+    def test_monitor_is_admin_only_and_classifies_transactions(self):
+        self.assertEqual(self.request('/api/admin/monitor')[0], 401)
+        self.assertEqual(self.request('/api/login', {'user': 'tester', 'password': 'prueba-ñ'})[0], 200)
+        old = '2020-01-01T00:00:00+00:00'
+        recent = server.now()
+        stuck_at = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+        with server.connection() as db:
+            for rid, state, created in (('r-ok', 'demo_published', recent), ('r-fail', 'telegram_failed', recent), ('r-stuck', 'telegram_sending', stuck_at), ('r-old', 'published', old)):
+                db.execute("INSERT INTO reports(id,user,task_id,project_id,payload,state,created,message,error) VALUES (?,?,?,?,?,?,?,?,?)", (rid, 'u', 't', 'demo-stere', '{}', state, created, 'm', 'boom' if state == 'telegram_failed' else None))
+        status, data = self.request('/api/admin/monitor')
+        self.assertEqual(status, 200)
+        self.assertEqual(data['summary'], {'total': 3, 'ok': 1, 'pending': 1, 'review': 0, 'failed': 1, 'stuck': 1})
+        self.assertNotIn('payload', data['transactions'][0])
+        self.assertEqual([t['id'] for t in self.request('/api/admin/monitor?state=failed')[1]['transactions']], ['r-fail'])
+        self.assertEqual([t['id'] for t in self.request('/api/admin/monitor?state=stuck')[1]['transactions']], ['r-stuck'])
+        self.assertEqual(self.request('/api/admin/monitor/retry', {'id': 'r-fail'})[1], {'ok': True})
+        self.assertEqual(self.request('/api/admin/monitor/retry', {'id': 'r-ok'})[1], {'ok': False})
+        with server.connection() as db:
+            self.assertEqual(db.execute("SELECT state FROM reports WHERE id='r-fail'").fetchone()[0], 'telegram_pending')
 
     def test_telegram_cannot_open_an_authenticated_session(self):
         self.assertEqual(self.request('/api/login', {'initData': self.signed()})[0], 403)

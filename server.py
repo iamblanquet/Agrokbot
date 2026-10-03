@@ -21,6 +21,7 @@ from backend.auth import AuthError, AuthService
 from backend.audit import AuditService
 from backend.database import DatabaseService
 from backend.delivery import DeliveryService
+from backend.monitor import MonitorService
 from backend.employees import EmployeeService, ROLES
 from backend.erp import ErpClient, task_responsible as normalize_task_responsible
 from backend.health import HealthService
@@ -226,6 +227,8 @@ def catalog_for_user(data, user):
 AUDIT = AuditService(connection, now, lambda: USER)
 ADMIN = AdminService(connection, catalog, task_responsible, pin_hash, pin_in_use, now, USER, AUDIT)
 
+MONITOR = MonitorService(connection, LOCK, now, AUDIT, USER)
+
 
 def _admin_result(operation, *args):
     try:
@@ -363,6 +366,10 @@ class Handler(BaseHTTPRequestHandler):
                     return self.json(200, {"users": admin_users()})
                 if path == "/api/admin/audit":
                     return self.json(200, {"entries": admin_audit()})
+                if path == "/api/admin/monitor":
+                    query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                    hours = min(max(int((query.get("hours") or ["24"])[0]), 1), 720) if (query.get("hours") or ["24"])[0].isdigit() else 24
+                    return self.json(200, MONITOR.snapshot((query.get("state") or ["all"])[0], hours))
                 if path == "/api/admin/responsibles":
                     return self.json(200, {"responsibles": admin_responsibles()})
                 if path.startswith("/api/photos/"):
@@ -397,7 +404,7 @@ class Handler(BaseHTTPRequestHandler):
                         clarifications = [dict(r) for r in db.execute("SELECT * FROM clarifications WHERE user=? ORDER BY created", (user,))]
                     return self.json(200, {"reports": reports, "topics": topics, "clarifications": clarifications})
                 raise Problem(404, "Ruta no encontrada.")
-            files = {"/actualizar": "refresh.html", "/refresh.js": "refresh.js", "/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/storage.js": "../frontend/storage.js", "/sync.js": "../frontend/sync.js", "/auth.js": "../frontend/auth.js", "/admin.js": "../frontend/admin.js", "/style.css": "style.css", "/sw.js": "sw.js", "/manifest.webmanifest": "manifest.webmanifest", "/icon.svg": "icon.svg", "/icon-192.png": "icon-192.png", "/icon-512.png": "icon-512.png", "/api-client.js": "../frontend/api.js"}
+            files = {"/actualizar": "refresh.html", "/refresh.js": "refresh.js", "/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/storage.js": "../frontend/storage.js", "/sync.js": "../frontend/sync.js", "/auth.js": "../frontend/auth.js", "/admin.js": "../frontend/admin.js", "/monitor.js": "../frontend/monitor.js", "/style.css": "style.css", "/sw.js": "sw.js", "/manifest.webmanifest": "manifest.webmanifest", "/icon.svg": "icon.svg", "/icon-192.png": "icon-192.png", "/icon-512.png": "icon-512.png", "/apple-touch-icon.png": "apple-touch-icon.png", "/agrokool-mark.png": "agrokool-mark.png", "/agrokool-mark-white.png": "agrokool-mark-white.png", "/agrokool-logo.png": "agrokool-logo.png", "/agrokool-logo-white.png": "agrokool-logo-white.png", "/isologo-agk.png": "isologo-agk.png", "/agrokool-verde.png": "agrokool-verde.png", "/agrokool-gold.png": "agrokool-gold.png", "/agrokool-horizontal.png": "agrokool-horizontal.png", "/agrokool-vertical.png": "agrokool-vertical.png", "/agrokool-symbol.png": "agrokool-symbol.png", "/api-client.js": "../frontend/api.js"}
             if path not in files:
                 raise Problem(404, "Archivo no encontrado.")
             file = ROOT / "public" / files[path]
@@ -440,6 +447,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, save_admin_user(body))
             if path == "/api/admin/users/delete":
                 return self.json(200, delete_admin_user(body))
+            if path == "/api/admin/monitor/retry":
+                return self.json(200, MONITOR.retry_telegram(body.get("id", "")))
             if path == "/api/admin/users/toggle":
                 return self.json(200, toggle_admin_user(body))
             if path == "/api/logout":
