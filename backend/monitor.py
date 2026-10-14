@@ -64,6 +64,7 @@ class MonitorService:
                     "id": row["id"], "created": row["created"], "user": row["user"],
                     "project": projects.get(row["project_id"], row["project_id"]), "taskId": row["task_id"],
                     "state": row["state"], "bucket": bucket, "erp": erp, "telegram": telegram, "stuck": stuck,
+                    "ageMinutes": max(0, int(age.total_seconds() // 60)),
                     "erpLogId": row["erp_log_id"], "messageId": row["message_id"], "photos": row["photos"], "error": row["error"],
                 })
         return {"hours": hours, "summary": summary, "transactions": items[:limit], "generated": self.now()}
@@ -74,3 +75,21 @@ class MonitorService:
         if changed:
             self.audit.record("monitor_retry_telegram", str(report_id), {})
         return {"ok": bool(changed)}
+
+    def resolve(self, report_id, decision, note):
+        report_id = str(report_id or "")
+        note = str(note or "").strip()
+        if decision not in ("confirm", "reject") or not note or len(note) > 2000:
+            raise ValueError("Indica una decisión y una nota de resolución de hasta 2000 caracteres.")
+        with self.lock, self.connection() as db:
+            row = db.execute("SELECT user,state FROM reports WHERE id=?", (report_id,)).fetchone()
+            if not row or row["state"] not in ("erp_review", "telegram_review"):
+                return {"ok": False}
+            previous = row["state"]
+            if decision == "confirm":
+                target = "telegram_pending" if previous == "erp_review" else "published"
+            else:
+                target = "erp_rejected" if previous == "erp_review" else "telegram_failed"
+            db.execute("UPDATE reports SET state=?,error=? WHERE id=?", (target, note, report_id))
+        self.audit.record("monitor_resolve", report_id, {"user": row["user"], "from": previous, "to": target, "decision": decision, "note": note})
+        return {"ok": True, "state": target}

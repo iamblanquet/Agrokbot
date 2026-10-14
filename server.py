@@ -99,8 +99,7 @@ def telegram_media_group(photos, thread_id, caption=""):
 
 
 valid_id = media_valid_id
-MEDIA = MediaService(connection, LOCK, Problem)
-HEALTH = HealthService(connection, lambda: {"erp_mode": ERP_MODE, "erp_url": ERP_URL, "erp_key": ERP_KEY, "telegram_mode": TG_MODE, "bot_token": BOT_TOKEN, "chat_id": CHAT_ID})
+HEALTH = HealthService(connection, lambda: {"erp_mode": ERP_MODE, "erp_url": ERP_URL, "erp_key": current_erp_key(), "telegram_mode": TG_MODE, "bot_token": BOT_TOKEN, "chat_id": CHAT_ID})
 
 
 def save_photo(body, user):
@@ -137,7 +136,9 @@ def employees():
 
 
 def save_employee(body, delete=False):
-    return EMPLOYEES.save(body, delete)
+    result = EMPLOYEES.save(body, delete)
+    audit_event("employee_deleted" if delete else "employee_saved", str(result.get("id") or body.get("id") or ""), {"name": result.get("name") or body.get("name", ""), "roles": result.get("roles") or body.get("roles", [])})
+    return result
 
 
 def validate_crew(value):
@@ -150,12 +151,30 @@ ERP = ErpClient(
     LOCK,
     employees,
     now,
-    lambda: {"mode": ERP_MODE, "url": ERP_URL, "key": ERP_KEY, "allow_http": os.getenv("ERP_ALLOW_HTTP") == "true"},
+    lambda: {"mode": ERP_MODE, "url": ERP_URL, "key": current_erp_key(), "allow_http": os.getenv("ERP_ALLOW_HTTP") == "true"},
 )
 
 
 def erp(path, payload=None):
     return ERP.request(path, payload)
+
+def current_erp_key():
+    with connection() as db:
+        row = db.execute("SELECT value FROM settings WHERE key='erp_api_key'").fetchone()
+    return row[0] if row and row[0] else ERP_KEY
+
+def save_erp_key(value):
+    value = str(value or "").strip()
+    if not 20 <= len(value) <= 300 or any(ord(c) < 33 or ord(c) > 126 for c in value):
+        raise Problem(400, "La API key no tiene un formato válido.")
+    with LOCK, connection() as db:
+        db.execute("INSERT INTO settings(key,value) VALUES('erp_api_key',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (value,))
+    audit_event("erp_key_updated", "erp", {"length": len(value)})
+    return {"ok": True, "configured": True, "masked": value[:6] + "…" + value[-4:]}
+
+def erp_key_status():
+    value = current_erp_key()
+    return {"configured": bool(value), "masked": value[:6] + "…" + value[-4:] if value else ""}
 
 
 def catalog(refresh=True):
@@ -225,6 +244,11 @@ def catalog_for_user(data, user):
 
 
 AUDIT = AuditService(connection, now, lambda: USER)
+
+def audit_event(action, target, details):
+    AUDIT.record(action, target, details)
+
+MEDIA = MediaService(connection, LOCK, Problem, audit_event)
 ADMIN = AdminService(connection, catalog, task_responsible, pin_hash, pin_in_use, now, USER, AUDIT)
 
 MONITOR = MonitorService(connection, LOCK, now, AUDIT, USER)
@@ -277,6 +301,7 @@ REPORTS = ReportService(
     lambda path, payload=None: erp(path, payload),
     lambda: {"user": USER, "erp_mode": ERP_MODE, "enforce_responsible_access": os.getenv("ENFORCE_RESPONSIBLE_ACCESS", "false").lower() == "true"},
     ROLES,
+    audit_event,
 )
 
 
@@ -291,6 +316,7 @@ DELIVERY = DeliveryService(
     lambda method, payload: telegram(method, payload),
     lambda photo, thread_id, message_id=None, caption="", reply_markup=None: telegram_photo(photo, thread_id, message_id, caption, reply_markup),
     lambda photos, thread_id, caption="": telegram_media_group(photos, thread_id, caption),
+    audit_event,
 )
 
 
@@ -350,6 +376,7 @@ class Handler(BaseHTTPRequestHandler):
             payload, cookie = AUTH.login(body, self.client_address[0])
         except AuthError as error:
             raise Problem(error.status, error.message) from None
+        audit_event("session_login", payload.get("user", ""), {"user": payload.get("user", ""), "ip": self.client_address[0]})
         return self.json(200, payload, cookie)
 
     def do_GET(self):
@@ -366,6 +393,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.json(200, {"users": admin_users()})
                 if path == "/api/admin/audit":
                     return self.json(200, {"entries": admin_audit()})
+                if path == "/api/admin/integration/erp-key":
+                    return self.json(200, erp_key_status())
                 if path == "/api/admin/monitor":
                     query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                     hours = min(max(int((query.get("hours") or ["24"])[0]), 1), 720) if (query.get("hours") or ["24"])[0].isdigit() else 24
@@ -449,13 +478,22 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, delete_admin_user(body))
             if path == "/api/admin/monitor/retry":
                 return self.json(200, MONITOR.retry_telegram(body.get("id", "")))
+            if path == "/api/admin/monitor/resolve":
+                try:
+                    return self.json(200, MONITOR.resolve(body.get("id", ""), body.get("decision", ""), body.get("note", "")))
+                except ValueError as error:
+                    raise Problem(400, str(error)) from None
+            if path == "/api/admin/integration/erp-key":
+                return self.json(200, save_erp_key(body.get("apiKey", "")))
             if path == "/api/admin/users/toggle":
                 return self.json(200, toggle_admin_user(body))
             if path == "/api/logout":
                 cookie = SimpleCookie(self.headers.get("Cookie", ""))
                 token_hash = hashlib.sha256(cookie["campo_session"].value.encode()).hexdigest()
+                session_user = self.session()
                 with connection() as db:
                     db.execute("DELETE FROM sessions WHERE token=?", (token_hash,))
+                audit_event("session_logout", session_user, {"user": session_user})
                 return self.json(200, {"ok": True}, "campo_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0")
             if path == "/api/clarifications":
                 cid, rid, note = body.get("id"), body.get("reportId"), body.get("note")
@@ -468,6 +506,7 @@ class Handler(BaseHTTPRequestHandler):
                     if prior and (prior["user"] != user or prior["report_id"] != rid or prior["note"] != note.strip()):
                         raise Problem(409, "La aclaración confirmada no se puede modificar.")
                     db.execute("INSERT OR IGNORE INTO clarifications VALUES (?,?,?,?,?)", (cid,rid,user,note.strip(),now()))
+                audit_event("clarification_added", cid, {"user": user, "report_id": rid})
                 return self.json(200, {"ok": True})
             if path == "/api/photos":
                 return self.json(200, save_photo(body, user))
@@ -477,8 +516,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, create_report(body, user))
             if path == "/api/retry-telegram":
                 with LOCK, connection() as db:
-                    db.execute("UPDATE reports SET state='telegram_pending',error=NULL WHERE id=? AND user=? AND state='telegram_failed'", (body.get("id"), user))
-                return self.json(200, {"ok": True})
+                    changed=db.execute("UPDATE reports SET state='telegram_pending',error=NULL WHERE id=? AND user=? AND state='telegram_failed'", (body.get("id"), user)).rowcount
+                if changed:audit_event("user_retry_telegram", str(body.get("id", "")), {"user": user})
+                return self.json(200, {"ok": bool(changed)})
             raise Problem(404, "Ruta no encontrada.")
         except Problem as error:
             self.json(error.status, {"error": error.message, "code": error.code, **error.extra})

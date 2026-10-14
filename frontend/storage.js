@@ -6,8 +6,14 @@ const campoStorageDatabase = { current: null };
 
 function campoStorageOpen(){
   return new Promise((resolve,reject)=>{
-    const request=indexedDB.open('campo-offline',1);
-    request.onupgradeneeded=()=>{request.result.createObjectStore('meta');request.result.createObjectStore('queue',{keyPath:'id'});};
+    const request=indexedDB.open('campo-offline',2);
+    request.onupgradeneeded=()=>{
+      const db=request.result;
+      if(!db.objectStoreNames.contains('meta'))db.createObjectStore('meta');
+      if(!db.objectStoreNames.contains('queue'))db.createObjectStore('queue',{keyPath:'id'});
+      // La cola existente conserva sus reportes; solo se agregan metadatos
+      // cuando vuelvan a ser procesados por sync.js.
+    };
     request.onsuccess=()=>{campoStorageDatabase.current=request.result;resolve(request.result);};
     request.onerror=()=>reject(request.error);
   });

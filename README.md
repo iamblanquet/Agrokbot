@@ -124,6 +124,21 @@ Debes controlar el dominio, apuntar su DNS al servidor y permitir los puertos 80
 
 ## Pruebas
 
+### Operación y resolución de incidencias
+
+En **Administración → Monitoreo** se pueden filtrar los reportes por estado y periodo. Cada fila muestra el tiempo que lleva abierta, el estado de ERP/Telegram, el error y la acción disponible.
+
+- `En proceso`: el worker todavía está trabajando.
+- `Atorado`: lleva más de 15 minutos en un estado de envío; requiere revisión.
+- `Por verificar`: el sistema externo respondió de forma ambigua. No se debe repetir automáticamente.
+- `Con error`: el envío falló de forma definitiva y puede reintentarse cuando corresponda.
+
+Los estados ambiguos tienen la acción **Resolver**. El administrador debe elegir **Confirmar** o **Rechazar** y escribir una nota con la evidencia revisada. La decisión queda registrada en la bitácora y no modifica el contenido inmutable del reporte.
+
+En **Administración → Bitácora administrativa** se registran sesiones, reportes capturados, fotografías, aclaraciones, empleados, reintentos y resoluciones. El botón **Exportar bitácora** descarga un JSON para respaldo o auditoría.
+
+La PWA conserva pendientes offline con intentos, fecha del último intento, error y próximo reintento. Los errores temporales no bloquean los demás reportes; los conflictos y errores definitivos se conservan para revisión.
+
 ```powershell
 python -m unittest discover -s tests -v
 ```

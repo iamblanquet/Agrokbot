@@ -9,8 +9,8 @@ from backend.http_client import RemoteFailure
 
 
 class ReportService:
-    def __init__(self, connection, lock, problem, now, profile_for, catalog, catalog_for_user, task_responsible, validate_crew, validate_details, field_message, public_report, erp, settings, roles):
-        self.connection=connection;self.lock=lock;self.problem=problem;self.now=now;self.profile_for=profile_for;self.catalog=catalog;self.catalog_for_user=catalog_for_user;self.task_responsible=task_responsible;self.validate_crew=validate_crew;self.validate_details=validate_details;self.field_message=field_message;self.public_report=public_report;self.erp=erp;self.settings=settings;self.roles=roles
+    def __init__(self, connection, lock, problem, now, profile_for, catalog, catalog_for_user, task_responsible, validate_crew, validate_details, field_message, public_report, erp, settings, roles, audit=None):
+        self.connection=connection;self.lock=lock;self.problem=problem;self.now=now;self.profile_for=profile_for;self.catalog=catalog;self.catalog_for_user=catalog_for_user;self.task_responsible=task_responsible;self.validate_crew=validate_crew;self.validate_details=validate_details;self.field_message=field_message;self.public_report=public_report;self.erp=erp;self.settings=settings;self.roles=roles;self.audit=audit
 
     def create(self, payload, user, reporter_name=None, origin="campo-pwa"):
         if not isinstance(payload, dict):
@@ -92,6 +92,7 @@ class ReportService:
                 raise self.problem(400, "El reporte con la cuadrilla es demasiado largo. Reduce las observaciones.")
             with self.connection() as db:
                 db.execute("INSERT INTO reports(id,user,task_id,project_id,payload,state,created,message) VALUES (?,?,?,?,?,'erp_sending',?,?)", (rid, user, task["id"], project["id"], serialized, self.now(), message))
+            if self.audit:self.audit("report_created", rid, {"user": user, "origin": origin, "state": "erp_sending", "task_id": task["id"], "project_id": project["id"]})
             state, error = "telegram_pending", None
             log_id = "demo-" + rid
             if settings["erp_mode"] == "live":
@@ -115,4 +116,5 @@ class ReportService:
                     task["progressBps"] = clean["progressBps"]
                     task["status"] = "FINISHED" if clean["progressBps"] == 10000 else "IN_PROGRESS" if clean["progressBps"] else "CREATED"
                     db.execute("UPDATE catalog SET payload=? WHERE kind='task' AND id=?", (json.dumps(task), task["id"]))
-                return self.public_report(db.execute("SELECT * FROM reports WHERE id=?", (rid,)).fetchone())
+                result=self.public_report(db.execute("SELECT * FROM reports WHERE id=?", (rid,)).fetchone())
+                return result

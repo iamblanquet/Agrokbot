@@ -14,7 +14,12 @@ window.campoSync={
     try{
       const identity=await api('/api/me');if(identity.user!==state.user)throw new Error('La sesión pertenece a otro usuario. Vuelve a iniciar sesión con tu cuenta.');
       await reloadLocal();
+      const now=Date.now();
       for(const item of state.local.filter(row=>row.state==='pending').slice().reverse()){
+        if(item.nextRetryAt&&Date.parse(item.nextRetryAt)>now)continue;
+        const attempt=(item.attempts||0)+1;
+        const startedAt=new Date().toISOString();
+        await window.campoStorage.write('queue',{...item,attempts:attempt,lastAttemptAt:startedAt,lastError:null});
         try{
           for(const photo of item.photos||[])await api('/api/photos',{id:photo.id,reportId:item.id,data:photo.data.split(',')[1]});
           const receipt=await api('/api/reports',item.payload);
@@ -23,14 +28,20 @@ window.campoSync={
           if(item.photos?.length)await window.campoStorage.write('meta',item.photos,`photos:${state.user}:${item.id}`);
           await window.campoStorage.delete(item.id);
         }catch(error){
-          if(error.code==='conflict')await window.campoStorage.write('queue',{...item,state:'conflict',error:error.message,currentProgressBps:error.currentProgressBps});
-          else if([400,404,409].includes(error.status))await window.campoStorage.write('queue',{...item,state:'invalid',error:error.message});
-          else throw error;
+          if(error.code==='conflict'){
+            await window.campoStorage.write('queue',{...item,state:'conflict',attempts:attempt,lastAttemptAt:startedAt,lastError:error.message,error:error.message,currentProgressBps:error.currentProgressBps});
+          }else if([400,404,409].includes(error.status)){
+            await window.campoStorage.write('queue',{...item,state:'invalid',attempts:attempt,lastAttemptAt:startedAt,lastError:error.message,error:error.message});
+          }else{
+            const delay=Math.min(15*60*1000,30000*Math.pow(2,Math.min(attempt-1,4)));
+            await window.campoStorage.write('queue',{...item,state:'pending',attempts:attempt,lastAttemptAt:startedAt,lastError:error.message,nextRetryAt:new Date(Date.now()+delay).toISOString(),error:error.message});
+          }
         }
       }
       await reloadLocal();await this.refresh({state,api});
       const conflicts=state.local.filter(row=>row.state!=='pending').length;
-      banner(conflicts?`${conflicts} reporte(s) no se pudieron registrar. El original permanece intacto; consulta el registro en Proyectos.`:'');
+      const pending=state.local.filter(row=>row.state==='pending').length;
+      banner(conflicts?`${conflicts} reporte(s) requieren revisión. El original permanece intacto; consulta el registro en Proyectos.`:pending?`${pending} reporte(s) siguen pendientes; se reintentará automáticamente.`:'');
     }catch(error){banner(error.message,error.status===401);}
     finally{state.syncing=false;await reloadLocal();render();}
   },

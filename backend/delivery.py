@@ -6,13 +6,14 @@ from backend.http_client import RemoteFailure
 
 
 class DeliveryService:
-    def __init__(self, connection, lock, settings, telegram, telegram_photo, telegram_media_group):
+    def __init__(self, connection, lock, settings, telegram, telegram_photo, telegram_media_group, audit=None):
         self.connection = connection
         self.lock = lock
         self.settings = settings
         self.telegram = telegram
         self.telegram_photo = telegram_photo
         self.telegram_media_group = telegram_media_group
+        self.audit = audit
 
     def deliver(self):
         settings = self.settings()

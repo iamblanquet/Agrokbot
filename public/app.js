@@ -142,7 +142,7 @@ $('#report-form').onsubmit=async event=>{
     if(state.photoBusy)throw new Error('Espera a que terminen de prepararse las fotos.');
     const id=state.draftId;
     const details=captureDetails();
-    const report={id,photos:structuredClone(state.photos),user:state.user,state:'pending',created:new Date().toISOString(),payload:{id,taskId:state.currentTask.id,progressBps:progress,baseProgressBps:state.currentTask.progressBps,operationDate:$('#operation-date').value,notes,crew:structuredClone(state.crew),details,photos:state.photos.map(p=>p.id)}};
+    const report={id,photos:structuredClone(state.photos),user:state.user,state:'pending',created:new Date().toISOString(),attempts:0,lastAttemptAt:null,lastError:null,nextRetryAt:null,payload:{id,taskId:state.currentTask.id,progressBps:progress,baseProgressBps:state.currentTask.progressBps,operationDate:$('#operation-date').value,notes,crew:structuredClone(state.crew),details,photos:state.photos.map(p=>p.id)}};
     if(!confirm('¿Confirmar este reporte? Después no podrás modificar sus datos ni fotos. Cualquier corrección se registrará como una aclaración separada.'))return;
     if(await dbGet('queue',id))throw new Error('Este reporte ya fue confirmado. Cierra el formulario.');
     await dbWrite('meta',{author:details.author,title:details.title},`author:${state.user}`);
@@ -252,7 +252,7 @@ window.addEventListener('online',()=>{state.reachable=true;if(state.user)sync();
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();state.install=event;$('#install').hidden=false;});
 $('#install').onclick=async()=>{if(state.install){await state.install.prompt();state.install=null;$('#install').hidden=true;}};
 // Poll delivery receipts while online; never sends new operational reports from a timer.
-setInterval(async()=>{if(!state.user||!online()||state.syncing||$('#app').hidden||document.hidden)return;try{const data=await api('/api/reports');if(JSON.stringify(data.reports)!==JSON.stringify(state.reports)){state.reports=data.reports;state.topics=data.topics;await dbWrite('meta',{catalog:state.catalog,config:state.config,reports:state.reports,topics:state.topics,clarifications:state.clarifications||[]},`snapshot:${state.user}`);if(['reports','telegram'].includes(state.view))render();}}catch(error){if(error.status===401)banner(error.message,true);}},5000);
+setInterval(async()=>{if(!state.user||!online()||state.syncing||$('#app').hidden||document.hidden)return;try{if(state.local.some(row=>row.state==='pending')){await sync();return;}const data=await api('/api/reports');if(JSON.stringify(data.reports)!==JSON.stringify(state.reports)){state.reports=data.reports;state.topics=data.topics;await dbWrite('meta',{catalog:state.catalog,config:state.config,reports:state.reports,topics:state.topics,clarifications:state.clarifications||[]},`snapshot:${state.user}`);if(['reports','telegram'].includes(state.view))render();}}catch(error){if(error.status===401)banner(error.message,true);}},5000);
 async function setupTelegram(){return window.campoAuth.setupTelegram({showLogin,login,$});}
 async function boot(){return window.campoAuth.boot({state,storage:window.campoStorage,showLogin,showApp,reloadLocal,sync,setupTelegram,banner,$});}
 boot();

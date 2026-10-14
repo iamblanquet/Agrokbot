@@ -200,6 +200,18 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(self.request('/api/admin/users')[0], 401)
         self.assertEqual(self.request('/api/admin/users', {'assignmentId': 'x', 'pin': '1234'})[0], 401)
 
+    def test_admin_can_resolve_ambiguous_report_and_audit_it(self):
+        self.assertEqual(self.request('/api/login', {'user': 'tester', 'password': 'prueba-ñ'})[0], 200)
+        with server.connection() as db:
+            db.execute("INSERT INTO reports(id,user,task_id,project_id,payload,state,created,message,error) VALUES (?,?,?,?,?,?,?,?,?)", ('r-review', 'campo', 't', 'demo-stere', '{}', 'telegram_review', server.now(), 'm', 'timeout'))
+        status, data = self.request('/api/admin/monitor/resolve', {'id': 'r-review', 'decision': 'confirm', 'note': 'Verificado en el grupo.'})
+        self.assertEqual(status, 200)
+        self.assertEqual(data, {'ok': True, 'state': 'published'})
+        with server.connection() as db:
+            row = db.execute("SELECT state,error FROM reports WHERE id='r-review'").fetchone()
+            self.assertEqual((row['state'], row['error']), ('published', 'Verificado en el grupo.'))
+            self.assertTrue(db.execute("SELECT 1 FROM audit_log WHERE action='monitor_resolve' AND target='r-review'").fetchone())
+
 
 if __name__ == '__main__':
     unittest.main()

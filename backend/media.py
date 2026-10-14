@@ -10,8 +10,8 @@ def valid_id(value):
 
 
 class MediaService:
-    def __init__(self, connection, lock, problem):
-        self.connection=connection;self.lock=lock;self.problem=problem
+    def __init__(self, connection, lock, problem, audit=None):
+        self.connection=connection;self.lock=lock;self.problem=problem;self.audit=audit
 
     def save_photo(self, body, user):
         pid, rid, encoded = body.get("id"), body.get("reportId"), body.get("data")
@@ -36,4 +36,5 @@ class MediaService:
             if db.execute("SELECT count(*) FROM photos WHERE report_id=?", (rid,)).fetchone()[0] >= 30:
                 raise self.problem(400, "Demasiadas fotografías cargadas para esta captura.")
             db.execute("INSERT INTO photos(id,report_id,user,data,digest) VALUES (?,?,?,?,?)", (pid, rid, user, data, digest))
+        if self.audit:self.audit("photo_uploaded", pid, {"report_id": rid, "user": user})
         return {"id": pid}
