@@ -325,6 +325,7 @@ async function openCapture(taskId){
 }
 $('#close-dialog').onclick=()=>$('#report-dialog').close();
 $('#discard-report')?.addEventListener('click',()=>$('#report-dialog').close());
+$('#report-dialog')?.addEventListener('click',e=>{if(e.target===$('#report-dialog'))$('#report-dialog').close();});
 $('#report-form').onsubmit=async event=>{
   event.preventDefault();const button=$('#report-form button[type=submit]');button.disabled=true;
   try{
