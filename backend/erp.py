@@ -102,3 +102,22 @@ class ErpClient:
             return data
         except (OSError, ValueError):
             raise RemoteFailure('No fue posible consultar la fotografía en el ERP.') from None
+
+    def reference_image(self, attachment_id, preview=True):
+        settings = self.settings()
+        url = settings['url']
+        if not settings['key'] or not (url.startswith('https://') or (url.startswith('http://') and settings['allow_http'])):
+            raise RemoteFailure('Configura la conexión ERP.')
+        path = '/external/reference-attachments/' + urllib.parse.quote(attachment_id, safe='') + ('/preview' if preview else '/file')
+        request = urllib.request.Request(url + path, headers={'Authorization': 'Bearer ' + settings['key']})
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                data = response.read(16 * 1024 * 1024 + 1)
+            mime = ('image/jpeg' if data.startswith(b'\xff\xd8\xff') else
+                    'image/png' if data.startswith(b'\x89PNG\r\n\x1a\n') else
+                    'image/webp' if data.startswith(b'RIFF') and data[8:12] == b'WEBP' else None)
+            if not mime or len(data) > 16 * 1024 * 1024:
+                raise RemoteFailure('El ERP no devolvió una imagen válida.')
+            return data, mime
+        except (OSError, ValueError):
+            raise RemoteFailure('No fue posible consultar la imagen en el ERP.') from None

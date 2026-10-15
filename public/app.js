@@ -33,6 +33,11 @@ async function api(path,body){
 function showLogin(){ $('#app').hidden=true;$('#login').hidden=false;$('#username').value=state.user || ''; }
 function showApp(){ $('#login').hidden=true;$('#app').hidden=false;$('#profile-user').textContent=state.user;$('#avatar').textContent=state.user.slice(0,1).toUpperCase();if(state.isAdmin&&!$('[data-view="admin"]')){const b=document.createElement('button');b.className='nav-item';b.dataset.view='admin';b.textContent='⚙ Administración';b.onclick=()=>{state.view='admin';render();};document.querySelector('nav')?.append(b);}if(state.isAdmin&&!$('[data-view="monitor"]')){const m=document.createElement('button');m.className='nav-item';m.dataset.view='monitor';m.textContent='⚡ Monitoreo';m.onclick=()=>{state.view='monitor';render();};document.querySelector('nav')?.append(m);}render(); }
 function updateChrome(){
+  if(state.isAdmin&&!$('[data-view="journal"]')){
+    const button=document.createElement('button');button.className='nav-item';button.dataset.view='journal';button.textContent='Bitácora ERP';
+    button.onclick=()=>{state.view='journal';render();};document.querySelector('nav')?.append(button);
+  }
+  if($('[data-view="journal"]'))$('[data-view="journal"]').hidden=!state.isAdmin;
   const connected=online()&&state.reachable;
   $('#network').className=`connection ${connected?'online':'offline'}`;
   $('#network').textContent=state.simulation?'Prueba sin señal':connected?'Con conexión':'Sin conexión';
@@ -51,7 +56,7 @@ function heading(title,subtitle,action=''){return `<div class="page-heading"><di
 window.campoUi={ $, esc, heading, api, toast };
 function taskById(id){return state.catalog.tasks.find(t=>t.id===id);}
 function projectById(id){return state.catalog.projects.find(p=>p.id===id);}
-function render(){updateChrome();({projects:renderProjects,employees:renderEmployees,reports:renderReports,telegram:renderTelegram,settings:renderSettings,admin:()=>window.campoAdmin?.render?.(),monitor:()=>window.campoMonitor?.render?.()})[state.view]();}
+function render(){updateChrome();if(state.view==='journal'){if(!state.isAdmin){state.view='projects';return render();}$('#breadcrumb-current').textContent='Bitácora ERP';if($('#journal'))return;return window.campoJournal.render();}({projects:renderProjects,employees:renderEmployees,reports:renderReports,telegram:renderTelegram,settings:renderSettings,admin:()=>window.campoAdmin?.render?.(),monitor:()=>window.campoMonitor?.render?.()})[state.view]();}
 function renderProjects(){
   const projects=state.catalog.projects,tasks=state.catalog.tasks;
   if(!state.selected||!projectById(state.selected))state.selected=projects[0]?.id;

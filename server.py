@@ -32,6 +32,7 @@ from backend.security import pin_hash, pin_in_use, verify_pin
 from backend.telegram import TelegramClient, safe_caption as telegram_safe_caption
 from backend.validation import ValidationService
 from backend.config import load_config
+from backend.journal import JournalService
 from backend.evidence import EvidenceService
 
 ROOT = Path(__file__).parent
@@ -393,6 +394,35 @@ class Handler(BaseHTTPRequestHandler):
                 user = self.session()
                 if path.startswith("/api/admin/") and not is_admin(user):
                     raise Problem(403, "Solo el administrador puede gestionar usuarios.")
+                if path.startswith('/api/admin/journal/'):
+                    query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                    param = lambda name: (query.get(name) or [''])[0]
+                    journal = JournalService(ERP)
+                    try:
+                        if path == '/api/admin/journal/projects':
+                            return self.json(200, journal.projects())
+                        if path == '/api/admin/journal/entries':
+                            return self.json(200, journal.entries(param('project')))
+                        if path in ('/api/admin/journal/preview', '/api/admin/journal/file'):
+                            data, mime = journal.attachment(param('project'), param('log'), param('attachment'), path.endswith('/preview'))
+                            self.send_response(200)
+                            self.send_header('Content-Type', mime)
+                            self.send_header('Content-Length', str(len(data)))
+                            self.send_header('Cache-Control', 'private, no-store')
+                            self.send_header('X-Content-Type-Options', 'nosniff')
+                            if path.endswith('/file'):
+                                extension = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp'}[mime]
+                                self.send_header('Content-Disposition', 'attachment; filename="evidencia.' + extension + '"')
+                            self.end_headers()
+                            self.wfile.write(data)
+                            return
+                    except ValueError as error:
+                        raise Problem(400, str(error)) from None
+                    except LookupError:
+                        raise Problem(404, 'Evidencia no encontrada.') from None
+                    except (RemoteFailure, TypeError) as error:
+                        raise Problem(502, getattr(error, 'message', 'Respuesta ERP inesperada.')) from None
+                    raise Problem(404, 'Ruta no encontrada.')
                 if path == "/api/admin/users":
                     return self.json(200, {"users": admin_users()})
                 if path == "/api/admin/audit":
@@ -446,6 +476,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.json(200, {"reports": reports, "topics": topics, "clarifications": clarifications})
                 raise Problem(404, "Ruta no encontrada.")
             files = {"/actualizar": "refresh.html", "/refresh.js": "refresh.js", "/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/storage.js": "../frontend/storage.js", "/sync.js": "../frontend/sync.js", "/auth.js": "../frontend/auth.js", "/admin.js": "../frontend/admin.js", "/monitor.js": "../frontend/monitor.js", "/style.css": "style.css", "/sw.js": "sw.js", "/manifest.webmanifest": "manifest.webmanifest", "/icon.svg": "icon.svg", "/icon-192.png": "icon-192.png", "/icon-512.png": "icon-512.png", "/apple-touch-icon.png": "apple-touch-icon.png", "/agrokool-mark.png": "agrokool-mark.png", "/agrokool-mark-white.png": "agrokool-mark-white.png", "/agrokool-logo.png": "agrokool-logo.png", "/agrokool-logo-white.png": "agrokool-logo-white.png", "/isologo-agk.png": "isologo-agk.png", "/agrokool-verde.png": "agrokool-verde.png", "/agrokool-gold.png": "agrokool-gold.png", "/agrokool-horizontal.png": "agrokool-horizontal.png", "/agrokool-vertical.png": "agrokool-vertical.png", "/agrokool-symbol.png": "agrokool-symbol.png", "/api-client.js": "../frontend/api.js"}
+            files.update({'/journal.js': '../frontend/journal.js', '/journal.css': 'journal.css'})
             if path not in files:
                 raise Problem(404, "Archivo no encontrado.")
             file = ROOT / "public" / files[path]

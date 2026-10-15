@@ -18,6 +18,29 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_journal_is_admin_only_and_read_only(self):
+        with patch.object(server.ERP, 'request', return_value={'projects':[]}) as erp:
+            self.assertEqual(self.request('/api/admin/journal/projects')[0],401)
+            self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
+            with patch.object(server,'is_admin',return_value=False):
+                self.assertEqual(self.request('/api/admin/journal/projects')[0],403)
+            erp.assert_not_called()
+            self.assertEqual(self.request('/api/admin/journal/projects'),(200,{'projects':[]}))
+            erp.assert_called_once_with('/external/projects')
+            self.assertEqual(self.request('/api/admin/journal/projects',{})[0],404)
+
+    def test_journal_image_no_store_membership_and_errors(self):
+        from test_journal import project_fixture
+        self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
+        with patch.object(server.ERP,'request',return_value=project_fixture()), patch.object(server.ERP,'reference_image',return_value=(b'png','image/png')) as image:
+            self.assertEqual(self.request('/api/admin/journal/preview?project=p1&log=log2&attachment=a1')[0],404)
+            image.assert_not_called()
+            with self.client.open(self.url+'/api/admin/journal/preview?project=p1&log=log1&attachment=a1') as response:
+                self.assertEqual(response.read(),b'png')
+                self.assertIn('no-store',response.headers['Cache-Control'])
+                self.assertEqual(response.headers['Content-Type'],'image/png')
+        with patch.object(server.ERP,'request',side_effect=server.RemoteFailure('ERP no disponible')):
+            self.assertEqual(self.request('/api/admin/journal/projects')[0],502)
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.patches = [patch.object(server, 'DATA', Path(self.temp.name)), patch.object(server, 'DB', Path(self.temp.name) / 'http.sqlite3'), patch.object(server, 'ERP_MODE', 'demo'), patch.object(server, 'TG_MODE', 'demo'), patch.object(server, 'ATTEMPTS', {}), patch.object(server, 'USER', 'tester'), patch.object(server, 'PASSWORD', 'prueba-ñ'), patch.object(server, 'BOT_TOKEN', 'fake-test-token'), patch.object(server, 'ALLOWED', {'123'})]

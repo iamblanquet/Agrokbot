@@ -1,5 +1,13 @@
 # Campo · prototipo Docker
 
+## Bitácora ERP (solo consulta)
+
+El administrador dispone de **Bitácora ERP** en la navegación. Selecciona un proyecto para consultar sus asientos directamente con `GET /external/projects/{projectId}`; incluye registros originados fuera de Campo. Permite filtros por fecha operativa, tarea, autor y estado, páginas de 20 registros y detalle de observaciones, avance, referencias y evidencias. **Actualizar desde ERP** consulta nuevamente el proyecto; la sincronización de Campo no interrumpe el detalle abierto.
+
+La pantalla requiere conexión. Los asientos se mantienen únicamente en memoria de la pantalla, sin copiarse a SQLite o IndexedDB. Las rutas `/api/admin/journal/projects`, `/entries`, `/preview` y `/file` requieren sesión de administrador; el backend usa la clave ERP existente y valida que cada adjunto pertenezca al asiento y proyecto consultados. Fotos JPEG, PNG y WebP se sirven con `no-store`, sin guardar copias. No hay operaciones de creación, edición o eliminación. La API documentada devuelve el árbol completo de cada proyecto: los filtros y la paginación se aplican en pantalla, no constituyen paginación remota.
+
+Pruebas: `python -m unittest discover -s tests -q` y `node --test tests/test_sync.cjs`. Para revisión visual con datos ficticios, `python tests/preview_journal.py` abre un servidor aislado en `127.0.0.1:8799` (PIN de prueba `test-journal`).
+
 PWA de seguimiento de proyectos con captura offline, acceso de usuarios de campo por PIN, registro en ERP y publicación de reportes en temas de Telegram. La configuración inicial es **demo**: no usa la clave del documento ni escribe en sistemas externos.
 
 ## Ejecutar

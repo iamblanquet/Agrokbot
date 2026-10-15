@@ -1,6 +1,7 @@
-const CACHE = 'campo-shell-v29';
+const CACHE = 'campo-shell-v30';
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/auth.js', '/storage.js', '/sync.js', '/admin.js', '/monitor.js', '/api-client.js', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/agrokool-mark.png', '/agrokool-mark-white.png', '/agrokool-logo.png', '/agrokool-logo-white.png', '/isologo-agk.png', '/agrokool-verde.png', '/agrokool-gold.png', '/agrokool-horizontal.png'];
 self.addEventListener('install', event => {
+  SHELL.push('/journal.js','/journal.css');
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
