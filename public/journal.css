@@ -1,6 +1,6 @@
 /* ==========================================================================
-   AGROKOOL CAMPO PWA — BITÁCORA ERP DESIGN SYSTEM (V3: Responsive & Orderly)
-   Clean, spacious, mobile-first feed and executive desktop grid.
+   AGROKOOL CAMPO PWA — BITÁCORA ERP DESIGN SYSTEM (V4: Precision & Anti-Collision)
+   Clean typography, safe cell widths, no text overlap, and mobile card feed.
    ========================================================================== */
 
 .journal {
@@ -437,93 +437,89 @@
 }
 
 /* ==========================================================================
-   4. High-Density Unified Feed (Desktop Grid / Mobile Card Stream)
+   4. Desktop Table View (Clean, native <table>, ZERO text collision)
    ========================================================================== */
-.journal-feed-wrap {
+.journal-desktop-view {
+  display: block;
+  width: 100%;
+}
+
+.journal-table-wrap {
   width: 100%;
   overflow-x: auto;
 }
 
-/* Desktop Header Row (Hidden on mobile) */
-.journal-desktop-header {
-  display: grid;
-  grid-template-columns: 120px minmax(220px, 1fr) 180px 140px 120px 80px 95px;
-  gap: 12px;
-  padding: 11px 18px;
+.journal-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  table-layout: auto;
+}
+
+.journal-table thead {
   background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border-light);
+}
+
+.journal-table th {
+  padding: 12px 16px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-secondary);
-  align-items: center;
-}
-
-.journal-desktop-header .col-photos {
-  text-align: center;
-}
-
-.journal-desktop-header .col-action {
-  text-align: right;
-}
-
-/* List of Row Cards */
-.journal-items-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.journal-row-card {
-  display: grid;
-  grid-template-columns: 120px minmax(220px, 1fr) 180px 140px 120px 80px 95px;
-  gap: 12px;
-  padding: 13px 18px;
   border-bottom: 1px solid var(--border-light);
-  align-items: center;
-  background: var(--surface);
+  white-space: nowrap;
+}
+
+.journal-tr {
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 
-.journal-row-card:hover {
+.journal-tr:hover {
   background: #f7faf3;
 }
 
-.journal-row-card:last-child {
-  border-bottom: none;
+.journal-table td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-light);
+  vertical-align: middle;
 }
 
-/* Mobile top bar is hidden on desktop */
-.m-card-top {
-  display: none;
+/* Date / Ref cell */
+.cell-date {
+  white-space: nowrap;
 }
 
-.m-only-label {
-  display: none;
-}
-
-/* Desktop Date Cell */
-.d-date-cell .date-text {
+.cell-date .date-text {
   display: block;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--brand-primary);
+  line-height: 1.25;
 }
 
-.d-date-cell .ref-text {
-  display: block;
+.cell-date .ref-badge {
+  display: inline-block;
   font-size: 11px;
   color: var(--text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: var(--bg-subtle);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-top: 3px;
+  letter-spacing: 0.02em;
 }
 
-/* Task Title & Subline */
-.task-cell {
+/* Task info block */
+.cell-task {
+  max-width: 380px;
+}
+
+.task-info-block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+  gap: 4px;
 }
 
 .task-title {
@@ -531,20 +527,15 @@
   font-weight: 700;
   color: var(--brand-primary);
   line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.task-sub {
+.task-sub-row {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11.5px;
   color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-wrap: wrap;
 }
 
 .code-pill {
@@ -558,27 +549,24 @@
 }
 
 .act-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+
+.has-notes-indicator {
+  font-size: 12px;
+  cursor: help;
+  vertical-align: middle;
+}
+
+/* Author block */
+.cell-author {
   white-space: nowrap;
 }
 
-.notes-preview {
-  margin: 2px 0 0 0;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-style: italic;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Author Cell */
-.author-cell {
+.author-block {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
 }
 
 .author-avatar {
@@ -587,7 +575,7 @@
   border-radius: 50%;
   background: var(--brand-primary-soft);
   color: var(--brand-primary);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
@@ -595,10 +583,9 @@
   flex-shrink: 0;
 }
 
-.author-details {
+.author-text {
   display: flex;
   flex-direction: column;
-  min-width: 0;
   line-height: 1.25;
 }
 
@@ -606,40 +593,32 @@
   font-size: 12.5px;
   font-weight: 650;
   color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .resp-hint {
   font-size: 10.5px;
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* Progress Cell */
-.progress-cell {
+/* Progress cell */
+.cell-progress {
+  min-width: 120px;
+}
+
+.progress-wrap-table {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.progress-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.progress-info .pct-val {
+.progress-wrap-table .pct-val {
   font-size: 12px;
   font-weight: 750;
   color: var(--brand-primary);
   font-variant-numeric: tabular-nums;
 }
 
-.progress-cell progress {
+.progress-wrap-table progress {
   width: 100%;
   height: 6px;
   border-radius: 10px;
@@ -679,14 +658,8 @@
   border: 1px solid rgba(158, 42, 27, 0.2);
 }
 
-/* Photos Badge */
-.photos-cell {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.photo-badge {
+/* Photos badge */
+.cell-photos .photo-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -698,18 +671,13 @@
   color: var(--brand-primary);
 }
 
-.no-photos {
+.cell-photos .no-photos {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
-/* Action Button */
-.action-cell {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-action-detail {
+/* Action button */
+.cell-action .btn-open-detail {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -719,7 +687,173 @@
   border-radius: 7px;
 }
 
-/* Panel Footer */
+/* ==========================================================================
+   5. Mobile Card Feed (< 768px)
+   ========================================================================== */
+.journal-mobile-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .journal-desktop-view {
+    display: none !important;
+  }
+
+  .journal-mobile-view {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-subtle);
+  }
+
+  .journal-mobile-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+  }
+
+  .journal-mobile-card:active {
+    transform: scale(0.99);
+    background: #fbfdf9;
+  }
+
+  .m-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .m-date-ref {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .m-date {
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .m-ref {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .m-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .m-task-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.35;
+  }
+
+  .m-task-sub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+  }
+
+  .m-notes-box {
+    margin-top: 4px;
+    background: var(--bg-subtle);
+    border-left: 3px solid var(--brand-gold);
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+
+  .m-notes-box p {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .m-card-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .m-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+  }
+
+  .m-progress-label strong {
+    color: var(--brand-primary);
+    font-size: 12px;
+  }
+
+  .m-card-progress progress {
+    width: 100%;
+    height: 6px;
+    border-radius: 10px;
+  }
+
+  .m-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+    gap: 8px;
+  }
+
+  .m-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .m-author-name {
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--text-primary);
+  }
+
+  .m-card-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .m-chevron {
+    color: var(--text-muted);
+  }
+}
+
+/* ==========================================================================
+   6. Panel Footer & Pagination
+   ========================================================================== */
 .journal-panel-footer {
   display: flex;
   align-items: center;
@@ -787,7 +921,7 @@
 }
 
 /* ==========================================================================
-   5. Detail Modal Sheet Dialog (Desktop & Mobile)
+   7. Detail Modal Sheet Dialog
    ========================================================================== */
 .journal-modal-sheet {
   padding: 0;
@@ -1071,35 +1205,15 @@
 }
 
 /* ==========================================================================
-   6. RESPONSIVE MOBILE VIEWPORT (< 768px)
-   Transforms crowded table into a touch-friendly, visual mobile feed!
+   8. Responsive Adjustments
    ========================================================================== */
-@media (max-width: 768px) {
-  .journal {
-    gap: 16px;
-  }
-
-  /* Compact 2x2 stats grid on mobile */
+@media (max-width: 900px) {
   .journal-stats {
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 12px;
   }
+}
 
-  .journal-stats .stat {
-    padding: 0 8px;
-  }
-
-  .journal-stats .stat strong {
-    font-size: 18px;
-  }
-
-  .journal-stats .stat-label {
-    font-size: 9.5px;
-  }
-
-  /* Mobile Project Slider */
+@media (max-width: 768px) {
   .journal-slider-track {
     gap: 12px;
     padding: 2px 2px 8px 2px;
@@ -1112,7 +1226,6 @@
     padding: 16px;
   }
 
-  /* Filter Toolbar on mobile */
   .journal-filter-main {
     flex-direction: column;
     align-items: stretch;
@@ -1138,127 +1251,6 @@
     gap: 8px;
   }
 
-  /* HIDE Desktop Table Header on Mobile */
-  .journal-desktop-header {
-    display: none !important;
-  }
-
-  /* HIDE Desktop-only columns on Mobile */
-  .d-date-cell,
-  .d-status-cell {
-    display: none !important;
-  }
-
-  /* Mobile Card Layout for Each Row Item */
-  .journal-items-list {
-    gap: 10px;
-    padding: 10px;
-    background: var(--bg-subtle);
-  }
-
-  .journal-row-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px 16px;
-    border: 1px solid var(--border-light);
-    border-radius: 14px;
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    position: relative;
-  }
-
-  .journal-row-card:active {
-    transform: scale(0.99);
-    background: #fbfdf9;
-  }
-
-  /* Mobile Top Badges Bar */
-  .m-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 8px;
-  }
-
-  .m-date-ref {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-  }
-
-  .m-date-ref .date-badge {
-    font-weight: 700;
-    color: var(--brand-primary);
-  }
-
-  .m-date-ref .ref-badge {
-    color: var(--text-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    background: var(--bg-subtle);
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
-
-  /* Task title wrap */
-  .task-cell {
-    width: 100%;
-  }
-
-  .task-title {
-    font-size: 14.5px;
-    white-space: normal;
-    line-height: 1.35;
-  }
-
-  .task-sub {
-    white-space: normal;
-    flex-wrap: wrap;
-  }
-
-  .notes-preview {
-    white-space: normal;
-    line-clamp: 2;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    background: var(--bg-subtle);
-    padding: 4px 8px;
-    border-radius: 6px;
-  }
-
-  /* Progress in mobile card */
-  .progress-cell {
-    width: 100%;
-  }
-
-  .m-only-label {
-    display: inline;
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-weight: 600;
-  }
-
-  /* Bottom Row on Mobile (Author + Photos + Button) */
-  .author-cell {
-    width: 100%;
-    padding-top: 4px;
-    border-top: 1px solid var(--border-light);
-  }
-
-  .photos-cell {
-    position: absolute;
-    right: 14px;
-    bottom: 12px;
-  }
-
-  .action-cell {
-    display: none; /* Entire card is tap-friendly on mobile */
-  }
-
-  /* Modal on mobile */
   .journal-modal-sheet {
     top: auto;
     left: 0;

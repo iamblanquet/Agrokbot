@@ -26,6 +26,12 @@ window.campoJournal = {
       ? `${(n / 100).toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
       : '0 %';
 
+    const shortId = id => {
+      if (!id) return '';
+      if (id.length <= 11) return id;
+      return id.slice(0, 6) + '…' + id.slice(-4);
+    };
+
     const activeProject = () => self.projects.find(p => p.id === self.project);
 
     const renderProjectSliderHtml = () => {
@@ -112,7 +118,7 @@ window.campoJournal = {
           <p id="journal-message" role="status" class="journal-message"></p>
         </div>
 
-        <!-- 3. Panel de Asientos con Barra de Filtros Limpia y Vista Feed/Grid -->
+        <!-- 3. Panel de Asientos con Barra de Filtros Limpia y Tabla Sin Superposiciones -->
         <section class="task-panel journal-panel">
           <div class="journal-panel-head">
             <div class="journal-panel-top-row">
@@ -180,7 +186,7 @@ window.campoJournal = {
             </div>
           </div>
 
-          <!-- Listado Visual: Grid en PC y Cards Touch-Friendly en Móviles -->
+          <!-- Listado Visual: Tabla Nativa en PC y Cards Touch-Friendly en Móviles -->
           <div id="journal-results"></div>
 
           <!-- Pie del panel con paginación integrada -->
@@ -511,93 +517,128 @@ window.campoJournal = {
       find('#journal-results').innerHTML = invalid
         ? '<div class="journal-alert error" role="alert"><p>La fecha inicial debe ser anterior o igual a la final.</p></div>'
         : rows.length
-          ? `<div class="journal-feed-wrap">
-              <!-- Cabecera de Grid para PC (oculta en móviles) -->
-              <div class="journal-desktop-header" aria-hidden="true">
-                <div class="col-date">FECHA / REF</div>
-                <div class="col-task">TAREA / ACTIVIDAD</div>
-                <div class="col-author">AUTOR</div>
-                <div class="col-progress">AVANCE</div>
-                <div class="col-status">ESTADO</div>
-                <div class="col-photos">FOTOS</div>
-                <div class="col-action">ACCIÓN</div>
+          ? `<!-- Vista Desktop: Tabla Nativa con Columnas Aisladas (Sin Superposiciones) -->
+            <div class="journal-desktop-view">
+              <div class="journal-table-wrap">
+                <table class="journal-table">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 135px; width: 140px;">FECHA / REF</th>
+                      <th style="min-width: 250px;">TAREA / ACTIVIDAD</th>
+                      <th style="min-width: 180px;">AUTOR</th>
+                      <th style="min-width: 130px; width: 140px;">AVANCE</th>
+                      <th style="min-width: 110px; width: 120px;">ESTADO</th>
+                      <th style="min-width: 80px; width: 90px; text-align: center;">FOTOS</th>
+                      <th style="min-width: 90px; width: 100px; text-align: right;"><span class="muted">ACCIÓN</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${pageRows.map(r => `
+                      <tr class="journal-tr" data-entry="${esc(r.id)}">
+                        <td class="cell-date">
+                          <span class="date-text">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
+                          <span class="ref-badge" title="${esc(r.id)}">#${esc(shortId(r.id))}</span>
+                        </td>
+                        <td class="cell-task">
+                          <div class="task-info-block">
+                            <strong class="task-title">${esc(r.taskName || 'Tarea sin nombre')}</strong>
+                            <div class="task-sub-row">
+                              ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
+                              <span class="act-name">${esc(r.activityName || 'Operación')}</span>
+                              ${r.notes ? `<span class="has-notes-indicator" title="Tiene observaciones de campo">💬</span>` : ''}
+                            </div>
+                          </div>
+                        </td>
+                        <td class="cell-author">
+                          <div class="author-block">
+                            <span class="author-avatar">${esc((r.author || 'A').charAt(0).toUpperCase())}</span>
+                            <div class="author-text">
+                              <strong class="author-name">${esc(r.author)}</strong>
+                              ${r.responsible ? `<small class="resp-hint" title="Responsable: ${esc(r.responsible)}">Resp: ${esc(r.responsible)}</small>` : ''}
+                            </div>
+                          </div>
+                        </td>
+                        <td class="cell-progress">
+                          <div class="progress-wrap-table">
+                            <span class="pct-val">${esc(progress(r.progressBps))}</span>
+                            <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
+                          </div>
+                        </td>
+                        <td class="cell-status">
+                          <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
+                        </td>
+                        <td class="cell-photos" style="text-align: center;">
+                          ${r.attachments && r.attachments.length ? `
+                            <span class="photo-badge" title="${r.attachments.length} fotografía(s)">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                              </svg>
+                              <span>${r.attachments.length}</span>
+                            </span>
+                          ` : '<span class="no-photos">—</span>'}
+                        </td>
+                        <td class="cell-action" style="text-align: right;">
+                          <button class="btn subtle small btn-open-detail" type="button" data-entry="${esc(r.id)}">
+                            <span>Detalle</span>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
               </div>
+            </div>
 
-              <!-- Lista de Asientos (Grid en PC y Cards táctiles en Móviles) -->
-              <div class="journal-items-list">
-                ${pageRows.map(r => `
-                  <article class="journal-row-card" data-entry="${esc(r.id)}" role="button" tabindex="0" aria-label="Ver detalle de ${esc(r.taskName)}">
-                    <!-- Barra superior en Móvil (oculta en PC) -->
-                    <div class="m-card-top">
-                      <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
-                      <div class="m-date-ref">
-                        <span class="date-badge">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
-                        <span class="ref-badge">#${esc(r.id)}</span>
-                      </div>
+            <!-- Vista Mobile: Feed de Tarjetas Táctiles Ordenadas -->
+            <div class="journal-mobile-view">
+              ${pageRows.map(r => `
+                <article class="journal-mobile-card" data-entry="${esc(r.id)}" role="button" tabindex="0">
+                  <div class="m-card-header">
+                    <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
+                    <div class="m-date-ref">
+                      <span class="m-date">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
+                      <span class="m-ref" title="${esc(r.id)}">#${esc(shortId(r.id))}</span>
                     </div>
-
-                    <!-- Fecha y Ref en PC -->
-                    <div class="col-date d-date-cell">
-                      <span class="date-text">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
-                      <small class="ref-text">#${esc(r.id)}</small>
+                  </div>
+                  <div class="m-card-body">
+                    <strong class="m-task-title">${esc(r.taskName || 'Tarea sin nombre')}</strong>
+                    <div class="m-task-sub">
+                      ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
+                      <span class="act-name">${esc(r.activityName || 'Operación')}</span>
                     </div>
-
-                    <!-- Tarea y Actividad -->
-                    <div class="col-task task-cell">
-                      <strong class="task-title">${esc(r.taskName || 'Tarea sin nombre')}</strong>
-                      <div class="task-sub">
-                        ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
-                        <span class="act-name">${esc(r.activityName || 'Operación')}</span>
-                      </div>
-                      ${r.notes ? `<p class="notes-preview" title="${esc(r.notes)}">"${esc(r.notes.length > 70 ? r.notes.slice(0, 70) + '…' : r.notes)}"</p>` : ''}
+                    ${r.notes ? `<div class="m-notes-box"><p>${esc(r.notes)}</p></div>` : ''}
+                  </div>
+                  <div class="m-card-progress">
+                    <div class="m-progress-label">
+                      <span>Avance reportado</span>
+                      <strong>${esc(progress(r.progressBps))}</strong>
                     </div>
-
-                    <!-- Autor -->
-                    <div class="col-author author-cell">
+                    <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}"></progress>
+                  </div>
+                  <div class="m-card-footer">
+                    <div class="m-author">
                       <span class="author-avatar">${esc((r.author || 'A').charAt(0).toUpperCase())}</span>
-                      <div class="author-details">
-                        <strong class="author-name">${esc(r.author)}</strong>
-                        ${r.responsible ? `<small class="resp-hint" title="Responsable: ${esc(r.responsible)}">Resp: ${esc(r.responsible)}</small>` : ''}
-                      </div>
+                      <span class="m-author-name">${esc(r.author)}</span>
                     </div>
-
-                    <!-- Avance -->
-                    <div class="col-progress progress-cell">
-                      <div class="progress-info">
-                        <span class="m-only-label">Avance</span>
-                        <strong class="pct-val">${esc(progress(r.progressBps))}</strong>
-                      </div>
-                      <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
-                    </div>
-
-                    <!-- Estado en PC -->
-                    <div class="col-status d-status-cell">
-                      <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
-                    </div>
-
-                    <!-- Evidencias / Fotos -->
-                    <div class="col-photos photos-cell">
+                    <div class="m-card-footer-right">
                       ${r.attachments && r.attachments.length ? `
-                        <span class="photo-badge" title="${r.attachments.length} fotografía(s)">
+                        <span class="photo-badge" title="${r.attachments.length} foto(s)">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                             <circle cx="12" cy="13" r="4"></circle>
                           </svg>
                           <span>${r.attachments.length}</span>
                         </span>
-                      ` : '<span class="no-photos">—</span>'}
+                      ` : ''}
+                      <span class="m-chevron">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </span>
                     </div>
-
-                    <!-- Acción -->
-                    <div class="col-action action-cell">
-                      <button class="btn subtle small btn-action-detail" type="button" data-entry="${esc(r.id)}">
-                        <span>Detalle</span>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                      </button>
-                    </div>
-                  </article>
-                `).join('')}
-              </div>
+                  </div>
+                </article>
+              `).join('')}
             </div>`
           : `<div class="empty journal-empty">
               <div class="empty-icon-bubble">
@@ -610,9 +651,11 @@ window.campoJournal = {
               <p>${self.project ? 'Prueba cambiando los filtros o el texto de búsqueda.' : 'Elige un proyecto en el carrusel superior para consultar su bitácora ERP.'}</p>
             </div>`;
 
-      find('#journal-results').querySelectorAll('.journal-row-card').forEach(card => {
-        card.onclick = (e) => {
-          const entryId = card.dataset.entry;
+      // Eventos para abrir detalle al pulsar filas o tarjetas
+      find('#journal-results').querySelectorAll('[data-entry]').forEach(el => {
+        el.onclick = (e) => {
+          e.stopPropagation();
+          const entryId = el.dataset.entry || el.closest('[data-entry]')?.dataset.entry;
           const row = self.rows.find(r => r.id === entryId);
           if (row) {
             detail(row);
