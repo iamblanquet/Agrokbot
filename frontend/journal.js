@@ -1,7 +1,9 @@
 'use strict';
 window.campoJournal = {
   project: '', rows: [], projects: [], fetched: '', page: 1, selected: null,
-  filters: { from: '', to: '', task: '', author: '', status: '' },
+  filters: { from: '', to: '', task: '', author: '', status: '', search: '', hasPhotos: false },
+  filtersOpen: false,
+
   async render() {
     const { $, esc, heading, api } = window.campoUi;
     const self = this;
@@ -22,7 +24,7 @@ window.campoJournal = {
 
     const progress = n => typeof n === 'number'
       ? `${(n / 100).toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
-      : 'Sin avance informado';
+      : '0 %';
 
     const activeProject = () => self.projects.find(p => p.id === self.project);
 
@@ -97,10 +99,10 @@ window.campoJournal = {
 
     $('#main').innerHTML = heading('Bitácora ERP', 'Historial del ERP · Solo consulta · Trazabilidad de operaciones en campo') + `
       <section id="journal" class="journal">
-        <!-- 1. Tarjetas de Resumen Operativo ARRIBA (Idéntico a Mis proyectos) -->
+        <!-- 1. Franja de Resumen Operativo ARRIBA (Idéntico a Mis proyectos) -->
         <section class="stats journal-stats" id="journal-stats" aria-label="Resumen de bitácora"></section>
 
-        <!-- 2. Carrusel de Proyectos ERP (Sin selector duplicado) -->
+        <!-- 2. Carrusel de Proyectos ERP -->
         <div id="journal-slider-container"></div>
 
         <!-- Hidden select for compatibility -->
@@ -110,34 +112,75 @@ window.campoJournal = {
           <p id="journal-message" role="status" class="journal-message"></p>
         </div>
 
-        <!-- 3. Panel de Asientos en formato LISTA / TABLA con filtros compactos -->
+        <!-- 3. Panel de Asientos con Barra de Filtros Limpia y Vista Feed/Grid -->
         <section class="task-panel journal-panel">
-          <div class="task-panel-head journal-panel-head">
-            <div class="journal-panel-title">
-              <h2>Asientos y registros ERP</h2>
-              <p id="journal-active-project-name">Selecciona un proyecto</p>
-            </div>
-            <!-- Filtros de consulta compactos integrados en la cabecera -->
-            <div class="journal-compact-filters">
-              <div class="filter-group-date">
-                <input id="journal-from" type="date" title="Fecha inicial" aria-label="Fecha inicial">
-                <span class="date-sep">a</span>
-                <input id="journal-to" type="date" title="Fecha final" aria-label="Fecha final">
+          <div class="journal-panel-head">
+            <div class="journal-panel-top-row">
+              <div class="journal-panel-title">
+                <h2>Asientos y registros ERP</h2>
+                <p id="journal-active-project-name">Selecciona un proyecto</p>
               </div>
-              <select id="journal-task" aria-label="Filtrar por tarea"><option value="">Todas las tareas</option></select>
-              <select id="journal-author" aria-label="Filtrar por autor"><option value="">Todos los autores</option></select>
-              <select id="journal-status" aria-label="Filtrar por estado"><option value="">Todos los estados</option></select>
-              <button id="journal-clear" class="btn-clear-compact" type="button" title="Limpiar filtros">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-                <span>Limpiar</span>
-              </button>
+            </div>
+
+            <!-- Barra de Filtros Limpia: Búsqueda rápida + Pestañas de Estado + Filtros avanzados -->
+            <div class="journal-filter-bar">
+              <div class="journal-filter-main">
+                <div class="journal-search-wrap">
+                  <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input id="journal-search" type="search" placeholder="Buscar tarea, autor o folio…" aria-label="Buscar en bitácora">
+                </div>
+
+                <div class="journal-quick-pills" role="tablist" aria-label="Filtro rápido de estado">
+                  <button type="button" class="quick-pill active" data-quick-filter="all">Todos</button>
+                  <button type="button" class="quick-pill" data-quick-filter="IN_PROGRESS">En progreso</button>
+                  <button type="button" class="quick-pill" data-quick-filter="FINISHED">Finalizados</button>
+                  <button type="button" class="quick-pill" data-quick-filter="photos">Con fotos</button>
+                </div>
+
+                <button type="button" id="journal-toggle-filters" class="btn-filter-toggle" aria-expanded="false" aria-controls="journal-advanced-filters">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                  </svg>
+                  <span>Más filtros</span>
+                  <span id="journal-filter-badge" class="filter-count-badge" hidden>0</span>
+                </button>
+              </div>
+
+              <!-- Cajón desplegable para fechas y selects específicos -->
+              <div id="journal-advanced-filters" class="journal-advanced-drawer" hidden>
+                <div class="drawer-grid">
+                  <div class="drawer-field">
+                    <label for="journal-from">Fecha desde</label>
+                    <input id="journal-from" type="date">
+                  </div>
+                  <div class="drawer-field">
+                    <label for="journal-to">Fecha hasta</label>
+                    <input id="journal-to" type="date">
+                  </div>
+                  <div class="drawer-field">
+                    <label for="journal-task">Tarea</label>
+                    <select id="journal-task"><option value="">Todas las tareas</option></select>
+                  </div>
+                  <div class="drawer-field">
+                    <label for="journal-author">Autor</label>
+                    <select id="journal-author"><option value="">Todos los autores</option></select>
+                  </div>
+                  <div class="drawer-field">
+                    <label for="journal-status">Estado</label>
+                    <select id="journal-status"><option value="">Todos los estados</option></select>
+                  </div>
+                </div>
+                <div class="drawer-actions">
+                  <button id="journal-clear" class="btn-clear-all" type="button">Limpiar todos los filtros</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Listado en Tabla de Alta Densidad -->
+          <!-- Listado Visual: Grid en PC y Cards Touch-Friendly en Móviles -->
           <div id="journal-results"></div>
 
           <!-- Pie del panel con paginación integrada -->
@@ -174,9 +217,35 @@ window.campoJournal = {
       fill('#journal-task', self.rows.map(r => r.taskName), 'Todas las tareas');
       fill('#journal-author', self.rows.map(r => r.author), 'Todos los autores');
       fill('#journal-status', self.rows.map(r => r.status), 'Todos los estados');
-      for (const key of Object.keys(self.filters)) {
+      for (const key of ['from', 'to', 'task', 'author', 'status']) {
         const input = find('#journal-' + key);
-        if (input) input.value = self.filters[key];
+        if (input) input.value = self.filters[key] || '';
+      }
+      const searchInput = find('#journal-search');
+      if (searchInput) searchInput.value = self.filters.search || '';
+
+      // Actualizar píldoras rápidas
+      root.querySelectorAll('.quick-pill').forEach(pill => {
+        const type = pill.dataset.quickFilter;
+        let isAct = false;
+        if (type === 'all') isAct = !self.filters.status && !self.filters.hasPhotos;
+        else if (type === 'photos') isAct = !!self.filters.hasPhotos;
+        else isAct = self.filters.status === type;
+        pill.classList.toggle('active', isAct);
+      });
+
+      // Actualizar badge de filtros avanzados
+      let activeAdvCount = 0;
+      if (self.filters.from) activeAdvCount++;
+      if (self.filters.to) activeAdvCount++;
+      if (self.filters.task) activeAdvCount++;
+      if (self.filters.author) activeAdvCount++;
+      const badge = find('#journal-filter-badge');
+      const toggleBtn = find('#journal-toggle-filters');
+      if (badge && toggleBtn) {
+        badge.textContent = activeAdvCount;
+        badge.hidden = activeAdvCount === 0;
+        toggleBtn.classList.toggle('has-active', activeAdvCount > 0);
       }
     };
 
@@ -305,7 +374,7 @@ window.campoJournal = {
                     <p class="journal-image-error" hidden>No se pudo cargar la vista previa. Intenta actualizar o descargar el original.</p>
                     <a class="btn small btn-download-file" href="${esc(url(a, 'file'))}" download="${esc(a.originalFileName || 'evidencia')}">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"></path>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                       </svg>
@@ -365,13 +434,21 @@ window.campoJournal = {
     const draw = () => {
       const f = self.filters;
       const invalid = f.from && f.to && f.from > f.to;
+      const sTerm = (f.search || '').trim().toLowerCase();
+
       const rows = invalid ? [] : self.rows.filter(r => {
         const d = (r.operationDate || '').slice(0, 10);
-        return (!f.from || d >= f.from) &&
-          (!f.to || (d && d <= f.to)) &&
-          (!f.task || r.taskName === f.task) &&
-          (!f.author || r.author === f.author) &&
-          (!f.status || r.status === f.status);
+        if (f.from && (!d || d < f.from)) return false;
+        if (f.to && (!d || d > f.to)) return false;
+        if (f.task && r.taskName !== f.task) return false;
+        if (f.author && r.author !== f.author) return false;
+        if (f.status && r.status !== f.status) return false;
+        if (f.hasPhotos && (!r.attachments || !r.attachments.length)) return false;
+        if (sTerm) {
+          const haystack = `${r.taskName || ''} ${r.activityName || ''} ${r.taskCode || ''} ${r.author || ''} ${r.responsible || ''} ${r.notes || ''} ${r.id || ''}`.toLowerCase();
+          if (!haystack.includes(sTerm)) return false;
+        }
+        return true;
       });
 
       // Franja de estadísticas en la parte SUPERIOR
@@ -383,24 +460,24 @@ window.campoJournal = {
       if (statsEl) {
         statsEl.innerHTML = `
           <div class="stat">
-            <span class="stat-label">Asientos en ERP</span>
+            <span class="stat-label">Asientos ERP</span>
             <strong>${self.rows.length.toString().padStart(2, '0')}</strong>
             <small>${self.project ? 'en este proyecto' : 'sin seleccionar'}</small>
           </div>
           <div class="stat">
-            <span class="stat-label">Tareas con registro</span>
+            <span class="stat-label">Tareas</span>
             <strong>${uniqueTasks.toString().padStart(2, '0')}</strong>
-            <small>actividades documentadas</small>
+            <small>documentadas</small>
           </div>
           <div class="stat">
-            <span class="stat-label">Fotografías adjuntas</span>
+            <span class="stat-label">Evidencias</span>
             <strong>${totalPhotos.toString().padStart(2, '0')}</strong>
-            <small>evidencias de campo</small>
+            <small>fotos de campo</small>
           </div>
           <div class="stat">
-            <span class="stat-label">Autores y cuadrillas</span>
+            <span class="stat-label">Cuadrillas</span>
             <strong>${uniqueAuthors.toString().padStart(2, '0')}</strong>
-            <small>personal reportando</small>
+            <small>personal activo</small>
           </div>
         `;
       }
@@ -434,91 +511,113 @@ window.campoJournal = {
       find('#journal-results').innerHTML = invalid
         ? '<div class="journal-alert error" role="alert"><p>La fecha inicial debe ser anterior o igual a la final.</p></div>'
         : rows.length
-          ? `<div class="table-wrap journal-table-wrap">
-              <table class="journal-table">
-                <thead>
-                  <tr>
-                    <th style="width: 125px;">FECHA / REF</th>
-                    <th>TAREA / ACTIVIDAD</th>
-                    <th class="person-column">AUTOR</th>
-                    <th style="width: 140px;">AVANCE</th>
-                    <th class="status-column">ESTADO</th>
-                    <th style="width: 80px; text-align: center;">FOTOS</th>
-                    <th style="width: 105px; text-align: right;"><span class="muted">ACCIÓN</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${pageRows.map(r => `
-                    <tr data-entry-row="${esc(r.id)}">
-                      <td class="journal-date-cell">
-                        <span class="date-text">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
-                        <small class="ref-sub">#${esc(r.id)}</small>
-                      </td>
-                      <td class="task-name">
-                        <strong>${esc(r.taskName || 'Tarea sin nombre')}</strong>
-                        <small>
-                          ${r.taskCode ? `<span class="task-code">${esc(r.taskCode)}</span>` : ''}
-                          ${esc(r.activityName || 'Operación')}
-                          ${r.notes ? ` · <span class="notes-hint" title="${esc(r.notes)}">${esc(r.notes.slice(0, 50))}${r.notes.length > 50 ? '…' : ''}</span>` : ''}
-                        </small>
-                      </td>
-                      <td class="person-column">
-                        <span class="person">
-                          <span class="person-circle">${esc((r.author || 'A').split(' ').map(s => s[0]).slice(0, 2).join(''))}</span>
-                          <span class="person-info-wrap">
-                            <strong>${esc(r.author)}</strong>
-                            ${r.responsible ? `<small class="resp-sub" title="Responsable: ${esc(r.responsible)}">Resp: ${esc(r.responsible)}</small>` : ''}
-                          </span>
+          ? `<div class="journal-feed-wrap">
+              <!-- Cabecera de Grid para PC (oculta en móviles) -->
+              <div class="journal-desktop-header" aria-hidden="true">
+                <div class="col-date">FECHA / REF</div>
+                <div class="col-task">TAREA / ACTIVIDAD</div>
+                <div class="col-author">AUTOR</div>
+                <div class="col-progress">AVANCE</div>
+                <div class="col-status">ESTADO</div>
+                <div class="col-photos">FOTOS</div>
+                <div class="col-action">ACCIÓN</div>
+              </div>
+
+              <!-- Lista de Asientos (Grid en PC y Cards táctiles en Móviles) -->
+              <div class="journal-items-list">
+                ${pageRows.map(r => `
+                  <article class="journal-row-card" data-entry="${esc(r.id)}" role="button" tabindex="0" aria-label="Ver detalle de ${esc(r.taskName)}">
+                    <!-- Barra superior en Móvil (oculta en PC) -->
+                    <div class="m-card-top">
+                      <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
+                      <div class="m-date-ref">
+                        <span class="date-badge">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
+                        <span class="ref-badge">#${esc(r.id)}</span>
+                      </div>
+                    </div>
+
+                    <!-- Fecha y Ref en PC -->
+                    <div class="col-date d-date-cell">
+                      <span class="date-text">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
+                      <small class="ref-text">#${esc(r.id)}</small>
+                    </div>
+
+                    <!-- Tarea y Actividad -->
+                    <div class="col-task task-cell">
+                      <strong class="task-title">${esc(r.taskName || 'Tarea sin nombre')}</strong>
+                      <div class="task-sub">
+                        ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
+                        <span class="act-name">${esc(r.activityName || 'Operación')}</span>
+                      </div>
+                      ${r.notes ? `<p class="notes-preview" title="${esc(r.notes)}">"${esc(r.notes.length > 70 ? r.notes.slice(0, 70) + '…' : r.notes)}"</p>` : ''}
+                    </div>
+
+                    <!-- Autor -->
+                    <div class="col-author author-cell">
+                      <span class="author-avatar">${esc((r.author || 'A').charAt(0).toUpperCase())}</span>
+                      <div class="author-details">
+                        <strong class="author-name">${esc(r.author)}</strong>
+                        ${r.responsible ? `<small class="resp-hint" title="Responsable: ${esc(r.responsible)}">Resp: ${esc(r.responsible)}</small>` : ''}
+                      </div>
+                    </div>
+
+                    <!-- Avance -->
+                    <div class="col-progress progress-cell">
+                      <div class="progress-info">
+                        <span class="m-only-label">Avance</span>
+                        <strong class="pct-val">${esc(progress(r.progressBps))}</strong>
+                      </div>
+                      <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
+                    </div>
+
+                    <!-- Estado en PC -->
+                    <div class="col-status d-status-cell">
+                      <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
+                    </div>
+
+                    <!-- Evidencias / Fotos -->
+                    <div class="col-photos photos-cell">
+                      ${r.attachments && r.attachments.length ? `
+                        <span class="photo-badge" title="${r.attachments.length} fotografía(s)">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                          </svg>
+                          <span>${r.attachments.length}</span>
                         </span>
-                      </td>
-                      <td class="task-progress">
-                        <span>${esc(progress(r.progressBps))}</span>
-                        <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
-                      </td>
-                      <td class="status-column">
-                        <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
-                      </td>
-                      <td style="text-align: center;">
-                        ${r.attachments && r.attachments.length ? `
-                          <span class="photo-chip" title="${r.attachments.length} fotografía(s) adjunta(s)">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                              <circle cx="12" cy="13" r="4"></circle>
-                            </svg>
-                            <span>${r.attachments.length}</span>
-                          </span>
-                        ` : '<span style="color: var(--text-muted); font-size: 13px;">—</span>'}
-                      </td>
-                      <td class="task-action" style="text-align: right;">
-                        <button class="btn subtle small" data-entry="${esc(r.id)}">
-                          <span>Detalle</span>
-                        </button>
-                      </td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
+                      ` : '<span class="no-photos">—</span>'}
+                    </div>
+
+                    <!-- Acción -->
+                    <div class="col-action action-cell">
+                      <button class="btn subtle small btn-action-detail" type="button" data-entry="${esc(r.id)}">
+                        <span>Detalle</span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </button>
+                    </div>
+                  </article>
+                `).join('')}
+              </div>
             </div>`
           : `<div class="empty journal-empty">
               <div class="empty-icon-bubble">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="8" y1="12" x2="16" y2="12"></line>
                 </svg>
               </div>
-              <h3>${self.project ? 'Sin asientos registrados' : 'Selecciona un proyecto'}</h3>
-              <p>${self.project ? 'No hay registros que coincidan con los filtros seleccionados.' : 'Elige un proyecto en el carrusel superior para consultar su bitácora ERP.'}</p>
+              <h3>${self.project ? 'Sin asientos con estos filtros' : 'Selecciona un proyecto'}</h3>
+              <p>${self.project ? 'Prueba cambiando los filtros o el texto de búsqueda.' : 'Elige un proyecto en el carrusel superior para consultar su bitácora ERP.'}</p>
             </div>`;
 
-      find('#journal-results').querySelectorAll('[data-entry]').forEach(button => {
-        button.onclick = () => {
-          const row = self.rows.find(r => r.id === button.dataset.entry);
+      find('#journal-results').querySelectorAll('.journal-row-card').forEach(card => {
+        card.onclick = (e) => {
+          const entryId = card.dataset.entry;
+          const row = self.rows.find(r => r.id === entryId);
           if (row) {
             detail(row);
             const detailEl = find('#journal-detail');
-            if (detailEl) {
-              detailEl.focus();
-            }
+            if (detailEl) detailEl.focus();
           }
         };
       });
@@ -566,7 +665,6 @@ window.campoJournal = {
       if (!container) return;
       container.innerHTML = renderProjectSliderHtml();
 
-      // Hook refresh button directly in the slider header
       const refreshBtn = find('#journal-refresh');
       if (refreshBtn) refreshBtn.onclick = load;
 
@@ -644,7 +742,7 @@ window.campoJournal = {
           const projId = card.dataset.projectCard;
           if (self.project === projId) return;
           self.project = projId;
-          self.filters = { from: '', to: '', task: '', author: '', status: '' };
+          self.filters = { from: '', to: '', task: '', author: '', status: '', search: '', hasPhotos: false };
           const hiddenSelect = find('#journal-project');
           if (hiddenSelect) hiddenSelect.value = projId;
           syncSelectedProjectCard();
@@ -698,12 +796,54 @@ window.campoJournal = {
       });
     };
 
-    for (const key of Object.keys(self.filters)) {
+    // Quick Status Pills
+    root.querySelectorAll('.quick-pill').forEach(pill => {
+      pill.onclick = () => {
+        const filterType = pill.dataset.quickFilter;
+        if (filterType === 'all') {
+          self.filters.status = '';
+          self.filters.hasPhotos = false;
+        } else if (filterType === 'photos') {
+          self.filters.hasPhotos = !self.filters.hasPhotos;
+        } else {
+          self.filters.status = self.filters.status === filterType ? '' : filterType;
+          self.filters.hasPhotos = false;
+        }
+        self.page = 1;
+        controls();
+        draw();
+      };
+    });
+
+    // Quick Search Input
+    const searchInput = find('#journal-search');
+    if (searchInput) {
+      searchInput.oninput = e => {
+        self.filters.search = e.target.value;
+        self.page = 1;
+        draw();
+      };
+    }
+
+    // Toggle Advanced Filters Drawer
+    const toggleBtn = find('#journal-toggle-filters');
+    const drawer = find('#journal-advanced-filters');
+    if (toggleBtn && drawer) {
+      toggleBtn.onclick = () => {
+        self.filtersOpen = !self.filtersOpen;
+        drawer.hidden = !self.filtersOpen;
+        toggleBtn.setAttribute('aria-expanded', self.filtersOpen ? 'true' : 'false');
+      };
+    }
+
+    // Advanced Drawer Fields
+    for (const key of ['from', 'to', 'task', 'author', 'status']) {
       const input = find('#journal-' + key);
       if (input) {
         input.onchange = e => {
           self.filters[key] = e.target.value;
           self.page = 1;
+          controls();
           draw();
         };
       }
@@ -712,7 +852,8 @@ window.campoJournal = {
     const clearBtn = find('#journal-clear');
     if (clearBtn) {
       clearBtn.onclick = () => {
-        for (const key of Object.keys(self.filters)) self.filters[key] = '';
+        self.filters = { from: '', to: '', task: '', author: '', status: '', search: '', hasPhotos: false };
+        self.page = 1;
         controls();
         draw();
       };
@@ -732,7 +873,7 @@ window.campoJournal = {
     if (hiddenSelect) {
       hiddenSelect.onchange = e => {
         self.project = e.target.value;
-        self.filters = { from: '', to: '', task: '', author: '', status: '' };
+        self.filters = { from: '', to: '', task: '', author: '', status: '', search: '', hasPhotos: false };
         syncSelectedProjectCard();
         load();
       };
