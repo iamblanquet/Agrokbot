@@ -55,13 +55,206 @@ function render(){updateChrome();({projects:renderProjects,employees:renderEmplo
 function renderProjects(){
   const projects=state.catalog.projects,tasks=state.catalog.tasks;
   if(!state.selected||!projectById(state.selected))state.selected=projects[0]?.id;
+
+  const projectCardsHtml=projects.map(p=>{
+    const pt=tasks.filter(t=>t.projectId===p.id);
+    const avg=pt.length?Math.round(pt.reduce((a,t)=>a+t.progressBps,0)/pt.length):0;
+    const loc=p.operationLocationName?`${esc(p.operationLocationName)} · `:'' ;
+    const line=esc(p.businessLine?.name||p.company?.name||'Operaciones');
+    return `<button class="project-card ${state.selected===p.id?'selected':''}" data-project="${esc(p.id)}" aria-pressed="${state.selected===p.id}">
+      <div class="project-meta">
+        <span class="project-code">${esc(p.folio||p.code)}</span>
+        <span class="chip">${pt.length&&pt.every(t=>t.progressBps===10000)?'Completado':'En seguimiento'}</span>
+      </div>
+      <h3>${esc(p.name)}</h3>
+      <p class="subline">${loc}${line} · ${pt.length} tareas</p>
+      <div class="progress-label"><span>Promedio simple de tareas</span><strong>${pct(avg)}</strong></div>
+      <progress max="10000" value="${avg}" aria-label="Avance medio"></progress>
+      <div class="project-foot">
+        <span>${pt.filter(t=>t.progressBps===10000).length} de ${pt.length} tareas completas</span>
+        <span class="selected-label">${state.selected===p.id?'Seleccionado':'Ver tareas <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>'}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  const sliderHtml=`
+    <div class="section-heading project-section-heading">
+      <div class="project-heading-info">
+        <h2>Mis proyectos</h2>
+        <span class="project-count-badge">${projects.length} ${projects.length===1?'proyecto':'proyectos'}</span>
+      </div>
+      <div class="project-slider-nav-wrap">
+        ${projects.length>1?`
+        <div class="slider-arrow-controls" aria-label="Navegación de proyectos">
+          <button class="slider-nav-btn prev" data-slider-action="prev" aria-label="Proyecto anterior" title="Proyecto anterior">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <span class="slider-counter" id="proj-slider-counter">1 / ${projects.length}</span>
+          <button class="slider-nav-btn next" data-slider-action="next" aria-label="Siguiente proyecto" title="Siguiente proyecto">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>`:''}
+        <span class="catalog-badge">${state.config.erpMode==='demo'?'Datos de demostración':'Catálogo del ERP'}</span>
+      </div>
+    </div>
+    <div class="project-slider-wrapper">
+      ${projects.length>1?`
+      <button class="project-floating-arrow prev" data-slider-action="prev" aria-label="Proyecto anterior" title="Proyecto anterior">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>`:''}
+      <section class="project-slider-track" id="project-slider-track" tabindex="0" role="region" aria-label="Carrusel de proyectos">
+        ${projectCardsHtml}
+      </section>
+      ${projects.length>1?`
+      <button class="project-floating-arrow next" data-slider-action="next" aria-label="Siguiente proyecto" title="Siguiente proyecto">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>`:''}
+    </div>
+    ${projects.length>1?`
+    <div class="project-slider-dots" id="project-slider-dots" role="tablist" aria-label="Indicadores de proyectos">
+      ${projects.map((p,i)=>`
+        <button class="slider-dot ${state.selected===p.id?'active':(i===0&&!state.selected?'active':'')}" data-slide-index="${i}" aria-label="Ir a proyecto ${i+1}: ${esc(p.name)}" title="${esc(p.name)}"></button>
+      `).join('')}
+    </div>`:''}
+  `;
+
   $('#main').innerHTML=heading('Cada avance cuenta.','Consulta tus proyectos y registra el trabajo de hoy.')+`
     <section class="stats" aria-label="Resumen"><div class="stat"><span class="stat-label">Proyectos disponibles</span><strong>${projects.length.toString().padStart(2,'0')}</strong><small>en tu espacio</small></div><div class="stat"><span class="stat-label">Tareas por completar</span><strong>${tasks.filter(t=>t.progressBps<10000).length.toString().padStart(2,'0')}</strong><small>en seguimiento</small></div><div class="stat"><span class="stat-label">Reportes en este dispositivo</span><strong class="${state.local.length?'amber':''}">${state.local.length.toString().padStart(2,'0')}</strong><small>por sincronizar</small></div></section>
-    <div class="section-heading"><h2>Mis proyectos</h2><span>${state.config.erpMode==='demo'?'Datos de demostración':'Catálogo del ERP'}</span></div>
-    <section class="project-grid">${projects.map(p=>{const pt=tasks.filter(t=>t.projectId===p.id);const avg=pt.length?Math.round(pt.reduce((a,t)=>a+t.progressBps,0)/pt.length):0;const loc=p.operationLocationName?`${esc(p.operationLocationName)} · `:'' ;const line=esc(p.businessLine?.name||p.company?.name||'Operaciones');return `<button class="project-card ${state.selected===p.id?'selected':''}" data-project="${esc(p.id)}" aria-pressed="${state.selected===p.id}"><div class="project-meta"><span class="project-code">${esc(p.folio||p.code)}</span><span class="chip">${pt.length&&pt.every(t=>t.progressBps===10000)?'Completado':'En seguimiento'}</span></div><h3>${esc(p.name)}</h3><p class="subline">${loc}${line} · ${pt.length} tareas</p><div class="progress-label"><span>Promedio simple de tareas</span><strong>${pct(avg)}</strong></div><progress max="10000" value="${avg}" aria-label="Avance medio"></progress><div class="project-foot"><span>${pt.filter(t=>t.progressBps===10000).length} de ${pt.length} tareas completas</span><span class="selected-label">${state.selected===p.id?'Seleccionado':'Ver tareas <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>'}</span></div></button>`;}).join('')}</section>
-    ${!projects.length?'<div class="empty"><h3>Aún no hay proyectos descargados</h3><p>Conecta al servidor y pulsa Sincronizar.</p></div>':`<section class="task-panel"><div class="task-panel-head"><div><h2>Tareas del proyecto</h2><p>${esc(projectById(state.selected)?.name)}</p></div><div class="filters"><input id="task-search" type="search" placeholder="Buscar tarea…" aria-label="Buscar tarea" value="${esc(state.search)}"><select id="task-filter" aria-label="Filtrar estado"><option value="all">Todos los estados</option><option value="active">Por completar</option><option value="done">Finalizadas</option></select></div></div><div id="task-table"></div></section>`}`;
-  document.querySelectorAll('[data-project]').forEach(el=>el.onclick=()=>{state.selected=el.dataset.project;state.search='';renderProjects();});
+    ${!projects.length?'<div class="empty"><h3>Aún no hay proyectos descargados</h3><p>Conecta al servidor y pulsa Sincronizar.</p></div>':sliderHtml+`<section class="task-panel"><div class="task-panel-head"><div><h2>Tareas del proyecto</h2><p>${esc(projectById(state.selected)?.name)}</p></div><div class="filters"><input id="task-search" type="search" placeholder="Buscar tarea…" aria-label="Buscar tarea" value="${esc(state.search)}"><select id="task-filter" aria-label="Filtrar estado"><option value="all">Todos los estados</option><option value="active">Por completar</option><option value="done">Finalizadas</option></select></div></div><div id="task-table"></div></section>`}`;
+
+  if(projects.length){
+    initProjectSlider();
+  }
+
   if($('#task-filter')){$('#task-filter').value=state.taskFilter;$('#task-filter').onchange=e=>{state.taskFilter=e.target.value;renderTaskTable();};$('#task-search').oninput=e=>{state.search=e.target.value;renderTaskTable();};renderTaskTable();}
+}
+
+function initProjectSlider(){
+  const track=$('#project-slider-track');
+  if(!track)return;
+  const cards=Array.from(track.querySelectorAll('.project-card'));
+  if(!cards.length)return;
+
+  function getCardStep(){
+    if(cards.length>1){
+      const step=cards[1].offsetLeft-cards[0].offsetLeft;
+      if(step>0)return step;
+    }
+    return cards[0].offsetWidth+14;
+  }
+
+  function updateSliderUi(){
+    const scrollLeft=track.scrollLeft;
+    const maxScroll=Math.max(0,track.scrollWidth-track.clientWidth);
+    const isAtStart=scrollLeft<=4;
+    const isAtEnd=scrollLeft>=maxScroll-6||maxScroll<=2;
+
+    const step=getCardStep()||1;
+    const activeIdx=Math.min(cards.length-1,Math.max(0,Math.round(scrollLeft/step)));
+
+    document.querySelectorAll('#project-slider-dots .slider-dot').forEach((dot,i)=>{
+      dot.classList.toggle('active',i===activeIdx);
+    });
+
+    const counter=$('#proj-slider-counter');
+    if(counter){
+      const isDesktop=track.clientWidth>=768;
+      if(isDesktop&&cards.length>=2){
+        const endIdx=Math.min(cards.length,activeIdx+2);
+        counter.textContent=`${activeIdx+1}–${endIdx} / ${cards.length}`;
+      }else{
+        counter.textContent=`${activeIdx+1} / ${cards.length}`;
+      }
+    }
+
+    document.querySelectorAll('[data-slider-action="prev"]').forEach(btn=>{
+      btn.disabled=isAtStart;
+    });
+    document.querySelectorAll('[data-slider-action="next"]').forEach(btn=>{
+      btn.disabled=isAtEnd;
+    });
+  }
+
+  function slide(direction){
+    const step=getCardStep();
+    track.scrollBy({left:direction*step,behavior:'smooth'});
+  }
+
+  document.querySelectorAll('[data-slider-action]').forEach(btn=>{
+    btn.onclick=(e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      slide(btn.dataset.sliderAction==='next'?1:-1);
+    };
+  });
+
+  document.querySelectorAll('#project-slider-dots .slider-dot').forEach(dot=>{
+    dot.onclick=(e)=>{
+      e.preventDefault();
+      const idx=parseInt(dot.dataset.slideIndex,10);
+      const targetCard=cards[idx];
+      if(targetCard){
+        track.scrollTo({left:targetCard.offsetLeft-track.offsetLeft,behavior:'smooth'});
+      }
+    };
+  });
+
+  cards.forEach(card=>{
+    card.onclick=()=>{
+      const projId=card.dataset.project;
+      if(state.selected===projId)return;
+      state.selected=projId;
+      state.search='';
+      cards.forEach(c=>{
+        const isSel=c.dataset.project===state.selected;
+        c.classList.toggle('selected',isSel);
+        c.setAttribute('aria-pressed',isSel?'true':'false');
+        const label=c.querySelector('.selected-label');
+        if(label){
+          label.innerHTML=isSel?'Seleccionado':'Ver tareas <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+        }
+      });
+      const titleEl=document.querySelector('.task-panel-head p');
+      if(titleEl)titleEl.textContent=projectById(state.selected)?.name||'';
+      const searchInput=$('#task-search');
+      if(searchInput)searchInput.value='';
+      renderTaskTable();
+    };
+  });
+
+  let ticking=false;
+  track.onscroll=()=>{
+    if(!ticking){
+      window.requestAnimationFrame(()=>{
+        updateSliderUi();
+        ticking=false;
+      });
+      ticking=true;
+    }
+  };
+
+  track.onkeydown=(e)=>{
+    if(e.key==='ArrowRight'){
+      e.preventDefault();
+      slide(1);
+    }else if(e.key==='ArrowLeft'){
+      e.preventDefault();
+      slide(-1);
+    }
+  };
+
+  window.addEventListener('resize',updateSliderUi,{passive:true});
+
+  const selectedIndex=cards.findIndex(c=>c.dataset.project===state.selected);
+  if(selectedIndex>0){
+    const target=cards[selectedIndex];
+    const targetLeft=target.offsetLeft-track.offsetLeft;
+    if(targetLeft<track.scrollLeft||targetLeft>=track.scrollLeft+track.clientWidth-20){
+      track.scrollTo({left:targetLeft,behavior:'instant'});
+    }
+  }
+
+  updateSliderUi();
 }
 function renderTaskTable(){
   const tasks=state.catalog.tasks.filter(t=>t.projectId===state.selected&&(state.taskFilter==='all'||(state.taskFilter==='done'?t.progressBps===10000:t.progressBps<10000))&&`${t.name} ${t.code}`.toLowerCase().includes(state.search.toLowerCase()));
