@@ -523,13 +523,13 @@ window.campoJournal = {
                 <table class="journal-table">
                   <thead>
                     <tr>
-                      <th style="min-width: 135px; width: 140px;">FECHA / REF</th>
-                      <th style="min-width: 250px;">TAREA / ACTIVIDAD</th>
-                      <th style="min-width: 180px;">AUTOR</th>
-                      <th style="min-width: 130px; width: 140px;">AVANCE</th>
-                      <th style="min-width: 110px; width: 120px;">ESTADO</th>
-                      <th style="min-width: 80px; width: 90px; text-align: center;">FOTOS</th>
-                      <th style="min-width: 90px; width: 100px; text-align: right;"><span class="muted">ACCIÓN</span></th>
+                      <th style="width: 145px;">FECHA / REF</th>
+                      <th style="min-width: 300px;">TAREA / ACTIVIDAD</th>
+                      <th style="width: 200px;">AUTOR</th>
+                      <th style="width: 160px;">AVANCE</th>
+                      <th style="width: 130px;">ESTADO</th>
+                      <th style="width: 110px; text-align: center;">FOTOS</th>
+                      <th style="width: 125px; text-align: right;"><span class="muted">ACCIÓN</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -545,8 +545,15 @@ window.campoJournal = {
                             <div class="task-sub-row">
                               ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
                               <span class="act-name">${esc(r.activityName || 'Operación')}</span>
-                              ${r.notes ? `<span class="has-notes-indicator" title="Tiene observaciones de campo">💬</span>` : ''}
                             </div>
+                            ${r.notes ? `
+                              <div class="task-notes-strip" title="Observación: ${esc(r.notes)}">
+                                <svg class="notes-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <span class="notes-content">${esc(r.notes)}</span>
+                              </div>
+                            ` : ''}
                           </div>
                         </td>
                         <td class="cell-author">

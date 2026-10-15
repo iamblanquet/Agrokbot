@@ -1,36 +1,38 @@
 /* ==========================================================================
-   AGROKOOL CAMPO PWA — BITÁCORA ERP DESIGN SYSTEM (V4: Precision & Anti-Collision)
-   Clean typography, safe cell widths, no text overlap, and mobile card feed.
+   AGROKOOL CAMPO PWA — BITÁCORA ERP DESIGN SYSTEM (V5: Full-Width Canvas)
+   Utilizes full screen width, anti-collision table, notes preview, mobile feed.
    ========================================================================== */
 
 .journal {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 /* ==========================================================================
-   1. Compact Summary Stats at the TOP
+   1. Compact Summary Stats at the TOP (Full Width)
    ========================================================================== */
 .journal-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 16px;
   background: var(--surface);
   border: 1px solid var(--border-light);
   border-radius: 14px;
-  padding: 14px 18px;
+  padding: 16px 22px;
   box-shadow: var(--shadow-xs);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .journal-stats .stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 10px;
+  gap: 3px;
+  padding: 0 14px;
   border-left: 3px solid var(--brand-lime);
 }
 
@@ -51,15 +53,15 @@
 }
 
 .journal-stats .stat-label {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--text-secondary);
 }
 
 .journal-stats .stat strong {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--brand-primary);
   line-height: 1.1;
@@ -67,37 +69,41 @@
 }
 
 .journal-stats .stat small {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
 /* ==========================================================================
-   2. Projects Slider for ERP Journal
+   2. Projects Slider for ERP Journal (Full Width)
    ========================================================================== */
 .journal-project-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 4px;
+  gap: 14px;
+  margin-bottom: 6px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .journal-slider-wrapper {
   position: relative;
   margin-bottom: 2px;
+  width: 100%;
 }
 
 .journal-slider-track {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding: 4px 2px 10px 2px;
+  padding: 6px 2px 12px 2px;
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .journal-slider-track::-webkit-scrollbar {
@@ -105,9 +111,9 @@
 }
 
 .journal-slider-track .project-card {
-  flex: 0 0 calc(50% - 8px);
-  min-width: calc(50% - 8px);
-  max-width: calc(50% - 8px);
+  flex: 0 0 calc(50% - 9px);
+  min-width: calc(50% - 9px);
+  max-width: calc(50% - 9px);
   scroll-snap-align: start;
   scroll-snap-stop: normal;
   margin: 0;
@@ -116,7 +122,7 @@
   border: 1px solid var(--border-strong);
   background: var(--surface);
   border-radius: 14px;
-  padding: 18px 20px;
+  padding: 20px 24px;
   text-align: left;
   color: inherit;
   position: relative;
@@ -153,7 +159,7 @@
 }
 
 .project-journal-label {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -164,7 +170,7 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 700;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 8px;
 }
 
@@ -183,8 +189,9 @@
   justify-content: space-between;
   gap: 12px;
   font-size: 12px;
-  padding: 0 2px;
+  padding: 0 4px;
   min-height: 18px;
+  width: 100%;
 }
 
 .journal-message {
@@ -199,7 +206,7 @@
 }
 
 /* ==========================================================================
-   3. Panel & Modern Streamlined Filter Toolbar
+   3. Panel & Spacious Filter Toolbar
    ========================================================================== */
 .journal-panel {
   background: var(--surface);
@@ -209,62 +216,68 @@
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .journal-panel-head {
-  padding: 16px 20px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border-light);
   background: #fdfefc;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .journal-panel-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .journal-panel-title h2 {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 750;
   color: var(--brand-primary);
-  margin: 0 0 2px 0;
+  margin: 0 0 3px 0;
 }
 
 .journal-panel-title p {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin: 0;
 }
 
-/* Filter controls bar: Search + Quick Pills + Advanced Toggle */
+/* Filter controls bar: Full width distribution */
 .journal-filter-bar {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
 }
 
 .journal-filter-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .journal-search-wrap {
   position: relative;
-  flex: 1 1 220px;
-  min-width: 180px;
+  flex: 1 1 280px;
+  min-width: 220px;
 }
 
 .journal-search-wrap .search-icon {
   position: absolute;
-  left: 10px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
@@ -273,12 +286,12 @@
 
 .journal-search-wrap input[type="search"] {
   width: 100%;
-  min-height: 36px;
-  padding: 6px 10px 6px 32px;
+  min-height: 38px;
+  padding: 7px 12px 7px 36px;
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   background: var(--surface);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-primary);
   box-sizing: border-box;
   transition: all var(--transition-fast);
@@ -287,13 +300,13 @@
 .journal-search-wrap input[type="search"]:focus {
   outline: none;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 2.5px var(--brand-primary-border);
+  box-shadow: 0 0 0 3px var(--brand-primary-border);
 }
 
 .journal-quick-pills {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
   padding: 2px 0;
@@ -307,9 +320,9 @@
   border: 1px solid var(--border-light);
   background: var(--bg-subtle);
   color: var(--text-secondary);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
@@ -331,10 +344,10 @@
 .btn-filter-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 7px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 8px;
   background: var(--surface);
   color: var(--text-secondary);
@@ -359,9 +372,9 @@
 .filter-count-badge {
   background: var(--brand-primary);
   color: #ffffff;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 1px 7px;
   border-radius: 999px;
 }
 
@@ -370,11 +383,13 @@
   background: var(--bg-subtle);
   border: 1px solid var(--border-light);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .journal-advanced-drawer[hidden] {
@@ -384,13 +399,14 @@
 .drawer-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
+  width: 100%;
 }
 
 .drawer-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .drawer-field label {
@@ -398,36 +414,38 @@
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .drawer-field input,
 .drawer-field select {
   width: 100%;
-  min-height: 34px;
-  padding: 6px 8px;
+  min-height: 36px;
+  padding: 7px 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--surface);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 12.5px;
   box-sizing: border-box;
 }
 
 .drawer-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn-clear-all {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text-secondary);
-  padding: 5px 12px;
-  border-radius: 6px;
+  padding: 6px 14px;
+  border-radius: 7px;
   background: transparent;
   border: 1px solid var(--border-strong);
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .btn-clear-all:hover {
@@ -437,7 +455,7 @@
 }
 
 /* ==========================================================================
-   4. Desktop Table View (Clean, native <table>, ZERO text collision)
+   4. Desktop Table View (Full-Width, Spacious, Zero Collisions)
    ========================================================================== */
 .journal-desktop-view {
   display: block;
@@ -461,10 +479,10 @@
 }
 
 .journal-table th {
-  padding: 12px 16px;
+  padding: 14px 20px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-light);
@@ -481,20 +499,23 @@
 }
 
 .journal-table td {
-  padding: 12px 16px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border-light);
   vertical-align: middle;
 }
 
 /* Date / Ref cell */
 .cell-date {
+  width: 145px;
+  min-width: 135px;
+  max-width: 160px;
   white-space: nowrap;
 }
 
 .cell-date .date-text {
   display: block;
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: 750;
+  font-size: 13.5px;
   color: var(--brand-primary);
   line-height: 1.25;
 }
@@ -505,82 +526,113 @@
   color: var(--text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   background: var(--bg-subtle);
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
-  margin-top: 3px;
+  margin-top: 4px;
+  border: 1px solid var(--border-light);
   letter-spacing: 0.02em;
 }
 
-/* Task info block */
+/* Task info block: EXPANDS ACROSS THE FULL REMAINING SPACE */
 .cell-task {
-  max-width: 380px;
+  width: auto;
+  min-width: 300px;
 }
 
 .task-info-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  width: 100%;
 }
 
 .task-title {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 750;
   color: var(--brand-primary);
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .task-sub-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
+  gap: 8px;
+  font-size: 12px;
   color: var(--text-secondary);
   flex-wrap: wrap;
 }
 
 .code-pill {
-  font-size: 10.5px;
-  font-weight: 750;
+  font-size: 11px;
+  font-weight: 800;
   color: var(--brand-gold);
   background: var(--bg-subtle);
-  padding: 1px 5px;
+  padding: 2px 7px;
   border-radius: 4px;
+  border: 1px solid rgba(168, 125, 19, 0.22);
   flex-shrink: 0;
 }
 
 .act-name {
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
-.has-notes-indicator {
+/* Beautiful Field Notes Strip: Uses horizontal space gracefully */
+.task-notes-strip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-subtle);
+  border-left: 3px solid var(--brand-gold);
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin-top: 2px;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.task-notes-strip .notes-icon {
+  color: var(--brand-gold);
+  flex-shrink: 0;
+}
+
+.task-notes-strip .notes-content {
   font-size: 12px;
-  cursor: help;
-  vertical-align: middle;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Author block */
 .cell-author {
+  width: 200px;
+  min-width: 180px;
   white-space: nowrap;
 }
 
 .author-block {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .author-avatar {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--brand-primary-soft);
   color: var(--brand-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   flex-shrink: 0;
+  border: 1px solid var(--brand-primary-border);
 }
 
 .author-text {
@@ -590,19 +642,20 @@
 }
 
 .author-name {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 650;
   color: var(--text-primary);
 }
 
 .resp-hint {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
 /* Progress cell */
 .cell-progress {
-  min-width: 120px;
+  width: 160px;
+  min-width: 140px;
 }
 
 .progress-wrap-table {
@@ -611,8 +664,16 @@
   gap: 4px;
 }
 
-.progress-wrap-table .pct-val {
-  font-size: 12px;
+.progress-label-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.progress-label-mini .pct-val {
+  font-size: 12.5px;
   font-weight: 750;
   color: var(--brand-primary);
   font-variant-numeric: tabular-nums;
@@ -620,15 +681,21 @@
 
 .progress-wrap-table progress {
   width: 100%;
-  height: 6px;
+  height: 7px;
   border-radius: 10px;
 }
 
 /* Status Chips */
+.cell-status {
+  width: 130px;
+  min-width: 110px;
+  white-space: nowrap;
+}
+
 .chip {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border-radius: 6px;
   white-space: nowrap;
   display: inline-block;
@@ -659,16 +726,24 @@
 }
 
 /* Photos badge */
+.cell-photos {
+  width: 110px;
+  min-width: 95px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .cell-photos .photo-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 11.5px;
   font-weight: 700;
-  padding: 3px 7px;
+  padding: 4px 9px;
   border-radius: 999px;
   background: var(--brand-primary-soft);
   color: var(--brand-primary);
+  border: 1px solid var(--brand-primary-border);
 }
 
 .cell-photos .no-photos {
@@ -677,14 +752,28 @@
 }
 
 /* Action button */
+.cell-action {
+  width: 125px;
+  min-width: 115px;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .cell-action .btn-open-detail {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  font-size: 11.5px;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 700;
-  border-radius: 7px;
+  border-radius: 8px;
+  transition: all var(--transition-fast);
+}
+
+.cell-action .btn-open-detail:hover {
+  background: var(--brand-primary);
+  color: #ffffff;
+  border-color: var(--brand-primary);
 }
 
 /* ==========================================================================
@@ -705,6 +794,8 @@
     gap: 12px;
     padding: 12px;
     background: var(--bg-subtle);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .journal-mobile-card {
@@ -718,6 +809,8 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     cursor: pointer;
     transition: transform var(--transition-fast);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .journal-mobile-card:active {
@@ -757,6 +850,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    width: 100%;
   }
 
   .m-task-title {
@@ -781,6 +875,8 @@
     border-left: 3px solid var(--brand-gold);
     border-radius: 6px;
     padding: 6px 10px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .m-notes-box p {
@@ -799,6 +895,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    width: 100%;
   }
 
   .m-progress-label {
@@ -826,6 +923,8 @@
     padding-top: 8px;
     border-top: 1px solid var(--border-light);
     gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .m-author {
@@ -858,11 +957,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: 14px 22px;
   border-top: 1px solid var(--border-light);
   background: #fdfefc;
   gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pagination-count-label {
@@ -882,7 +983,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 12px;
+  padding: 6px 12px;
   font-size: 12px;
   font-weight: 700;
   border-radius: 7px;
@@ -891,7 +992,8 @@
 /* Empty State */
 .journal-empty {
   text-align: center;
-  padding: 36px 20px;
+  padding: 40px 24px;
+  width: 100%;
 }
 
 .empty-icon-bubble {
@@ -907,11 +1009,11 @@
 }
 
 .journal-alert {
-  padding: 12px 16px;
-  margin: 14px;
+  padding: 14px 18px;
+  margin: 16px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .journal-alert.error {
