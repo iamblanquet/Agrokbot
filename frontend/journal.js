@@ -22,6 +22,13 @@ window.campoJournal = {
       CANCELLED: 'chip-status-cancelled'
     })[s] || '';
 
+    const statusColorClass = s => ({
+      FINISHED: 'green',
+      IN_PROGRESS: 'amber',
+      CREATED: 'blue',
+      CANCELLED: 'red'
+    })[s] || '';
+
     const progress = n => typeof n === 'number'
       ? `${(n / 100).toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
       : '0 %';
@@ -118,89 +125,34 @@ window.campoJournal = {
           <p id="journal-message" role="status" class="journal-message"></p>
         </div>
 
-        <!-- 3. Panel de Asientos con Barra de Filtros Limpia y Tabla Sin Superposiciones -->
-        <section class="task-panel journal-panel">
-          <div class="journal-panel-head">
-            <div class="journal-panel-top-row">
-              <div class="journal-panel-title">
-                <h2>Asientos y registros ERP</h2>
-                <p id="journal-active-project-name">Selecciona un proyecto</p>
-              </div>
+        <!-- 3. Panel de Asientos idéntico a Tareas del proyecto -->
+        <section class="task-panel">
+          <div class="task-panel-head">
+            <div>
+              <h2>Asientos y registros ERP</h2>
+              <p id="journal-active-project-name">Selecciona un proyecto</p>
             </div>
-
-            <!-- Barra de Filtros Limpia: Búsqueda rápida + Pestañas de Estado + Filtros avanzados -->
-            <div class="journal-filter-bar">
-              <div class="journal-filter-main">
-                <div class="journal-search-wrap">
-                  <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                  <input id="journal-search" type="search" placeholder="Buscar tarea, autor o folio…" aria-label="Buscar en bitácora">
-                </div>
-
-                <div class="journal-quick-pills" role="tablist" aria-label="Filtro rápido de estado">
-                  <button type="button" class="quick-pill active" data-quick-filter="all">Todos</button>
-                  <button type="button" class="quick-pill" data-quick-filter="IN_PROGRESS">En progreso</button>
-                  <button type="button" class="quick-pill" data-quick-filter="FINISHED">Finalizados</button>
-                  <button type="button" class="quick-pill" data-quick-filter="photos">Con fotos</button>
-                </div>
-
-                <button type="button" id="journal-toggle-filters" class="btn-filter-toggle" aria-expanded="false" aria-controls="journal-advanced-filters">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                  </svg>
-                  <span>Más filtros</span>
-                  <span id="journal-filter-badge" class="filter-count-badge" hidden>0</span>
-                </button>
-              </div>
-
-              <!-- Cajón desplegable para fechas y selects específicos -->
-              <div id="journal-advanced-filters" class="journal-advanced-drawer" hidden>
-                <div class="drawer-grid">
-                  <div class="drawer-field">
-                    <label for="journal-from">Fecha desde</label>
-                    <input id="journal-from" type="date">
-                  </div>
-                  <div class="drawer-field">
-                    <label for="journal-to">Fecha hasta</label>
-                    <input id="journal-to" type="date">
-                  </div>
-                  <div class="drawer-field">
-                    <label for="journal-task">Tarea</label>
-                    <select id="journal-task"><option value="">Todas las tareas</option></select>
-                  </div>
-                  <div class="drawer-field">
-                    <label for="journal-author">Autor</label>
-                    <select id="journal-author"><option value="">Todos los autores</option></select>
-                  </div>
-                  <div class="drawer-field">
-                    <label for="journal-status">Estado</label>
-                    <select id="journal-status"><option value="">Todos los estados</option></select>
-                  </div>
-                </div>
-                <div class="drawer-actions">
-                  <button id="journal-clear" class="btn-clear-all" type="button">Limpiar todos los filtros</button>
-                </div>
-              </div>
+            <div class="filters">
+              <input id="journal-search" type="search" placeholder="Buscar tarea…" aria-label="Buscar tarea">
+              <select id="journal-status" aria-label="Filtrar estado">
+                <option value="">Todos los estados</option>
+                <option value="IN_PROGRESS">En progreso</option>
+                <option value="FINISHED">Finalizadas</option>
+                <option value="CREATED">Creados</option>
+                <option value="CANCELLED">Cancelados</option>
+              </select>
             </div>
           </div>
 
-          <!-- Listado Visual: Tabla Nativa en PC y Cards Touch-Friendly en Móviles -->
+          <!-- Listado Visual: Tabla idéntica a Tareas del proyecto -->
           <div id="journal-results"></div>
 
           <!-- Pie del panel con paginación integrada -->
-          <div class="journal-panel-footer">
-            <span id="journal-count" class="pagination-count-label" aria-live="polite">0 registros · Página 1 de 1</span>
-            <div class="journal-pagination">
-              <button id="journal-prev" class="btn small nav-page-btn" aria-label="Página anterior">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                <span>Anterior</span>
-              </button>
-              <button id="journal-next" class="btn small nav-page-btn" aria-label="Página siguiente">
-                <span>Siguiente</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </button>
+          <div class="table-caption" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <span id="journal-count">0 registros · Página 1 de 1</span>
+            <div style="display: inline-flex; gap: 8px;">
+              <button id="journal-prev" class="btn subtle small" type="button" aria-label="Página anterior">&lt; Anterior</button>
+              <button id="journal-next" class="btn subtle small" type="button" aria-label="Página siguiente">Siguiente &gt;</button>
             </div>
           </div>
         </section>
@@ -517,154 +469,78 @@ window.campoJournal = {
       find('#journal-results').innerHTML = invalid
         ? '<div class="journal-alert error" role="alert"><p>La fecha inicial debe ser anterior o igual a la final.</p></div>'
         : rows.length
-          ? `<!-- Vista Desktop: Tabla Nativa con Columnas Aisladas (Sin Superposiciones) -->
-            <div class="journal-desktop-view">
-              <div class="journal-table-wrap">
-                <table class="journal-table">
-                  <colgroup>
-                    <col style="width: 115px;">
-                    <col style="width: auto;">
-                    <col style="width: 140px;">
-                    <col style="width: 115px;">
-                    <col style="width: 105px;">
-                    <col style="width: 65px;">
-                    <col style="width: 80px;">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th>FECHA / REF</th>
-                      <th>TAREA / ACTIVIDAD</th>
-                      <th>AUTOR</th>
-                      <th>AVANCE</th>
-                      <th>ESTADO</th>
-                      <th style="text-align: center;">FOTOS</th>
-                      <th style="text-align: right;"><span class="muted">ACCIÓN</span></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${pageRows.map(r => `
-                      <tr class="journal-tr" data-entry="${esc(r.id)}">
-                        <td class="cell-date">
-                          <span class="date-text">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
-                          <span class="ref-badge" title="${esc(r.id)}">#${esc(shortId(r.id))}</span>
+          ? `<div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>TAREA / ACTIVIDAD</th>
+                    <th class="person-column">RESPONSABLE</th>
+                    <th>AVANCE</th>
+                    <th class="status-column">ESTADO</th>
+                    <th style="text-align: right;"><span class="muted">ACCIÓN</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageRows.map(r => {
+                    const authorName = r.author || r.responsible || 'Sin asignar';
+                    const initials = esc(authorName.split(' ').filter(Boolean).map(s => s[0]).slice(0, 2).join('').toUpperCase() || 'A');
+                    const opDate = (r.operationDate || '').slice(0, 10);
+                    return `
+                      <tr data-entry="${esc(r.id)}">
+                        <td class="task-name">
+                          <strong>${esc(r.taskName || 'Tarea sin nombre')}</strong>
+                          <small>
+                            ${r.taskCode ? `<span class="task-code">${esc(r.taskCode)}</span> ` : ''}
+                            ${esc(r.activityName || 'Operación')}${opDate ? ` · ${esc(opDate)}` : ''} · #${esc(shortId(r.id))}
+                            ${r.attachments && r.attachments.length ? ` · 📷 ${r.attachments.length}` : ''}
+                            ${r.notes ? ` · <span title="Observaciones: ${esc(r.notes)}">💬</span>` : ''}
+                          </small>
                         </td>
-                        <td class="cell-task">
-                          <div class="task-info-block">
-                            <strong class="task-title" title="${esc(r.taskName || '')}">${esc(r.taskName || 'Tarea sin nombre')}</strong>
-                            <div class="task-sub-row">
-                              ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
-                              <span class="act-name" title="${esc(r.activityName || '')}">${esc(r.activityName || 'Operación')}</span>
-                              ${r.notes ? `<span class="note-pill" title="Observaciones: ${esc(r.notes)}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Nota</span>` : ''}
-                            </div>
-                          </div>
+                        <td class="person-column">
+                          <span class="person">
+                            <span class="person-circle">${initials}</span>
+                            ${esc(authorName)}
+                          </span>
                         </td>
-                        <td class="cell-author">
-                          <div class="author-block">
-                            <span class="author-avatar">${esc((r.author || 'A').charAt(0).toUpperCase())}</span>
-                            <div class="author-text">
-                              <strong class="author-name">${esc(r.author)}</strong>
-                              ${r.responsible ? `<small class="resp-hint" title="Responsable: ${esc(r.responsible)}">Resp: ${esc(r.responsible)}</small>` : ''}
-                            </div>
-                          </div>
+                        <td class="task-progress">
+                          <span>${esc(progress(r.progressBps))}</span>
+                          <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
                         </td>
-                        <td class="cell-progress">
-                          <div class="progress-wrap-table">
-                            <span class="pct-val">${esc(progress(r.progressBps))}</span>
-                            <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
-                          </div>
+                        <td class="status-column">
+                          <span class="status ${statusColorClass(r.status)}">${esc(label(r.status))}</span>
                         </td>
-                        <td class="cell-status">
-                          <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
-                        </td>
-                        <td class="cell-photos" style="text-align: center;">
-                          ${r.attachments && r.attachments.length ? `
-                            <span class="photo-badge" title="${r.attachments.length} fotografía(s)">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                <circle cx="12" cy="13" r="4"></circle>
-                              </svg>
-                              <span>${r.attachments.length}</span>
-                            </span>
-                          ` : '<span class="no-photos">—</span>'}
-                        </td>
-                        <td class="cell-action" style="text-align: right;">
-                          <button class="btn subtle small btn-open-detail" type="button" data-entry="${esc(r.id)}">
-                            <span>Detalle</span>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                          </button>
+                        <td class="task-action" style="text-align: right;">
+                          <button class="btn subtle" data-entry="${esc(r.id)}">Detalle</button>
                         </td>
                       </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Vista Mobile: Feed de Tarjetas Táctiles Ordenadas -->
-            <div class="journal-mobile-view">
-              ${pageRows.map(r => `
-                <article class="journal-mobile-card" data-entry="${esc(r.id)}" role="button" tabindex="0">
-                  <div class="m-card-header">
-                    <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
-                    <div class="m-date-ref">
-                      <span class="m-date">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
-                      <span class="m-ref" title="${esc(r.id)}">#${esc(shortId(r.id))}</span>
-                    </div>
-                  </div>
-                  <div class="m-card-body">
-                    <strong class="m-task-title">${esc(r.taskName || 'Tarea sin nombre')}</strong>
-                    <div class="m-task-sub">
-                      ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
-                      <span class="act-name">${esc(r.activityName || 'Operación')}</span>
-                    </div>
-                    ${r.notes ? `<div class="m-notes-box"><p>${esc(r.notes)}</p></div>` : ''}
-                  </div>
-                  <div class="m-card-progress">
-                    <div class="m-progress-label">
-                      <span>Avance reportado</span>
-                      <strong>${esc(progress(r.progressBps))}</strong>
-                    </div>
-                    <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}"></progress>
-                  </div>
-                  <div class="m-card-footer">
-                    <div class="m-author">
-                      <span class="author-avatar">${esc((r.author || 'A').charAt(0).toUpperCase())}</span>
-                      <span class="m-author-name">${esc(r.author)}</span>
-                    </div>
-                    <div class="m-card-footer-right">
-                      ${r.attachments && r.attachments.length ? `
-                        <span class="photo-badge" title="${r.attachments.length} foto(s)">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                            <circle cx="12" cy="13" r="4"></circle>
-                          </svg>
-                          <span>${r.attachments.length}</span>
-                        </span>
-                      ` : ''}
-                      <span class="m-chevron">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              `).join('')}
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
             </div>`
-          : `<div class="empty journal-empty">
-              <div class="empty-icon-bubble">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="8" y1="12" x2="16" y2="12"></line>
-                </svg>
-              </div>
+          : `<div class="empty">
               <h3>${self.project ? 'Sin asientos con estos filtros' : 'Selecciona un proyecto'}</h3>
               <p>${self.project ? 'Prueba cambiando los filtros o el texto de búsqueda.' : 'Elige un proyecto en el carrusel superior para consultar su bitácora ERP.'}</p>
             </div>`;
 
-      // Eventos para abrir detalle al pulsar filas o tarjetas
-      find('#journal-results').querySelectorAll('[data-entry]').forEach(el => {
-        el.onclick = (e) => {
+      // Eventos para abrir detalle al pulsar filas o botón Detalle
+      find('#journal-results').querySelectorAll('tbody tr').forEach(tr => {
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => {
+          const entryId = tr.dataset.entry;
+          const row = self.rows.find(r => r.id === entryId);
+          if (row) {
+            detail(row);
+            const detailEl = find('#journal-detail');
+            if (detailEl) detailEl.focus();
+          }
+        };
+      });
+
+      find('#journal-results').querySelectorAll('button[data-entry]').forEach(btn => {
+        btn.onclick = (e) => {
           e.stopPropagation();
-          const entryId = el.dataset.entry || el.closest('[data-entry]')?.dataset.entry;
+          const entryId = btn.dataset.entry;
           const row = self.rows.find(r => r.id === entryId);
           if (row) {
             detail(row);
