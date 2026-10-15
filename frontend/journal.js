@@ -522,13 +522,13 @@ window.campoJournal = {
               <div class="journal-table-wrap">
                 <table class="journal-table">
                   <colgroup>
-                    <col style="width: 130px;">
+                    <col style="width: 115px;">
                     <col style="width: auto;">
-                    <col style="width: 175px;">
                     <col style="width: 140px;">
-                    <col style="width: 120px;">
-                    <col style="width: 75px;">
-                    <col style="width: 95px;">
+                    <col style="width: 115px;">
+                    <col style="width: 105px;">
+                    <col style="width: 65px;">
+                    <col style="width: 80px;">
                   </colgroup>
                   <thead>
                     <tr>
