@@ -521,15 +521,24 @@ window.campoJournal = {
             <div class="journal-desktop-view">
               <div class="journal-table-wrap">
                 <table class="journal-table">
+                  <colgroup>
+                    <col style="width: 130px;">
+                    <col style="width: auto;">
+                    <col style="width: 175px;">
+                    <col style="width: 140px;">
+                    <col style="width: 120px;">
+                    <col style="width: 75px;">
+                    <col style="width: 95px;">
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th style="width: 145px;">FECHA / REF</th>
-                      <th style="min-width: 300px;">TAREA / ACTIVIDAD</th>
-                      <th style="width: 200px;">AUTOR</th>
-                      <th style="width: 160px;">AVANCE</th>
-                      <th style="width: 130px;">ESTADO</th>
-                      <th style="width: 110px; text-align: center;">FOTOS</th>
-                      <th style="width: 125px; text-align: right;"><span class="muted">ACCIÓN</span></th>
+                      <th>FECHA / REF</th>
+                      <th>TAREA / ACTIVIDAD</th>
+                      <th>AUTOR</th>
+                      <th>AVANCE</th>
+                      <th>ESTADO</th>
+                      <th style="text-align: center;">FOTOS</th>
+                      <th style="text-align: right;"><span class="muted">ACCIÓN</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -541,19 +550,12 @@ window.campoJournal = {
                         </td>
                         <td class="cell-task">
                           <div class="task-info-block">
-                            <strong class="task-title">${esc(r.taskName || 'Tarea sin nombre')}</strong>
+                            <strong class="task-title" title="${esc(r.taskName || '')}">${esc(r.taskName || 'Tarea sin nombre')}</strong>
                             <div class="task-sub-row">
                               ${r.taskCode ? `<span class="code-pill">${esc(r.taskCode)}</span>` : ''}
-                              <span class="act-name">${esc(r.activityName || 'Operación')}</span>
+                              <span class="act-name" title="${esc(r.activityName || '')}">${esc(r.activityName || 'Operación')}</span>
+                              ${r.notes ? `<span class="note-pill" title="Observaciones: ${esc(r.notes)}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Nota</span>` : ''}
                             </div>
-                            ${r.notes ? `
-                              <div class="task-notes-strip" title="Observación: ${esc(r.notes)}">
-                                <svg class="notes-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                                <span class="notes-content">${esc(r.notes)}</span>
-                              </div>
-                            ` : ''}
                           </div>
                         </td>
                         <td class="cell-author">
