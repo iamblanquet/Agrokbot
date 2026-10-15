@@ -24,6 +24,8 @@ window.campoJournal = {
       ? `${(n / 100).toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
       : 'Sin avance informado';
 
+    const activeProject = () => self.projects.find(p => p.id === self.project);
+
     const renderProjectSliderHtml = () => {
       const projects = self.projects;
       if (!projects.length) return '';
@@ -51,6 +53,13 @@ window.campoJournal = {
             <span class="project-count-badge">${projects.length} ${projects.length === 1 ? 'proyecto' : 'proyectos'}</span>
           </div>
           <div class="project-slider-nav-wrap">
+            <button id="journal-refresh" class="btn small primary btn-refresh-journal" title="Actualizar datos desde el ERP">
+              <svg class="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              <span>Actualizar ERP</span>
+            </button>
             ${projects.length > 1 ? `
             <div class="slider-arrow-controls" aria-label="Navegación de proyectos ERP">
               <button class="slider-nav-btn prev" data-journal-slider-nav="prev" aria-label="Proyecto anterior" title="Proyecto anterior">
@@ -61,7 +70,7 @@ window.campoJournal = {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
               </button>
             </div>` : ''}
-            <span class="catalog-badge">Historial y trazabilidad ERP</span>
+            <span class="catalog-badge" id="journal-time"></span>
           </div>
         </div>
         <div class="project-slider-wrapper journal-slider-wrapper">
@@ -88,107 +97,66 @@ window.campoJournal = {
 
     $('#main').innerHTML = heading('Bitácora ERP', 'Historial del ERP · Solo consulta · Trazabilidad de operaciones en campo') + `
       <section id="journal" class="journal">
-        <!-- 1. Carrusel de Proyectos ERP -->
+        <!-- 1. Tarjetas de Resumen Operativo ARRIBA (Idéntico a Mis proyectos) -->
+        <section class="stats journal-stats" id="journal-stats" aria-label="Resumen de bitácora"></section>
+
+        <!-- 2. Carrusel de Proyectos ERP (Sin selector duplicado) -->
         <div id="journal-slider-container"></div>
 
-        <!-- 2. Barra de herramientas rápidas y actualización -->
-        <div class="journal-tools-bar">
-          <div class="journal-project-selector-wrap">
-            <div class="select-icon-wrap">
-              <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-              <select id="journal-project" aria-label="Seleccionar proyecto para bitácora">
-                <option value="">Selecciona un proyecto</option>
-              </select>
-            </div>
-          </div>
-          <div class="journal-tools-actions">
-            <button id="journal-refresh" class="btn primary btn-refresh-journal">
-              <svg class="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-              </svg>
-              <span>Actualizar desde ERP</span>
-            </button>
-          </div>
-        </div>
+        <!-- Hidden select for compatibility -->
+        <select id="journal-project" hidden aria-hidden="true"></select>
 
         <div class="journal-status-strip">
           <p id="journal-message" role="status" class="journal-message"></p>
-          <p id="journal-time" class="journal-time muted"></p>
         </div>
 
-        <!-- 3. Tarjetas de Métricas Operativas (Estilo Proyectos) -->
-        <section class="stats journal-stats" id="journal-stats" aria-label="Resumen de bitácora"></section>
+        <!-- 3. Panel de Asientos en formato LISTA / TABLA con filtros compactos -->
+        <section class="task-panel journal-panel">
+          <div class="task-panel-head journal-panel-head">
+            <div class="journal-panel-title">
+              <h2>Asientos y registros ERP</h2>
+              <p id="journal-active-project-name">Selecciona un proyecto</p>
+            </div>
+            <!-- Filtros de consulta compactos integrados en la cabecera -->
+            <div class="journal-compact-filters">
+              <div class="filter-group-date">
+                <input id="journal-from" type="date" title="Fecha inicial" aria-label="Fecha inicial">
+                <span class="date-sep">a</span>
+                <input id="journal-to" type="date" title="Fecha final" aria-label="Fecha final">
+              </div>
+              <select id="journal-task" aria-label="Filtrar por tarea"><option value="">Todas las tareas</option></select>
+              <select id="journal-author" aria-label="Filtrar por autor"><option value="">Todos los autores</option></select>
+              <select id="journal-status" aria-label="Filtrar por estado"><option value="">Todos los estados</option></select>
+              <button id="journal-clear" class="btn-clear-compact" type="button" title="Limpiar filtros">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Limpiar</span>
+              </button>
+            </div>
+          </div>
 
-        <!-- 4. Panel de Filtros -->
-        <div class="journal-filter-card">
-          <div class="journal-filter-header">
-            <div class="journal-filter-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-              </svg>
-              <span>Filtros de consulta</span>
-            </div>
-            <button id="journal-clear" class="btn small btn-clear-filters" type="button">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              <span>Limpiar filtros</span>
-            </button>
-          </div>
-          <div class="journal-filters-grid">
-            <div class="filter-field">
-              <label for="journal-from">Fecha desde</label>
-              <input id="journal-from" type="date">
-            </div>
-            <div class="filter-field">
-              <label for="journal-to">Fecha hasta</label>
-              <input id="journal-to" type="date">
-            </div>
-            <div class="filter-field">
-              <label for="journal-task">Tarea</label>
-              <select id="journal-task"><option value="">Todas las tareas</option></select>
-            </div>
-            <div class="filter-field">
-              <label for="journal-author">Autor</label>
-              <select id="journal-author"><option value="">Todos los autores</option></select>
-            </div>
-            <div class="filter-field">
-              <label for="journal-status">Estado</label>
-              <select id="journal-status"><option value="">Todos los estados</option></select>
-            </div>
-          </div>
-        </div>
+          <!-- Listado en Tabla de Alta Densidad -->
+          <div id="journal-results"></div>
 
-        <!-- 5. Barra de Resultados y Paginación -->
-        <div class="journal-results-toolbar">
-          <div class="journal-results-heading">
-            <h2>Asientos y registros ERP</h2>
-            <span id="journal-results-badge" class="chip">0 registros</span>
-          </div>
-          <div class="journal-pagination">
-            <button id="journal-prev" class="btn small nav-page-btn" aria-label="Página anterior">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              <span>Anterior</span>
-            </button>
+          <!-- Pie del panel con paginación integrada -->
+          <div class="journal-panel-footer">
             <span id="journal-count" class="pagination-count-label" aria-live="polite">0 registros · Página 1 de 1</span>
-            <button id="journal-next" class="btn small nav-page-btn" aria-label="Página siguiente">
-              <span>Siguiente</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
+            <div class="journal-pagination">
+              <button id="journal-prev" class="btn small nav-page-btn" aria-label="Página anterior">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <span>Anterior</span>
+              </button>
+              <button id="journal-next" class="btn small nav-page-btn" aria-label="Página siguiente">
+                <span>Siguiente</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <!-- 6. Listado de Tarjetas -->
-        <div id="journal-results"></div>
-
-        <!-- 7. Detalle del Asiento (Modal Sheet Dialog) -->
+        <!-- 4. Detalle del Asiento (Modal Sheet Dialog) -->
         <section id="journal-detail" tabindex="-1"></section>
       </section>
     `;
@@ -406,7 +374,7 @@ window.campoJournal = {
           (!f.status || r.status === f.status);
       });
 
-      // Actualizar franja de estadísticas operativas
+      // Franja de estadísticas en la parte SUPERIOR
       const totalPhotos = self.rows.reduce((acc, r) => acc + (r.attachments?.length || 0), 0);
       const uniqueTasks = new Set(self.rows.map(r => r.taskName).filter(Boolean)).size;
       const uniqueAuthors = new Set(self.rows.map(r => r.author).filter(Boolean)).size;
@@ -437,6 +405,15 @@ window.campoJournal = {
         `;
       }
 
+      // Nombre del proyecto activo en el encabezado del panel
+      const activeProj = activeProject();
+      const projNameEl = find('#journal-active-project-name');
+      if (projNameEl) {
+        projNameEl.textContent = activeProj
+          ? `${activeProj.name} (${activeProj.folio || activeProj.code || 'ERP'})`
+          : 'Selecciona un proyecto arriba';
+      }
+
       // Paginación
       const pages = Math.max(1, Math.ceil(rows.length / 20));
       self.page = Math.max(1, Math.min(self.page, pages));
@@ -444,107 +421,87 @@ window.campoJournal = {
       const countEl = find('#journal-count');
       if (countEl) countEl.textContent = `${rows.length} ${rows.length === 1 ? 'registro' : 'registros'} · Página ${self.page} de ${pages}`;
 
-      const badgeEl = find('#journal-results-badge');
-      if (badgeEl) badgeEl.textContent = `${rows.length} ${rows.length === 1 ? 'asiento' : 'asientos'}`;
-
       find('#journal-prev').disabled = self.page === 1;
       find('#journal-next').disabled = self.page === pages;
-      find('#journal-time').textContent = self.fetched ? 'Última consulta ERP: ' + new Date(self.fetched).toLocaleString('es-MX') : '';
+
+      const timeEl = find('#journal-time');
+      if (timeEl) {
+        timeEl.textContent = self.fetched ? 'Actualizado: ' + new Date(self.fetched).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '';
+      }
 
       const pageRows = rows.slice((self.page - 1) * 20, self.page * 20);
-
-      const thumbUrl = (r, a) => '/api/admin/journal/preview?' + new URLSearchParams({
-        project: self.project,
-        log: r.id,
-        attachment: a.id
-      });
 
       find('#journal-results').innerHTML = invalid
         ? '<div class="journal-alert error" role="alert"><p>La fecha inicial debe ser anterior o igual a la final.</p></div>'
         : rows.length
-          ? `<div class="journal-cards-grid">${pageRows.map(r => `
-            <article class="journal-entry-card" data-entry-card="${esc(r.id)}">
-              <div class="journal-card-header">
-                <div class="journal-card-badges">
-                  <span class="journal-date-badge">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    ${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}
-                  </span>
-                  <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
-                </div>
-                <span class="journal-ref-id" title="Referencia ERP">#${esc(r.id)}</span>
-              </div>
-
-              <div class="journal-card-body">
-                <h3 class="journal-task-title">${esc(r.taskName || 'Tarea sin nombre')}</h3>
-                <p class="journal-activity-subline">
-                  <span class="activity-name">${esc(r.activityName || 'Operación')}</span>
-                  ${r.taskCode ? `<span class="sep-dot">•</span><span class="code-badge">${esc(r.taskCode)}</span>` : ''}
-                </p>
-
-                <div class="progress-label">
-                  <span>Avance informado</span>
-                  <strong>${esc(progress(r.progressBps))}</strong>
-                </div>
-                <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
-
-                <div class="journal-card-people">
-                  <div class="person-tag" title="Autor del reporte">
-                    <span class="avatar-mini">${esc((r.author || 'A').charAt(0).toUpperCase())}</span>
-                    <span class="person-name">${esc(r.author)}</span>
-                  </div>
-                  ${r.responsible ? `
-                  <div class="person-tag responsible-tag" title="Responsable de tarea">
-                    <span class="role-lbl">Resp:</span>
-                    <span class="person-name">${esc(r.responsible)}</span>
-                  </div>` : ''}
-                </div>
-
-                ${r.notes ? `
-                <div class="journal-card-notes-preview">
-                  <svg class="notes-quote-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                  <span class="notes-text">${esc(r.notes.length > 95 ? r.notes.slice(0, 95) + '…' : r.notes)}</span>
-                </div>` : ''}
-
-                ${r.attachments && r.attachments.length ? `
-                <div class="journal-card-thumbs">
-                  ${r.attachments.slice(0, 3).map(a => `
-                    <div class="card-thumb-wrap">
-                      <img src="${esc(thumbUrl(r, a))}" alt="${esc(a.originalFileName || 'Evidencia')}" loading="lazy" onerror="this.parentElement.classList.add('broken');">
-                    </div>
+          ? `<div class="table-wrap journal-table-wrap">
+              <table class="journal-table">
+                <thead>
+                  <tr>
+                    <th style="width: 125px;">FECHA / REF</th>
+                    <th>TAREA / ACTIVIDAD</th>
+                    <th class="person-column">AUTOR</th>
+                    <th style="width: 140px;">AVANCE</th>
+                    <th class="status-column">ESTADO</th>
+                    <th style="width: 80px; text-align: center;">FOTOS</th>
+                    <th style="width: 105px; text-align: right;"><span class="muted">ACCIÓN</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${pageRows.map(r => `
+                    <tr data-entry-row="${esc(r.id)}">
+                      <td class="journal-date-cell">
+                        <span class="date-text">${esc((r.operationDate || '').slice(0, 10) || 'Sin fecha')}</span>
+                        <small class="ref-sub">#${esc(r.id)}</small>
+                      </td>
+                      <td class="task-name">
+                        <strong>${esc(r.taskName || 'Tarea sin nombre')}</strong>
+                        <small>
+                          ${r.taskCode ? `<span class="task-code">${esc(r.taskCode)}</span>` : ''}
+                          ${esc(r.activityName || 'Operación')}
+                          ${r.notes ? ` · <span class="notes-hint" title="${esc(r.notes)}">${esc(r.notes.slice(0, 50))}${r.notes.length > 50 ? '…' : ''}</span>` : ''}
+                        </small>
+                      </td>
+                      <td class="person-column">
+                        <span class="person">
+                          <span class="person-circle">${esc((r.author || 'A').split(' ').map(s => s[0]).slice(0, 2).join(''))}</span>
+                          <span class="person-info-wrap">
+                            <strong>${esc(r.author)}</strong>
+                            ${r.responsible ? `<small class="resp-sub" title="Responsable: ${esc(r.responsible)}">Resp: ${esc(r.responsible)}</small>` : ''}
+                          </span>
+                        </span>
+                      </td>
+                      <td class="task-progress">
+                        <span>${esc(progress(r.progressBps))}</span>
+                        <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
+                      </td>
+                      <td class="status-column">
+                        <span class="chip ${statusChipClass(r.status)}">${esc(label(r.status))}</span>
+                      </td>
+                      <td style="text-align: center;">
+                        ${r.attachments && r.attachments.length ? `
+                          <span class="photo-chip" title="${r.attachments.length} fotografía(s) adjunta(s)">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                              <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                            <span>${r.attachments.length}</span>
+                          </span>
+                        ` : '<span style="color: var(--text-muted); font-size: 13px;">—</span>'}
+                      </td>
+                      <td class="task-action" style="text-align: right;">
+                        <button class="btn subtle small" data-entry="${esc(r.id)}">
+                          <span>Detalle</span>
+                        </button>
+                      </td>
+                    </tr>
                   `).join('')}
-                  ${r.attachments.length > 3 ? `<span class="thumbs-overflow">+${r.attachments.length - 3}</span>` : ''}
-                </div>` : ''}
-              </div>
-
-              <div class="journal-card-footer">
-                <div class="journal-photos-pill ${r.attachments.length ? 'has-media' : ''}">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                  </svg>
-                  <span>${r.attachments.length} ${r.attachments.length === 1 ? 'foto' : 'fotos'}</span>
-                </div>
-                <button class="btn btn-journal-detail" data-entry="${esc(r.id)}">
-                  <span>Ver detalle</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </button>
-              </div>
-            </article>
-          `).join('')}</div>`
+                </tbody>
+              </table>
+            </div>`
           : `<div class="empty journal-empty">
               <div class="empty-icon-bubble">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="8" y1="12" x2="16" y2="12"></line>
                 </svg>
@@ -561,7 +518,6 @@ window.campoJournal = {
             const detailEl = find('#journal-detail');
             if (detailEl) {
               detailEl.focus();
-              detailEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
           }
         };
@@ -582,7 +538,8 @@ window.campoJournal = {
         return;
       }
       find('#journal-message').textContent = 'Consultando asientos en el ERP…';
-      find('#journal-refresh').disabled = true;
+      const refreshBtn = find('#journal-refresh');
+      if (refreshBtn) refreshBtn.disabled = true;
       try {
         const data = await api('/api/admin/journal/entries?' + new URLSearchParams({ project: self.project }));
         if (!active() || id !== requestId) return;
@@ -598,7 +555,8 @@ window.campoJournal = {
         }
       } finally {
         if (active() && id === requestId) {
-          find('#journal-refresh').disabled = false;
+          const btn = find('#journal-refresh');
+          if (btn) btn.disabled = false;
         }
       }
     };
@@ -607,6 +565,10 @@ window.campoJournal = {
       const container = find('#journal-slider-container');
       if (!container) return;
       container.innerHTML = renderProjectSliderHtml();
+
+      // Hook refresh button directly in the slider header
+      const refreshBtn = find('#journal-refresh');
+      if (refreshBtn) refreshBtn.onclick = load;
 
       const track = find('#journal-slider-track');
       if (!track) return;
@@ -683,7 +645,8 @@ window.campoJournal = {
           if (self.project === projId) return;
           self.project = projId;
           self.filters = { from: '', to: '', task: '', author: '', status: '' };
-          if (find('#journal-project')) find('#journal-project').value = projId;
+          const hiddenSelect = find('#journal-project');
+          if (hiddenSelect) hiddenSelect.value = projId;
           syncSelectedProjectCard();
           load();
         };
@@ -746,11 +709,14 @@ window.campoJournal = {
       }
     }
 
-    find('#journal-clear').onclick = () => {
-      for (const key of Object.keys(self.filters)) self.filters[key] = '';
-      controls();
-      draw();
-    };
+    const clearBtn = find('#journal-clear');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        for (const key of Object.keys(self.filters)) self.filters[key] = '';
+        controls();
+        draw();
+      };
+    }
 
     find('#journal-prev').onclick = () => {
       self.page--;
@@ -762,14 +728,15 @@ window.campoJournal = {
       draw();
     };
 
-    find('#journal-refresh').onclick = load;
-
-    find('#journal-project').onchange = e => {
-      self.project = e.target.value;
-      self.filters = { from: '', to: '', task: '', author: '', status: '' };
-      syncSelectedProjectCard();
-      load();
-    };
+    const hiddenSelect = find('#journal-project');
+    if (hiddenSelect) {
+      hiddenSelect.onchange = e => {
+        self.project = e.target.value;
+        self.filters = { from: '', to: '', task: '', author: '', status: '' };
+        syncSelectedProjectCard();
+        load();
+      };
+    }
 
     controls();
     draw();
@@ -779,8 +746,11 @@ window.campoJournal = {
       const data = await api('/api/admin/journal/projects');
       if (!active()) return;
       self.projects = data.projects || [];
-      find('#journal-project').innerHTML = '<option value="">Selecciona un proyecto</option>' +
-        self.projects.map(p => `<option value="${esc(p.id)}">${esc(p.folio || p.code || '')} · ${esc(p.name)}</option>`).join('');
+      const hiddenSelectEl = find('#journal-project');
+      if (hiddenSelectEl) {
+        hiddenSelectEl.innerHTML = '<option value="">Selecciona un proyecto</option>' +
+          self.projects.map(p => `<option value="${esc(p.id)}">${esc(p.folio || p.code || '')} · ${esc(p.name)}</option>`).join('');
+      }
 
       if (!self.projects.some(p => p.id === self.project)) {
         self.project = self.projects[0]?.id || '';
@@ -788,7 +758,7 @@ window.campoJournal = {
         self.fetched = '';
       }
 
-      find('#journal-project').value = self.project;
+      if (hiddenSelectEl) hiddenSelectEl.value = self.project;
       initJournalSlider();
       find('#journal-message').textContent = self.projects.length ? '' : 'No hay proyectos disponibles.';
       if (self.project) await load(); else draw();

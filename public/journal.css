@@ -1,17 +1,27 @@
 /* ==========================================================================
-   AGROKOOL CAMPO PWA — BITÁCORA ERP DESIGN SYSTEM
-   Inspired by "Mis proyectos" and modern operational cards layout.
+   AGROKOOL CAMPO PWA — BITÁCORA ERP DESIGN SYSTEM (V2: High-Density List)
+   Summary metrics at top, project slider, compact filters, and table list.
    ========================================================================== */
 
 .journal {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 22px;
   width: 100%;
 }
 
 /* ==========================================================================
-   1. Projects Slider for ERP Journal
+   1. Operational Stats at the TOP (matching Mis proyectos .stats)
+   ========================================================================== */
+.journal-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   2. Projects Slider for ERP Journal
    ========================================================================== */
 .journal-project-heading {
   display: flex;
@@ -97,74 +107,12 @@
   font-weight: 500;
 }
 
-/* ==========================================================================
-   2. Tools Bar & Status Strip
-   ========================================================================== */
-.journal-tools-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  padding: 14px 18px;
-  box-shadow: var(--shadow-xs);
-}
-
-.journal-project-selector-wrap {
-  flex: 1;
-  min-width: 260px;
-}
-
-.select-icon-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.select-icon {
-  position: absolute;
-  left: 12px;
-  color: var(--brand-primary);
-  pointer-events: none;
-}
-
-.select-icon-wrap select {
-  width: 100%;
-  min-height: 42px;
-  padding: 8px 14px 8px 38px;
-  border: 1px solid var(--border-strong);
-  border-radius: 9px;
-  background: var(--bg-subtle);
-  color: var(--text-primary);
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.select-icon-wrap select:focus {
-  outline: none;
-  border-color: var(--brand-primary);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px var(--brand-primary-border);
-}
-
-.journal-tools-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .btn-refresh-journal {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
+  gap: 6px;
   font-weight: 700;
-  border-radius: 9px;
+  border-radius: 8px;
 }
 
 .btn-refresh-journal:disabled .refresh-icon {
@@ -198,217 +146,242 @@
 }
 
 /* ==========================================================================
-   3. Operational Stats (matching Mis proyectos .stats)
+   3. Panel & Compact Filters Toolbar
    ========================================================================== */
-.journal-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-/* ==========================================================================
-   4. Filter Panel
-   ========================================================================== */
-.journal-filter-card {
+.journal-panel {
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 14px;
-  padding: 16px 20px;
-  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
-.journal-filter-header {
+.journal-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border-light);
+  gap: 14px;
+  background: #fdfefc;
+  flex-wrap: wrap;
 }
 
-.journal-filter-title {
+.journal-panel-title h2 {
+  font-size: 17px;
+  font-weight: 750;
+  color: var(--brand-primary);
+  margin: 0 0 2px 0;
+}
+
+.journal-panel-title p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.journal-compact-filters {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  font-weight: 750;
-  color: var(--brand-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  flex-wrap: wrap;
 }
 
-.btn-clear-filters {
+.filter-group-date {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 6px;
-  color: var(--text-secondary);
+  gap: 4px;
+  background: var(--bg-subtle);
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
 }
 
-.btn-clear-filters:hover {
-  color: var(--brand-primary);
-  border-color: var(--border-strong);
-}
-
-.journal-filters-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.filter-field label {
-  font-size: 11.5px;
+.filter-group-date .date-sep {
+  font-size: 11px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
-.filter-field input,
-.filter-field select {
-  width: 100%;
-  min-height: 40px;
-  padding: 8px 10px;
+.journal-compact-filters input[type="date"] {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-primary);
+  padding: 4px 6px;
+  min-height: 28px;
+  outline: none;
+}
+
+.journal-compact-filters select {
+  font-size: 12.5px;
+  padding: 6px 10px;
+  min-height: 34px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text-primary);
-  font-size: 13px;
+  max-width: 170px;
+  cursor: pointer;
   transition: all var(--transition-fast);
-  box-sizing: border-box;
 }
 
-.filter-field input:focus,
-.filter-field select:focus {
+.journal-compact-filters select:focus {
   outline: none;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px var(--brand-primary-border);
+  box-shadow: 0 0 0 2.5px var(--brand-primary-border);
 }
 
-/* ==========================================================================
-   5. Results Toolbar & Pagination
-   ========================================================================== */
-.journal-results-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-.journal-results-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.journal-results-heading h2 {
-  font-size: 18px;
-  font-weight: 750;
-  color: var(--brand-primary);
-  margin: 0;
-}
-
-.journal-pagination {
+.btn-clear-compact {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-
-.nav-page-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 7px;
-}
-
-.pagination-count-label {
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11.5px;
   font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 7px;
   color: var(--text-secondary);
-  padding: 0 6px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   6. Journal Cards Grid (Inspired by .project-card layout)
-   ========================================================================== */
-.journal-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.journal-entry-card {
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  border-radius: 14px;
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
-  position: relative;
-  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--border-light);
+  background: var(--bg-subtle);
+  cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.journal-entry-card:hover {
-  border-color: var(--brand-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+.btn-clear-compact:hover {
+  color: var(--brand-primary);
+  border-color: var(--border-strong);
+  background: var(--surface);
 }
 
-.journal-card-header {
+/* ==========================================================================
+   4. High-Density Table List for Asientos ERP
+   ========================================================================== */
+.journal-table-wrap {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.journal-table {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: left;
+}
+
+.journal-table thead {
+  background: var(--bg-subtle);
+}
+
+.journal-table th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 700;
+  padding: 12px 18px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.journal-table td {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-light);
+  font-size: 13.5px;
+  vertical-align: middle;
+}
+
+.journal-table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.journal-table tbody tr:hover {
+  background: #f8faf4;
+}
+
+.journal-date-cell {
+  white-space: nowrap;
+}
+
+.journal-date-cell .date-text {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--brand-primary);
+}
+
+.journal-date-cell .ref-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.journal-table .task-name {
+  min-width: 220px;
+  max-width: 380px;
+}
+
+.journal-table .task-name strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.3;
+}
+
+.journal-table .task-name small {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journal-table .task-code {
+  color: var(--brand-gold);
+  font-weight: 700;
+  background: var(--bg-subtle);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+
+.journal-table .notes-hint {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.person-info-wrap {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  line-height: 1.25;
 }
 
-.journal-card-badges {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.person-info-wrap strong {
+  font-weight: 650;
+  color: var(--text-primary);
+  font-size: 13px;
 }
 
-.journal-date-badge {
+.person-info-wrap .resp-sub {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.photo-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--brand-primary);
-  background: var(--brand-primary-soft);
   padding: 3px 8px;
-  border-radius: 6px;
-}
-
-.journal-ref-id {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  color: var(--text-muted);
-  background: var(--bg-subtle);
-  padding: 2px 7px;
-  border-radius: 5px;
+  border-radius: 999px;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
 }
 
 .chip-status-finished {
@@ -435,221 +408,66 @@
   border: 1px solid rgba(158, 42, 27, 0.2);
 }
 
-.journal-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.journal-task-title {
-  font-size: 18px;
-  font-weight: 750;
-  color: var(--brand-primary);
-  margin: 0;
-  line-height: 1.35;
-}
-
-.journal-activity-subline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0;
-  flex-wrap: wrap;
-}
-
-.journal-activity-subline .sep-dot {
-  color: var(--border-strong);
-}
-
-.journal-activity-subline .code-badge {
-  font-size: 11px;
-  font-weight: 700;
-  background: var(--bg-subtle);
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-
-.journal-card-people {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-top: 2px;
-}
-
-.person-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-primary);
-  background: var(--bg-subtle);
-  padding: 3px 8px 3px 4px;
-  border-radius: 999px;
-}
-
-.avatar-mini {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--brand-primary);
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10.5px;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.person-name {
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.responsible-tag {
-  color: var(--text-secondary);
-}
-
-.responsible-tag .role-lbl {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--brand-gold);
-}
-
-.journal-card-notes-preview {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: var(--bg-subtle);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border-left: 3px solid var(--brand-gold);
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.notes-quote-icon {
-  color: var(--brand-gold);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.journal-card-thumbs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.card-thumb-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  background: #f0f0f0;
-  flex-shrink: 0;
-}
-
-.card-thumb-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.card-thumb-wrap.broken {
-  display: none;
-}
-
-.thumbs-overflow {
-  font-size: 11.5px;
-  font-weight: 750;
-  color: var(--brand-primary);
-  background: var(--brand-primary-soft);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.journal-card-footer {
+.journal-panel-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-top: 10px;
+  padding: 12px 22px;
   border-top: 1px solid var(--border-light);
+  background: #fdfefc;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.journal-photos-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.pagination-count-label {
   font-size: 12px;
-  color: var(--text-muted);
   font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-.journal-photos-pill.has-media {
-  color: var(--brand-primary);
-}
-
-.btn-journal-detail {
+.journal-pagination {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  font-size: 12.5px;
-  font-weight: 700;
-  border-radius: 8px;
-  background: var(--bg-subtle);
-  color: var(--brand-primary);
-  border: 1px solid var(--border-strong);
-  transition: all var(--transition-fast);
+  gap: 8px;
 }
 
-.btn-journal-detail:hover {
-  background: var(--brand-primary);
-  color: #ffffff;
-  border-color: var(--brand-primary);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+.nav-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 7px;
 }
 
 /* ==========================================================================
-   7. Empty & Alert States
+   5. Empty & Alert States
    ========================================================================== */
 .journal-empty {
   text-align: center;
-  padding: 48px 24px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 14px;
-  grid-column: 1 / -1;
+  padding: 42px 24px;
 }
 
 .empty-icon-bubble {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--brand-primary-soft);
   color: var(--brand-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .journal-alert {
-  padding: 16px 20px;
-  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 16px;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 13.5px;
-  grid-column: 1 / -1;
+  font-size: 13px;
 }
 
 .journal-alert.error {
@@ -659,7 +477,7 @@
 }
 
 /* ==========================================================================
-   8. Detail Modal Sheet Dialog (Matching "Registrar avance" dialog)
+   6. Detail Modal Sheet Dialog
    ========================================================================== */
 .journal-modal-sheet {
   padding: 0;
@@ -969,14 +787,11 @@
 }
 
 /* ==========================================================================
-   9. Responsive Breakpoints
+   7. Responsive Breakpoints
    ========================================================================== */
 @media (max-width: 900px) {
   .journal-stats {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .journal-filters-grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -991,13 +806,6 @@
     max-width: 100%;
     scroll-snap-align: start;
     padding: 18px;
-  }
-  .journal-cards-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .journal-filters-grid {
-    grid-template-columns: 1fr 1fr;
   }
   .journal-detail-highlight {
     grid-template-columns: repeat(2, 1fr);
@@ -1019,21 +827,27 @@
     max-height: 94vh;
     border-radius: 20px 20px 0 0;
   }
-  .journal-tools-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .journal-tools-actions .btn {
+  .journal-compact-filters {
     width: 100%;
-    justify-content: center;
+  }
+  .journal-compact-filters select {
+    max-width: 100%;
+    flex: 1 1 calc(50% - 6px);
+  }
+  .filter-group-date {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .filter-group-date input[type="date"] {
+    flex: 1;
   }
 }
 
 @media (max-width: 520px) {
-  .journal-filters-grid {
-    grid-template-columns: 1fr;
-  }
   .journal-stats {
     grid-template-columns: 1fr;
+  }
+  .journal-compact-filters select {
+    flex: 1 1 100%;
   }
 }
