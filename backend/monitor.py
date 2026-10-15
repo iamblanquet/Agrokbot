@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 
 # estado del reporte -> (resultado ERP, resultado Telegram)
 STATES = {
+    "photos_pending": ("ok", "waiting"),
+    "photos_review": ("ok", "waiting"),
     "erp_sending": ("pending", "waiting"),
     "erp_review": ("review", "waiting"),
     "erp_rejected": ("failed", "waiting"),
@@ -53,7 +55,7 @@ class MonitorService:
                 bucket = "ok"
             elif row["state"] in ("erp_rejected", "telegram_failed"):
                 bucket = "failed"
-            elif row["state"] in ("erp_review", "telegram_review"):
+            elif row["state"] in ("erp_review", "telegram_review", "photos_review"):
                 bucket = "review"
             else:
                 bucket = "pending"
@@ -82,11 +84,13 @@ class MonitorService:
         if decision not in ("confirm", "reject") or not note or len(note) > 2000:
             raise ValueError("Indica una decisión y una nota de resolución de hasta 2000 caracteres.")
         with self.lock, self.connection() as db:
-            row = db.execute("SELECT user,state FROM reports WHERE id=?", (report_id,)).fetchone()
+            row = db.execute("SELECT user,state,payload,erp_log_id FROM reports WHERE id=?", (report_id,)).fetchone()
             if not row or row["state"] not in ("erp_review", "telegram_review"):
                 return {"ok": False}
             previous = row["state"]
             if decision == "confirm":
+                if previous == 'erp_review' and json.loads(row['payload']).get('photos'):
+                    raise ValueError('Se requiere recuperar el operationLog.id del ERP antes de cargar evidencias.')
                 target = "telegram_pending" if previous == "erp_review" else "published"
             else:
                 target = "erp_rejected" if previous == "erp_review" else "telegram_failed"

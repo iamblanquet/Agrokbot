@@ -1,6 +1,9 @@
 """ERP transport, catalog synchronization and responsible normalization."""
 import json
 import urllib.parse
+import urllib.request
+import urllib.error
+import secrets
 
 from backend.http_client import RemoteFailure
 
@@ -54,3 +57,48 @@ class ErpClient:
             with self.connection() as db:
                 rows = db.execute("SELECT kind,payload FROM catalog").fetchall()
             return {"projects": [json.loads(row[1]) for row in rows if row[0] == "project"], "tasks": [json.loads(row[1]) for row in rows if row[0] == "task"], "employees": self.employees(), "fetchedAt": self.now()}
+
+    def upload_attachment(self, log_id, photo):
+        settings = self.settings()
+        url = settings['url']
+        if not settings['key'] or not (url.startswith('https://') or (url.startswith('http://') and settings['allow_http'])):
+            raise RemoteFailure('Configura ERP_API_URL y ERP_API_KEY.')
+        boundary = 'Campo' + secrets.token_hex(16)
+        body = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{photo["id"]}.jpg"\r\nContent-Type: image/jpeg\r\n\r\n'.encode()
+                + photo['data'] + f'\r\n--{boundary}--\r\n'.encode())
+        request = urllib.request.Request(url + '/external/project-operation-logs/' + urllib.parse.quote(log_id, safe='') + '/attachments', data=body,
+            headers={'Authorization': 'Bearer ' + settings['key'], 'Content-Type': 'multipart/form-data; boundary=' + boundary})
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response:
+                if response.status != 201:
+                    raise RemoteFailure('Respuesta inesperada al guardar evidencia.', True)
+                attachments = json.load(response)['attachments']
+            if len(attachments) != 1 or not attachments[0].get('id') or attachments[0].get('operationLogId') != log_id:
+                raise RemoteFailure('Referencia de evidencia inesperada.', True)
+            return attachments[0]['id']
+        except urllib.error.HTTPError as error:
+            raise RemoteFailure(f'ERP evidencias respondió HTTP {error.code}.', error.code >= 500) from None
+        except (OSError, ValueError, KeyError, TypeError):
+            raise RemoteFailure('No se pudo confirmar la carga de evidencia.', True) from None
+
+    def attachments(self, project_id, log_id):
+        project = self.request('/external/projects/' + urllib.parse.quote(project_id, safe=''))['project']
+        return [attachment for activity in project.get('activities', []) for task in activity.get('tasks', [])
+                for log in task.get('operationLogs', []) if log.get('id') == log_id for attachment in log.get('attachments', [])]
+
+    def attachment_file(self, attachment_id):
+        settings = self.settings()
+        url = settings['url']
+        if not settings['key'] or not (url.startswith('https://') or (url.startswith('http://') and settings['allow_http'])):
+            raise RemoteFailure('Configura ERP_API_URL y ERP_API_KEY.')
+        # Original JPEG preserves the content type served by the local route.
+        request = urllib.request.Request(url + '/external/reference-attachments/' + urllib.parse.quote(attachment_id, safe='') + '/file',
+            headers={'Authorization': 'Bearer ' + settings['key']})
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response:
+                data = response.read(15000001)
+            if len(data) > 15000000 or not data.startswith(b'\xff\xd8\xff'):
+                raise RemoteFailure('Archivo de evidencia inválido.')
+            return data
+        except (OSError, ValueError):
+            raise RemoteFailure('No fue posible consultar la fotografía en el ERP.') from None

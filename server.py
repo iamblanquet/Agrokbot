@@ -32,6 +32,7 @@ from backend.security import pin_hash, pin_in_use, verify_pin
 from backend.telegram import TelegramClient, safe_caption as telegram_safe_caption
 from backend.validation import ValidationService
 from backend.config import load_config
+from backend.evidence import EvidenceService
 
 ROOT = Path(__file__).parent
 CONFIG = load_config(ROOT, os.environ)
@@ -321,7 +322,10 @@ DELIVERY = DeliveryService(
 
 
 def deliver():
-    return DELIVERY.deliver()
+    EvidenceService(connection, LOCK, ERP, lambda: ERP_MODE).process()
+    result = DELIVERY.deliver()
+    MEDIA.purge_delivered()
+    return result
 
 
 def worker():
@@ -404,16 +408,24 @@ class Handler(BaseHTTPRequestHandler):
                 if path.startswith("/api/photos/"):
                     pid = path.rsplit("/", 1)[-1]
                     with connection() as db:
-                        photo = db.execute("SELECT data FROM photos WHERE id=? AND user=?", (pid, user)).fetchone()
+                        photo = db.execute("SELECT data,attachment_id FROM photos WHERE id=? AND user=?", (pid, user)).fetchone()
                     if not photo:
                         raise Problem(404, "Fotografía no disponible.")
+                    data = photo['data']
+                    if not data:
+                        if not photo['attachment_id'] or photo['attachment_id'].startswith('demo-'):
+                            raise Problem(404, "Fotografía no disponible.")
+                        try:
+                            data = ERP.attachment_file(photo['attachment_id'])
+                        except RemoteFailure as error:
+                            raise Problem(502, error.message) from None
                     self.send_response(200)
                     self.send_header("Content-Type", "image/jpeg")
-                    self.send_header("Content-Length", str(len(photo["data"])))
+                    self.send_header("Content-Length", str(len(data)))
                     self.send_header("Cache-Control", "private, no-store")
                     self.send_header("X-Content-Type-Options", "nosniff")
                     self.end_headers()
-                    self.wfile.write(photo["data"])
+                    self.wfile.write(data)
                     return
                 if path == "/api/me":
                     profile = profile_for(user)

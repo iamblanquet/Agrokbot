@@ -74,8 +74,9 @@ class ValidationService:
                 raise self.problem(400, "Adjunta hasta seis fotografías distintas.")
             with self.connection() as db:
                 for photo_id in ids:
-                    if not db.execute("SELECT 1 FROM photos WHERE id=? AND report_id=? AND user=?", (photo_id, report_id, user)).fetchone():
-                        raise self.problem(400, "Falta cargar una fotografía. Conserva el pendiente y vuelve a sincronizar.")
+                    existing = db.execute("SELECT report_id,user FROM photos WHERE id=?", (photo_id,)).fetchone()
+                    if existing and (existing['report_id'] != report_id or existing['user'] != user):
+                        raise self.problem(400, "La fotografía pertenece a otro reporte o usuario.")
             result["photos"] = ids
         return result
 

@@ -21,6 +21,12 @@ class DeliveryService:
             with self.connection() as db:
                 rows = db.execute("SELECT * FROM reports WHERE state='telegram_pending' ORDER BY created LIMIT 15").fetchall()
             for report in rows:
+                ids = json.loads(report['payload']).get('photos', [])
+                with self.connection() as db:
+                    ready = all(db.execute("SELECT 1 FROM photos WHERE id=? AND report_id=? AND user=? AND attachment_id IS NOT NULL", (pid, report['id'], report['user'])).fetchone() for pid in ids)
+                    if not ready:
+                        db.execute("UPDATE reports SET state='photos_pending' WHERE id=?", (report['id'],))
+                        continue
                 with self.connection() as db:
                     topic = db.execute("SELECT * FROM topics WHERE project_id=?", (report["project_id"],)).fetchone()
                     project = db.execute("SELECT payload FROM catalog WHERE kind='project' AND id=?", (report["project_id"],)).fetchone()

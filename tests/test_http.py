@@ -95,6 +95,24 @@ class AuthTests(unittest.TestCase):
             self.assertIn('no-store', response.headers['Cache-Control'])
         self.request('/api/logout', {})
         self.assertEqual(self.request('/api/photos/'+pid)[0], 401)
+
+    def test_purged_photo_is_proxied_without_persisting(self):
+        pid, rid = str(uuid.uuid4()), str(uuid.uuid4())
+        self.request('/api/login', {'user': 'tester', 'password': 'prueba-ñ'})
+        with server.connection() as db:
+            db.execute("INSERT INTO photos(id,report_id,user,data,digest,attachment_id) VALUES (?,?,?,X'','digest','remote-id')", (pid, rid, 'tester'))
+        image = b'\xff\xd8\xffremote\xff\xd9'
+        with patch.object(server.ERP, 'attachment_file', return_value=image) as fetch:
+            with self.client.open(self.url+'/api/photos/'+pid) as response:
+                self.assertEqual(response.read(), image)
+                self.assertIn('no-store', response.headers['Cache-Control'])
+            fetch.assert_called_once_with('remote-id')
+        with server.connection() as db:
+            self.assertEqual(db.execute('SELECT length(data) FROM photos WHERE id=?', (pid,)).fetchone()[0], 0)
+        self.request('/api/logout', {})
+        with patch.object(server.ERP, 'attachment_file') as fetch:
+            self.assertEqual(self.request('/api/photos/'+pid)[0], 401)
+            fetch.assert_not_called()
         self.assertEqual(self.request('/api/login', {'initData': self.signed()})[0], 403)
         self.assertEqual(self.request('/api/photos/'+pid)[0], 401)
 

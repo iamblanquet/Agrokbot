@@ -5,6 +5,7 @@ window.campoSync={
   async refresh({state,api}){
     const [catalog,config,reports]=await Promise.all([api('/api/catalog'),api('/api/config'),api('/api/reports')]);
     state.catalog=catalog;state.config=config;state.reports=reports.reports;state.topics=reports.topics;state.clarifications=reports.clarifications||[];
+    await window.campoStorage.purgeDeliveredPhotos(state.user,state.reports);
     await window.campoStorage.write('meta',{catalog,config,reports:state.reports,topics:state.topics,clarifications:state.clarifications||[]},`snapshot:${state.user}`);
   },
   async sync({state,api,online,banner,updateChrome,reloadLocal,render}){
@@ -21,8 +22,12 @@ window.campoSync={
         const startedAt=new Date().toISOString();
         await window.campoStorage.write('queue',{...item,attempts:attempt,lastAttemptAt:startedAt,lastError:null});
         try{
-          for(const photo of item.photos||[])await api('/api/photos',{id:photo.id,reportId:item.id,data:photo.data.split(',')[1]});
           const receipt=await api('/api/reports',item.payload);
+          if(['erp_review','erp_rejected','erp_sending'].includes(receipt.state)){
+            await window.campoStorage.write('queue',{...item,state:'invalid',error:receipt.error||'El registro ERP requiere revisión.'});
+            continue;
+          }
+          for(const photo of item.photos||[])await api('/api/photos',{id:photo.id,reportId:item.id,data:photo.data.split(',')[1]});
           state.reports=[receipt,...state.reports.filter(report=>report.id!==receipt.id)];
           await window.campoStorage.write('meta',{catalog:state.catalog,config:state.config,reports:state.reports,topics:state.topics,clarifications:state.clarifications||[]},`snapshot:${state.user}`);
           if(item.photos?.length)await window.campoStorage.write('meta',item.photos,`photos:${state.user}:${item.id}`);

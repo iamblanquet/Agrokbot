@@ -38,6 +38,7 @@ class DatabaseService:
             CREATE TABLE IF NOT EXISTS topics (project_id TEXT PRIMARY KEY, thread_id TEXT, title TEXT);
             """)
             self._migrate_profiles(db)
+            self._migrate_photos(db)
             self._sync_app_profiles(db)
             self._recover_incomplete_operations(db)
             self._check_identity(db, erp_mode, telegram_mode, erp_url, chat_id)
@@ -49,6 +50,12 @@ class DatabaseService:
             if column not in profile_columns:
                 db.execute(f"ALTER TABLE user_profiles ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
 
+    def _migrate_photos(self, db):
+        columns = {row[1] for row in db.execute("PRAGMA table_info(photos)")}
+        for column, definition in (("attachment_id", "TEXT"), ("upload_state", "TEXT NOT NULL DEFAULT 'pending'")):
+            if column not in columns:
+                db.execute(f"ALTER TABLE photos ADD COLUMN {column} {definition}")
+
     def _sync_app_profiles(self, db):
         for app_profile in db.execute("SELECT username,responsible_name,employee_number,assignment_id FROM app_users"):
             db.execute(
@@ -58,6 +65,7 @@ class DatabaseService:
             )
 
     def _recover_incomplete_operations(self, db):
+        db.execute("UPDATE photos SET upload_state='review' WHERE upload_state='sending'")
         db.execute("UPDATE reports SET state='erp_review',error='El proceso se interrumpió durante el registro. Verifica en ERP antes de repetir.' WHERE state='erp_sending'")
         db.execute("UPDATE reports SET state='telegram_review',error='El proceso se interrumpió durante el envío. Verifica en Telegram antes de repetir.' WHERE state='telegram_sending'")
 

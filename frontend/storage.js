@@ -49,6 +49,18 @@ function campoStorageRemoveDemoCatalog(){
 }
 
 window.campoStorage={
+  purgeDeliveredPhotos:async(user,reports)=>{
+    const ids=reports.filter(r=>r.state==='published').map(r=>r.id);
+    if(!ids.length)return;
+    await new Promise((resolve,reject)=>{
+      const transaction=campoStorageDatabase.current.transaction(['queue','meta'],'readwrite');
+      for(const id of ids){
+        transaction.objectStore('meta').delete(`photos:${user}:${id}`);
+        transaction.objectStore('queue').delete(id);
+      }
+      transaction.oncomplete=resolve;transaction.onerror=()=>reject(transaction.error);transaction.onabort=()=>reject(transaction.error);
+    });
+  },
   open:campoStorageOpen,
   get:campoStorageGet,
   all:campoStorageAll,

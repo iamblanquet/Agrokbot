@@ -93,7 +93,7 @@ class ReportService:
             with self.connection() as db:
                 db.execute("INSERT INTO reports(id,user,task_id,project_id,payload,state,created,message) VALUES (?,?,?,?,?,'erp_sending',?,?)", (rid, user, task["id"], project["id"], serialized, self.now(), message))
             if self.audit:self.audit("report_created", rid, {"user": user, "origin": origin, "state": "erp_sending", "task_id": task["id"], "project_id": project["id"]})
-            state, error = "telegram_pending", None
+            state, error = ("photos_pending" if clean.get("photos") else "telegram_pending"), None
             log_id = "demo-" + rid
             if settings["erp_mode"] == "live":
                 try:
@@ -106,13 +106,15 @@ class ReportService:
                     erp_display_user = (clean.get("details") or {}).get("author") or linked_name or user
                     result = self.erp(f"/external/project-tasks/{urllib.parse.quote(task['id'], safe='')}/operation-log", {"source": "WEBAPP", "externalUserId": erp_display_user, "operationDate": clean["operationDate"], "progressBps": clean["progressBps"], "notes": erp_notes, "assetIds": [], "metadataJson": {"clientApp": origin, "clientReportId": rid, "submittedAt": self.now(), "authenticatedUserId": user, "crew": clean.get("crew", []), "personnelCount": len(clean.get("crew", [])), "fieldReport": clean.get("details"), "photoCount": len(clean.get("photos", []))}})
                     log_id = result["operationLog"]["id"]
-                except (RemoteFailure, KeyError, TypeError) as failure:
+                    if not isinstance(log_id, str) or not log_id:
+                        raise ValueError("Missing operationLog.id")
+                except (RemoteFailure, KeyError, TypeError, ValueError) as failure:
                     state = "erp_review" if getattr(failure, "ambiguous", True) else "erp_rejected"
                     error = getattr(failure, "message", "Respuesta ERP inesperada; verificar registro antes de repetir.")
                     log_id = None
             with self.connection() as db:
                 db.execute("UPDATE reports SET state=?,error=?,erp_log_id=? WHERE id=?", (state, error, log_id, rid))
-                if state == "telegram_pending":
+                if state in ("telegram_pending", "photos_pending"):
                     task["progressBps"] = clean["progressBps"]
                     task["status"] = "FINISHED" if clean["progressBps"] == 10000 else "IN_PROGRESS" if clean["progressBps"] else "CREATED"
                     db.execute("UPDATE catalog SET payload=? WHERE kind='task' AND id=?", (json.dumps(task), task["id"]))
