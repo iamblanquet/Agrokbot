@@ -18,14 +18,13 @@ import server
 
 
 class AuthTests(unittest.TestCase):
-    def test_journal_is_admin_only_and_read_only(self):
+    def test_journal_is_authenticated_and_read_only(self):
         with patch.object(server.ERP, 'request', return_value={'projects':[]}) as erp:
             self.assertEqual(self.request('/api/admin/journal/projects')[0],401)
+            erp.assert_not_called()
             self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
             with patch.object(server,'is_admin',return_value=False):
-                self.assertEqual(self.request('/api/admin/journal/projects')[0],403)
-            erp.assert_not_called()
-            self.assertEqual(self.request('/api/admin/journal/projects'),(200,{'projects':[]}))
+                self.assertEqual(self.request('/api/admin/journal/projects'),(200,{'projects':[]}))
             erp.assert_called_once_with('/external/projects')
             self.assertEqual(self.request('/api/admin/journal/projects',{})[0],404)
 

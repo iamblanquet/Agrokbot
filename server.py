@@ -392,7 +392,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(status, payload)
             if path.startswith("/api/"):
                 user = self.session()
-                if path.startswith("/api/admin/") and not is_admin(user):
+                if path.startswith("/api/admin/") and not path.startswith("/api/admin/journal/") and not is_admin(user):
                     raise Problem(403, "Solo el administrador puede gestionar usuarios.")
                 if path.startswith('/api/admin/journal/'):
                     query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
