@@ -212,6 +212,12 @@
   width: 100%;
 }
 
+.journal .task-panel th:first-child,
+.journal .task-panel td.task-name {
+  width: 42%;
+  min-width: 260px;
+}
+
 .journal .task-panel .task-name strong {
   font-size: 14.5px;
   font-weight: 700;
@@ -232,6 +238,27 @@
   color: var(--brand-gold);
   font-weight: 700;
   margin-right: 6px;
+}
+
+.journal .task-panel .photos-column {
+  text-align: center;
+  width: 80px;
+  white-space: nowrap;
+}
+
+.journal .task-panel .photo-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: var(--brand-primary-soft);
+  color: var(--brand-primary);
+  border: 1px solid rgba(44, 64, 1, 0.12);
 }
 
 .journal .task-panel .table-caption {

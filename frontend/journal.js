@@ -33,12 +33,6 @@ window.campoJournal = {
       ? `${(n / 100).toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
       : '0 %';
 
-    const shortId = id => {
-      if (!id) return '';
-      if (id.length <= 11) return id;
-      return id.slice(0, 6) + '…' + id.slice(-4);
-    };
-
     const activeProject = () => self.projects.find(p => p.id === self.project);
 
     const renderProjectSliderHtml = () => {
@@ -477,6 +471,7 @@ window.campoJournal = {
                     <th class="person-column">RESPONSABLE</th>
                     <th>AVANCE</th>
                     <th class="status-column">ESTADO</th>
+                    <th class="photos-column" style="text-align: center;">FOTOS</th>
                     <th style="text-align: right;"><span class="muted">ACCIÓN</span></th>
                   </tr>
                 </thead>
@@ -485,15 +480,13 @@ window.campoJournal = {
                     const authorName = r.author || r.responsible || 'Sin asignar';
                     const initials = esc(authorName.split(' ').filter(Boolean).map(s => s[0]).slice(0, 2).join('').toUpperCase() || 'A');
                     const opDate = (r.operationDate || '').slice(0, 10);
+                    const photoCount = Array.isArray(r.attachments) ? r.attachments.length : 0;
                     return `
                       <tr data-entry="${esc(r.id)}">
                         <td class="task-name">
                           <strong>${esc(r.taskName || 'Tarea sin nombre')}</strong>
                           <small>
-                            ${r.taskCode ? `<span class="task-code">${esc(r.taskCode)}</span> ` : ''}
-                            ${esc(r.activityName || 'Operación')}${opDate ? ` · ${esc(opDate)}` : ''} · #${esc(shortId(r.id))}
-                            ${r.attachments && r.attachments.length ? ` · 📷 ${r.attachments.length}` : ''}
-                            ${r.notes ? ` · <span title="Observaciones: ${esc(r.notes)}">💬</span>` : ''}
+                            ${r.taskCode ? `<span class="task-code">${esc(r.taskCode)}</span> ` : ''}${esc(r.activityName || 'Operación')}${opDate ? ` · ${esc(opDate)}` : ''}
                           </small>
                         </td>
                         <td class="person-column">
@@ -508,6 +501,11 @@ window.campoJournal = {
                         </td>
                         <td class="status-column">
                           <span class="status ${statusColorClass(r.status)}">${esc(label(r.status))}</span>
+                        </td>
+                        <td class="photos-column" style="text-align: center;">
+                          ${photoCount > 0
+                            ? `<span class="photo-count-pill">${photoCount}</span>`
+                            : '<span class="muted">—</span>'}
                         </td>
                         <td class="task-action" style="text-align: right;">
                           <button class="btn subtle" data-entry="${esc(r.id)}">Detalle</button>
