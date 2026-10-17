@@ -453,14 +453,22 @@ window.campoJournal = {
                   <dd>${esc(formatDateTime(info.capturedAt))}</dd>
                 </div>
                 ${(info.resources || []).map(item => {
-                  const lbl = item.label === 'Avance' ? 'Cantidad ejecutada' : item.label;
+                  let lbl = item.label === 'Avance' ? 'Cantidad ejecutada' : item.label;
+                  let val = item.value || 'Sin detalle';
+                  const crewMatch = lbl.match(/^cuadrilla\s*\(([^)]+)\)$/i);
+                  if (crewMatch) {
+                    lbl = 'Cuadrilla';
+                    if (!item.value || item.value.toLowerCase() === 'sin detalle') {
+                      val = crewMatch[1].trim();
+                    }
+                  }
                   return `
                     <div class="meta-field">
                       <dt>
                         ${getFieldIconSvg(lbl)}
                         ${esc(lbl)}
                       </dt>
-                      <dd>${esc(item.value || 'Sin detalle')}</dd>
+                      <dd>${esc(val)}</dd>
                     </div>
                   `;
                 }).join('')}
@@ -503,18 +511,20 @@ window.campoJournal = {
                 <span class="photo-count-badge">${row.attachments.length} foto(s)</span>
               </h3>
               <div class="journal-gallery">
-                ${row.attachments.map(a => `
-                  <figure class="gallery-card">
-                    <div class="gallery-img-wrapper">
+                ${row.attachments.map((a, idx) => `
+                  <figure class="gallery-card" data-photo-index="${idx}">
+                    <div class="gallery-img-wrapper" data-photo-index="${idx}" title="Clic para ver en pantalla completa y deslizar">
                       <img src="${esc(url(a, 'preview'))}" alt="${esc(a.originalFileName || 'Evidencia')}" loading="lazy">
                       <div class="gallery-zoom-overlay">
-                        <a href="${esc(url(a, 'file'))}" target="_blank" rel="noopener" class="zoom-btn" title="Abrir original en pestaña nueva">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <span class="zoom-btn">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                            <polyline points="9 21 3 21 3 15"></polyline>
+                            <line x1="21" y1="3" x2="14" y2="10"></line>
+                            <line x1="3" y1="21" x2="10" y2="14"></line>
                           </svg>
-                        </a>
+                          <span>Ver en grande</span>
+                        </span>
                       </div>
                     </div>
                     <figcaption>
@@ -523,14 +533,25 @@ window.campoJournal = {
                         <small class="file-size">${a.sizeBytes ? (a.sizeBytes / 1024).toFixed(1) + ' KB' : ''}</small>
                       </div>
                       <p class="journal-image-error" hidden>No se pudo cargar la vista previa. Intenta actualizar o descargar el original.</p>
-                      <a class="btn small btn-download-file" href="${esc(url(a, 'file'))}" download="${esc(a.originalFileName || 'evidencia')}">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                          <polyline points="7 10 12 15 17 10"></polyline>
-                          <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <span>Descargar original</span>
-                      </a>
+                      <div class="gallery-card-actions">
+                        <button type="button" class="btn small btn-view-photo" data-photo-index="${idx}">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            <line x1="11" y1="8" x2="11" y2="14"></line>
+                            <line x1="8" y1="11" x2="14" y2="11"></line>
+                          </svg>
+                          <span>Ver</span>
+                        </button>
+                        <a class="btn small btn-download-file" href="${esc(url(a, 'file'))}" download="${esc(a.originalFileName || 'evidencia')}">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                          </svg>
+                          <span>Descargar</span>
+                        </a>
+                      </div>
                     </figcaption>
                   </figure>
                 `).join('') || '<div class="gallery-empty"><p>Este asiento no tiene fotografías adjuntas.</p></div>'}
@@ -554,12 +575,162 @@ window.campoJournal = {
               <button type="button" id="journal-footer-close" class="btn">Cerrar</button>
             </div>
           </div>
+
+          <!-- Contenedor del visor de fotos (Lightbox) en pantalla completa -->
+          <div id="journal-lightbox-container"></div>
         </dialog>
       `;
 
       let escHandler = null;
+      let isLightboxOpen = false;
+      let currentPhotoIndex = 0;
+
+      const navigateLightbox = delta => {
+        const total = row.attachments.length;
+        if (total <= 1) return;
+        currentPhotoIndex = (currentPhotoIndex + delta + total) % total;
+        renderLightboxPhoto();
+      };
+
+      const closeLightbox = () => {
+        isLightboxOpen = false;
+        const container = find('#journal-lightbox-container');
+        if (container) container.innerHTML = '';
+      };
+
+      const renderLightboxPhoto = () => {
+        const container = find('#journal-lightbox-container');
+        if (!container || !isLightboxOpen) return;
+        const total = row.attachments.length;
+        const a = row.attachments[currentPhotoIndex];
+        if (!a) return;
+        const sizeText = a.sizeBytes ? (a.sizeBytes / 1024).toFixed(1) + ' KB' : '';
+
+        container.innerHTML = `
+          <div class="journal-photo-lightbox" id="journal-photo-lightbox" role="dialog" aria-modal="true" aria-label="Visor de fotos">
+            <div class="lightbox-topbar">
+              <div class="lightbox-topbar-left">
+                <span class="lightbox-counter-badge">${currentPhotoIndex + 1} / ${total}</span>
+                <span class="lightbox-filename" title="${esc(a.originalFileName || 'Evidencia')}">${esc(a.originalFileName || 'Evidencia')}</span>
+                ${sizeText ? `<span class="lightbox-filesize">(${sizeText})</span>` : ''}
+              </div>
+              <div class="lightbox-topbar-right">
+                <a class="lightbox-btn-download" href="${esc(url(a, 'file'))}" download="${esc(a.originalFileName || 'evidencia')}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>Descargar original</span>
+                </a>
+                <button type="button" class="lightbox-btn-close" id="lightbox-close" aria-label="Cerrar visor (Esc)" title="Cerrar (Esc)">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="lightbox-stage" id="lightbox-stage">
+              <button type="button" class="lightbox-arrow-btn prev" id="lightbox-prev" aria-label="Foto anterior" title="Foto anterior (←)" ${total <= 1 ? 'disabled style="display:none"' : ''}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+
+              <div class="lightbox-img-container" id="lightbox-img-wrap">
+                <img class="lightbox-main-img" src="${esc(url(a, 'file'))}" alt="${esc(a.originalFileName || 'Evidencia')}" />
+              </div>
+
+              <button type="button" class="lightbox-arrow-btn next" id="lightbox-next" aria-label="Siguiente foto" title="Siguiente foto (→)" ${total <= 1 ? 'disabled style="display:none"' : ''}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <div class="lightbox-bottombar">
+              ${total > 1 ? `
+              <div class="lightbox-thumbs-track">
+                ${row.attachments.map((att, idx) => `
+                  <button type="button" class="lightbox-thumb-item ${idx === currentPhotoIndex ? 'active' : ''}" data-thumb-index="${idx}" aria-label="Ver foto ${idx + 1}">
+                    <img src="${esc(url(att, 'preview'))}" alt="${esc(att.originalFileName || '')}" loading="lazy" />
+                  </button>
+                `).join('')}
+              </div>` : ''}
+              <p class="lightbox-hint">Usa las flechas ‹ › en pantalla o ← → en tu teclado · Desliza en pantalla táctil · Esc para volver</p>
+            </div>
+          </div>
+        `;
+
+        const lbClose = find('#lightbox-close');
+        if (lbClose) lbClose.onclick = closeLightbox;
+
+        const lbPrev = find('#lightbox-prev');
+        if (lbPrev) {
+          lbPrev.onclick = e => {
+            e.stopPropagation();
+            navigateLightbox(-1);
+          };
+        }
+
+        const lbNext = find('#lightbox-next');
+        if (lbNext) {
+          lbNext.onclick = e => {
+            e.stopPropagation();
+            navigateLightbox(1);
+          };
+        }
+
+        container.querySelectorAll('.lightbox-thumb-item').forEach(btn => {
+          btn.onclick = e => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.thumbIndex, 10);
+            if (!isNaN(idx) && idx !== currentPhotoIndex) {
+              currentPhotoIndex = idx;
+              renderLightboxPhoto();
+            }
+          };
+        });
+
+        const stage = find('#lightbox-stage');
+        if (stage) {
+          stage.onclick = e => {
+            if (e.target === stage || e.target.id === 'lightbox-img-wrap') {
+              closeLightbox();
+            }
+          };
+
+          let startX = 0;
+          stage.addEventListener('touchstart', e => {
+            if (e.changedTouches && e.changedTouches[0]) {
+              startX = e.changedTouches[0].screenX;
+            }
+          }, { passive: true });
+
+          stage.addEventListener('touchend', e => {
+            if (e.changedTouches && e.changedTouches[0]) {
+              const endX = e.changedTouches[0].screenX;
+              const diff = endX - startX;
+              if (Math.abs(diff) > 40) {
+                if (diff < 0) navigateLightbox(1);
+                else navigateLightbox(-1);
+              }
+            }
+          }, { passive: true });
+        }
+      };
+
+      const openLightbox = index => {
+        if (!row.attachments || !row.attachments.length) return;
+        currentPhotoIndex = Math.max(0, Math.min(index, row.attachments.length - 1));
+        isLightboxOpen = true;
+        renderLightboxPhoto();
+      };
 
       const closeDetail = () => {
+        if (isLightboxOpen) closeLightbox();
         if (escHandler) {
           window.removeEventListener('keydown', escHandler);
           escHandler = null;
@@ -590,11 +761,23 @@ window.campoJournal = {
           dlg.setAttribute('open', '');
         }
 
-        // 1. Escuchar Escape globalmente
+        // 1. Escuchar Escape y flechas globalmente
         escHandler = e => {
           if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
             e.preventDefault();
-            closeDetail();
+            if (isLightboxOpen) {
+              closeLightbox();
+            } else {
+              closeDetail();
+            }
+          } else if (isLightboxOpen) {
+            if (e.key === 'ArrowLeft') {
+              e.preventDefault();
+              navigateLightbox(-1);
+            } else if (e.key === 'ArrowRight') {
+              e.preventDefault();
+              navigateLightbox(1);
+            }
           }
         };
         window.addEventListener('keydown', escHandler);
@@ -602,11 +785,16 @@ window.campoJournal = {
         // 2. Evento cancel nativo de <dialog>
         dlg.addEventListener('cancel', e => {
           e.preventDefault();
-          closeDetail();
+          if (isLightboxOpen) {
+            closeLightbox();
+          } else {
+            closeDetail();
+          }
         });
 
         // 3. Clic en el backdrop oscuro
         dlg.addEventListener('click', e => {
+          if (isLightboxOpen) return;
           const rect = dlg.getBoundingClientRect();
           const clickedOutside = (
             e.clientX < rect.left ||
@@ -625,6 +813,16 @@ window.campoJournal = {
       if (closeBtn) closeBtn.onclick = closeDetail;
       const footerCloseBtn = find('#journal-footer-close');
       if (footerCloseBtn) footerCloseBtn.onclick = closeDetail;
+
+      // 5. Clic para abrir el visor en tarjetas de fotos
+      find('#journal-detail').querySelectorAll('[data-photo-index]').forEach(el => {
+        el.onclick = e => {
+          if (e.target.closest('.btn-download-file')) return;
+          e.stopPropagation();
+          const idx = parseInt(el.dataset.photoIndex, 10);
+          if (!isNaN(idx)) openLightbox(idx);
+        };
+      });
 
       find('#journal-detail').querySelectorAll('img').forEach(img => {
         img.onerror = () => {

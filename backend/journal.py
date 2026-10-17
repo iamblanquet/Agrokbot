@@ -25,7 +25,13 @@ def presentation(log, metadata, field):
             if key in ('Responsable', 'Autor'):
                 result['reportedBy'] = value.strip()
             else:
-                resources.append({'label': key, 'value': value.strip()})
+                k = key.strip()
+                v = value.strip()
+                crew_m = re.match(r'^Cuadrilla\s*\(([^)]+)\)$', k, re.IGNORECASE)
+                if crew_m and (not v or v.lower() == 'sin detalle'):
+                    k = 'Cuadrilla'
+                    v = crew_m.group(1).strip()
+                resources.append({'label': k, 'value': v})
         elif clean:
             resources.append({'label': 'Información adicional', 'value': clean})
     result.update(observations=match['notes'], parsed=True, resources=resources,
