@@ -174,9 +174,9 @@ window.campoJournal = {
           <div id="journal-results"></div>
 
           <!-- Pie del panel con paginación integrada -->
-          <div class="table-caption" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div class="table-caption">
             <span id="journal-count">0 registros · Página 1 de 1</span>
-            <div style="display: inline-flex; gap: 8px;">
+            <div class="journal-pagination-btns">
               <button id="journal-prev" class="btn subtle small" type="button" aria-label="Página anterior">&lt; Anterior</button>
               <button id="journal-next" class="btn subtle small" type="button" aria-label="Página siguiente">Siguiente &gt;</button>
             </div>
@@ -1127,8 +1127,8 @@ window.campoJournal = {
                     <th class="person-column">RESPONSABLE</th>
                     <th>AVANCE</th>
                     <th class="status-column">ESTADO</th>
-                    <th class="photos-column" style="text-align: center;">FOTOS</th>
-                    <th style="text-align: right;"><span class="muted">ACCIÓN</span></th>
+                    <th class="photos-column">FOTOS</th>
+                    <th class="task-action"><span class="muted">ACCIÓN</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1158,12 +1158,12 @@ window.campoJournal = {
                         <td class="status-column">
                           ${renderStatusBadge(r.status)}
                         </td>
-                        <td class="photos-column" style="text-align: center;">
+                        <td class="photos-column">
                           ${photoCount > 0
                             ? `<span class="photo-count-pill">${photoCount}</span>`
                             : '<span class="muted">—</span>'}
                         </td>
-                        <td class="task-action" style="text-align: right;">
+                        <td class="task-action">
                           <button class="btn subtle" data-entry="${esc(r.id)}">Detalle</button>
                         </td>
                       </tr>
