@@ -645,31 +645,7 @@ window.campoJournal = {
           </div>
 
           <div class="journal-modal-footer">
-            <div class="dialog-footer-left">
-              <div class="ref-badge-interactive footer-ref-badge" data-copy-text="${esc(row.id)}" title="${esc(row.id)} · Clic para copiar ID completo">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                <span class="ref-label">Asiento ERP</span>
-                <span class="ref-mono-id">${esc(formatShortId(row.id))}</span>
-                <button type="button" class="btn-copy-tag" aria-label="Copiar identificador">
-                  <svg class="icon-copy" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                  <svg class="icon-copied" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span class="copy-feedback">Copiar</span>
-                </button>
-              </div>
-            </div>
-            <div class="dialog-footer-right">
-              <button type="button" id="journal-footer-close" class="btn">Cerrar</button>
-            </div>
+            <button type="button" id="journal-footer-close" class="btn">Cerrar</button>
           </div>
 
           <!-- Contenedor del visor de fotos (Lightbox) en pantalla completa -->

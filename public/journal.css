@@ -1524,19 +1524,12 @@
 .journal-modal-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   padding: 16px 28px;
   background: #ffffff;
   border-top: 1px solid var(--border-light);
   flex-shrink: 0;
-}
-
-.journal-footer-ref {
-  font-size: 12px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
 }
 
 .journal-notes-raw-details {
