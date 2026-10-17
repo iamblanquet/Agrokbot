@@ -644,10 +644,6 @@ window.campoJournal = {
             </div>
           </div>
 
-          <div class="journal-modal-footer">
-            <button type="button" id="journal-footer-close" class="btn">Cerrar</button>
-          </div>
-
           <!-- Contenedor del visor de fotos (Lightbox) en pantalla completa -->
           <div id="journal-lightbox-container"></div>
         </dialog>
@@ -880,11 +876,9 @@ window.campoJournal = {
         });
       }
 
-      // 4. Botones de cerrar (header y footer)
+      // 4. Botón de cerrar (header)
       const closeBtn = find('#journal-close');
       if (closeBtn) closeBtn.onclick = closeDetail;
-      const footerCloseBtn = find('#journal-footer-close');
-      if (footerCloseBtn) footerCloseBtn.onclick = closeDetail;
 
       // 5. Clic para abrir el visor en tarjetas de fotos
       find('#journal-detail').querySelectorAll('[data-photo-index]').forEach(el => {
