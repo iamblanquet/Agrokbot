@@ -1,5 +1,37 @@
 """Read-only ERP journal. No local persistence or external writes."""
 import urllib.parse
+import re
+
+
+def presentation(log, metadata, field):
+    """Only unwrap our complete generated envelope; preserve unknown notes verbatim."""
+    notes = log.get('notes') or ''
+    match = re.fullmatch(
+        r'📅 Fecha Operativa: [^\n]+\n⏰ Hora Captura [^\n]+\n'
+        r'(?P<body>.*?)\n\nTarea: [^\n]+\nAvance acumulado: [^\n]+\n'
+        r'Capturado: (?P<captured>[^\n]+)\n\n(?P<notes>.*?)\n\nRef: (?P<reference>[^\n]+)',
+        notes, re.DOTALL)
+    result = {'observations': notes, 'parsed': False, 'resources': []}
+    if not match:
+        return result
+    # Keep every header line available, including legacy fields absent from metadata.
+    connection = re.search(r'^⏰ Hora Captura \(([^\n)]+)\):', notes, re.MULTILINE)
+    resources = ([{'label': 'Conectividad al capturar', 'value': connection[1]}]
+                 if connection else [])
+    for line in match['body'].splitlines():
+        clean = line.strip().lstrip('👤📊👥🚜☂• ').strip()
+        key, separator, value = clean.partition(':')
+        if separator:
+            if key in ('Responsable', 'Autor'):
+                result['reportedBy'] = value.strip()
+            else:
+                resources.append({'label': key, 'value': value.strip()})
+        elif clean:
+            resources.append({'label': 'Información adicional', 'value': clean})
+    result.update(observations=match['notes'], parsed=True, resources=resources,
+                  capturedAt=field.get('capturedAt') or match['captured'],
+                  clientReference=metadata.get('clientReportId') or match['reference'])
+    return result
 
 
 class JournalService:
@@ -28,6 +60,7 @@ class JournalService:
                         'createdAt': log.get('createdAt'), 'source': log.get('source'),
                         'status': log.get('status'), 'progressBps': log.get('progressBps'),
                         'notes': log.get('notes') or '',
+                        'presentation': presentation(log, metadata, field),
                         'author': log.get('reporterName') or field.get('author') or 'Sin autor informado',
                         'taskId': task['id'], 'taskName': task.get('name'), 'taskCode': task.get('code'),
                         'activityName': activity.get('name'), 'responsible': task.get('responsibleName') or '',

@@ -203,6 +203,8 @@ window.campoJournal = {
 
     const detail = row => {
       self.selected = row.id;
+      const info = row.presentation || { observations: row.notes, resources: [] };
+      const author = info.reportedBy || row.author;
       const base = { project: self.project, log: row.id };
       const url = (a, kind) => '/api/admin/journal/' + kind + '?' + new URLSearchParams({ ...base, attachment: a.id });
 
@@ -218,7 +220,7 @@ window.campoJournal = {
                   <line x1="16" y1="13" x2="8" y2="13"></line>
                   <line x1="16" y1="17" x2="8" y2="17"></line>
                 </svg>
-                <span>ASIENTO ERP · REF: ${esc(row.id)}</span>
+                <span>DETALLE DEL REPORTE</span>
               </div>
               <h2 id="journal-modal-title" class="dialog-title">${esc(row.taskName || 'Detalle del asiento')}</h2>
               <p class="dialog-subtitle">${esc(row.activityName || 'Operación')} · Tarea ${esc(row.taskCode || '')}</p>
@@ -238,7 +240,7 @@ window.campoJournal = {
                 <span class="chip ${statusChipClass(row.status)}">${esc(label(row.status))}</span>
               </div>
               <div class="highlight-item">
-                <span class="hl-label">Avance reportado</span>
+                <span class="hl-label">Avance acumulado</span>
                 <strong class="hl-pct">${esc(progress(row.progressBps))}</strong>
               </div>
               <div class="highlight-item">
@@ -251,7 +253,6 @@ window.campoJournal = {
             <div class="journal-detail-progress-wrap">
               <div class="progress-label">
                 <span>Porcentaje de avance en ERP</span>
-                <strong>${esc(progress(row.progressBps))}</strong>
               </div>
               <progress max="10000" value="${typeof row.progressBps === 'number' ? row.progressBps : 0}"></progress>
             </div>
@@ -264,30 +265,28 @@ window.campoJournal = {
                 <dd><code>${esc(row.id)}</code></dd>
               </div>
               <div class="meta-field">
-                <dt>Fecha de captura</dt>
+                <dt>Registro en ERP</dt>
                 <dd>${esc(row.createdAt ? new Date(row.createdAt).toLocaleString('es-MX') : 'No informada')}</dd>
               </div>
               <div class="meta-field">
                 <dt>Reportado por</dt>
-                <dd class="user-meta"><span class="avatar-mini">${esc((row.author || 'A').charAt(0).toUpperCase())}</span> <strong>${esc(row.author)}</strong></dd>
+                <dd>${esc(author)}</dd>
               </div>
-              <div class="meta-field">
+              ${row.responsible && row.responsible !== author ? `<div class="meta-field">
                 <dt>Responsable de tarea</dt>
                 <dd>${esc(row.responsible || 'Sin responsable asignado')}</dd>
-              </div>
-              <div class="meta-field">
-                <dt>Actividad / Frente</dt>
-                <dd>${esc(row.activityName || 'Operación general')}</dd>
-              </div>
-              <div class="meta-field">
-                <dt>Código de tarea</dt>
-                <dd>${esc(row.taskCode || 'N/A')}</dd>
-              </div>
+              </div>` : ''}
               <div class="meta-field">
                 <dt>Origen del asiento</dt>
                 <dd><span class="origin-badge">${esc(row.source || 'ERP Central')}</span></dd>
               </div>
             </dl>
+
+            ${info.parsed ? `<h3 class="journal-section-subtitle">Trabajo en campo</h3>
+            <dl class="journal-meta-grid">
+              <div class="meta-field"><dt>Captura en campo</dt><dd>${esc(info.capturedAt)}</dd></div>
+              ${(info.resources || []).map(item => `<div class="meta-field"><dt>${esc(item.label === 'Avance' ? 'Cantidad ejecutada' : item.label)}</dt><dd>${esc(item.value || 'Sin detalle')}</dd></div>`).join('')}
+            </dl>` : ''}
 
             <!-- Observaciones -->
             <h3 class="journal-section-subtitle">Observaciones de campo</h3>
@@ -295,8 +294,9 @@ window.campoJournal = {
               <svg class="notes-quote-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
-              <p class="journal-notes">${esc(row.notes || 'Sin observaciones registradas para este asiento.')}</p>
+              <p class="journal-notes">${esc(info.observations || 'Sin observaciones registradas para este asiento.')}</p>
             </div>
+            ${info.parsed ? `<details><summary>Ver texto original del ERP</summary><p class="journal-notes">${esc(row.notes)}</p></details>` : ''}
 
             <!-- Galería de Evidencias -->
             <h3 class="journal-section-subtitle">

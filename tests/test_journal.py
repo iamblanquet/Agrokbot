@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from backend.journal import JournalService
+from backend.journal import JournalService, presentation
 
 
 def project_fixture():
@@ -11,6 +11,25 @@ def project_fixture():
 
 
 class JournalTests(unittest.TestCase):
+    def test_generated_notes_are_unwrapped_without_losing_free_text(self):
+        notes = ('📅 Fecha Operativa: 2026-10-15\n⏰ Hora Captura (Con Internet): 11:15:52 hrs\n'
+                 '👤 Responsable: Ana\n📊 Avance: 1 ha\n👥 Cuadrilla (2 personas):\n'
+                 '  • Técnicos: Juan\n  • Auxiliares: Luis\n🚜 Maquinaria: Dron: 1 hrs (0 L)\n\n'
+                 'Tarea: Preparación\nAvance acumulado: 12 %\nCapturado: 2026-10-15 11:15:52 -0600\n\n'
+                 'Prueba\n\nRef: esta línea es parte de la nota\n\nRef: reporte-1')
+        result = presentation({'notes': notes}, {}, {})
+        self.assertTrue(result['parsed'])
+        self.assertEqual(result['reportedBy'], 'Ana')
+        self.assertEqual(result['observations'], 'Prueba\n\nRef: esta línea es parte de la nota')
+        self.assertEqual(result['clientReference'], 'reporte-1')
+        self.assertIn({'label':'Maquinaria','value':'Dron: 1 hrs (0 L)'},result['resources'])
+
+    def test_unknown_or_incomplete_notes_are_preserved(self):
+        for notes in ('Responsable: Ana\nPrueba', '📅 Fecha Operativa: 2026-10-15\nTexto', '<script>alert(1)</script>', ''):
+            result = presentation({'notes': notes}, {}, {})
+            self.assertFalse(result['parsed'])
+            self.assertEqual(result['observations'], notes)
+
     def test_external_entries_are_sorted_without_local_database(self):
         erp=Mock();erp.request.return_value=project_fixture()
         rows=JournalService(erp).entries('p1')['entries']
