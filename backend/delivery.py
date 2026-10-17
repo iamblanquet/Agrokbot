@@ -81,7 +81,7 @@ class DeliveryService:
                                     photos.append(photo)
                             caption = report["message"]
                             if settings["public_url"].startswith("https://") and (len(caption.encode("utf-16-le")) // 2 + len(settings["public_url"]) + 20 <= 1024):
-                                caption += f"\n\n🔗 Abrir Campo: {settings['public_url']}"
+                                caption += f"\n\nAbrir Campo: {settings['public_url']}"
                             if settings["mode"] == "demo":
                                 message_ids = ["demo-" + pid[:8] for pid in photo_ids]
                             else:

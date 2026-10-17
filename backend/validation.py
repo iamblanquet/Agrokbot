@@ -90,16 +90,16 @@ class ValidationService:
                 names = [employee["name"] for employee in crew if employee.get("role") == role]
                 if names:
                     crew_parts.append(f"{label}: {', '.join(names)}")
-            crew_line = f"\n👥 Cuadrilla ({len(crew)} personas):\n" + "\n".join(f"  • {part}" for part in crew_parts)
+            crew_line = f"\nCuadrilla ({len(crew)} personas):\n" + "\n".join(f"  • {part}" for part in crew_parts)
         else:
-            crew_line = "\n👥 Cuadrilla: Sin personal asignado"
+            crew_line = "\nCuadrilla: Sin personal asignado"
         machines = " · ".join(f"{machine['name']}: {machine['hours']:g} hrs ({machine['liters']:g} L)" for machine in details["machinery"]) or "Sin maquinaria"
         stoppage = details.get("stoppage")
-        status = f"\n☂ Estatus: Día sin actividad (Paro)\nMotivo: {stoppage['reason']}" + (f" — {stoppage['description']}" if stoppage["description"] else "") if stoppage else ""
-        return (f"📅 Fecha Operativa: {clean['operationDate']}"
-                f"\n⏰ Hora Captura ({'Sin Internet' if details['offline'] else 'Con Internet'}): {captured:%H:%M:%S} hrs"
-                f"{status}\n👤 " + (f"Autor: {details['author']} - {details['title']}" if details.get("title") else f"Responsable: {details['author']}") + f"\n📊 Avance: {details['quantity']:g} {details['unit']}"
-                f"{crew_line}\n🚜 Maquinaria: {machines}"
+        status = f"\nEstatus: Día sin actividad (Paro)\nMotivo: {stoppage['reason']}" + (f" — {stoppage['description']}" if stoppage["description"] else "") if stoppage else ""
+        return (f"Fecha Operativa: {clean['operationDate']}"
+                f"\nHora Captura ({'Sin Internet' if details['offline'] else 'Con Internet'}): {captured:%H:%M:%S} hrs"
+                f"{status}\n" + (f"Autor: {details['author']} - {details['title']}" if details.get("title") else f"Responsable: {details['author']}") + f"\nAvance: {details['quantity']:g} {details['unit']}"
+                f"{crew_line}\nMaquinaria: {machines}"
                 f"\n\nTarea: {task['name']}\nAvance acumulado: {clean['progressBps']/100:g} %"
                 f"\nCapturado: {captured:%Y-%m-%d %H:%M:%S %z}"
                 f"\n\n{clean['notes']}\n\nRef: {clean['id']}")

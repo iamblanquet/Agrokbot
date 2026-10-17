@@ -82,9 +82,9 @@ class WorkflowTests(unittest.TestCase):
         catalog = server.catalog()
         with patch.object(server, 'ERP_MODE', 'live'), patch.object(server, 'catalog', return_value=catalog), patch.object(server, 'erp', return_value={'operationLog': {'id': 'test'}}) as api:
             receipt = server.create_report(body, 'dev')
-        for text in ['⏰ Hora Captura (Sin Internet): 13:20:00 hrs', '👤 Autor: Abner Díaz - Residente de Campo', '📊 Avance: 2.5 ha', '🚜 Maquinaria: Máquina: 8 hrs (140 L)']:
+        for text in ['Hora Captura (Sin Internet): 13:20:00 hrs', 'Autor: Abner Díaz - Residente de Campo', 'Avance: 2.5 ha', 'Maquinaria: Máquina: 8 hrs (140 L)']:
             self.assertIn(text, receipt['message'])
-        for text in ['Proyecto:', 'Cuenta:', '📷 Evidencias fotográficas:']:
+        for text in ['Proyecto:', 'Cuenta:', 'Evidencias fotográficas:']:
             self.assertNotIn(text, receipt['message'])
         metadata = api.call_args.args[1]['metadataJson']
         self.assertEqual(metadata['photoCount'], 1)

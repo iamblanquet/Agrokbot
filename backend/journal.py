@@ -7,7 +7,7 @@ def presentation(log, metadata, field):
     """Only unwrap our complete generated envelope; preserve unknown notes verbatim."""
     notes = log.get('notes') or ''
     match = re.fullmatch(
-        r'📅 Fecha Operativa: [^\n]+\n⏰ Hora Captura [^\n]+\n'
+        r'(?:📅\s*)?Fecha Operativa: [^\n]+\n(?:⏰\s*)?Hora Captura [^\n]+\n'
         r'(?P<body>.*?)\n\nTarea: [^\n]+\nAvance acumulado: [^\n]+\n'
         r'Capturado: (?P<captured>[^\n]+)\n\n(?P<notes>.*?)\n\nRef: (?P<reference>[^\n]+)',
         notes, re.DOTALL)
@@ -15,7 +15,7 @@ def presentation(log, metadata, field):
     if not match:
         return result
     # Keep every header line available, including legacy fields absent from metadata.
-    connection = re.search(r'^⏰ Hora Captura \(([^\n)]+)\):', notes, re.MULTILINE)
+    connection = re.search(r'^(?:⏰\s*)?Hora Captura \(([^\n)]+)\):', notes, re.MULTILINE)
     resources = ([{'label': 'Conectividad al capturar', 'value': connection[1]}]
                  if connection else [])
     for line in match['body'].splitlines():

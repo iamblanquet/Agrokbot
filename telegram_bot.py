@@ -84,7 +84,7 @@ class ReportBot:
         elif step == "notes":
             self.send(draft, "5/5 · Describe el trabajo realizado y las observaciones (máximo 2000 caracteres).\nResponde a este mensaje. /cancelar para salir.", force=True)
         elif step == "confirm":
-            self.send(draft, f"Revisa antes de registrar:\n\nProyecto: {draft['project_name']}\nTarea: {draft['task_name']}\nFecha: {draft['operationDate']}\nAvance: {draft['progressBps']/100:g} %\n\n{draft['notes']}\n\nAl confirmar se registrará el avance y se publicará en el tema del proyecto.", self.buttons(draft, [("✓ Confirmar reporte", "confirm"), ("Cambiar avance", "edit"), ("Cancelar", "cancel")]))
+            self.send(draft, f"Revisa antes de registrar:\n\nProyecto: {draft['project_name']}\nTarea: {draft['task_name']}\nFecha: {draft['operationDate']}\nAvance: {draft['progressBps']/100:g} %\n\n{draft['notes']}\n\nAl confirmar se registrará el avance y se publicará en el tema del proyecto.", self.buttons(draft, [("Confirmar reporte", "confirm"), ("Cambiar avance", "edit"), ("Cancelar", "cancel")]))
         elif step == "done":
             self.receipt(draft)
         else:

@@ -1,6 +1,6 @@
 'use strict';
 
-// Monitoreo de transacciones ERP ↔ Telegram (solo administrador, solo lectura salvo reintento).
+// Monitoreo de transacciones ERP <-> Telegram (solo administrador, solo lectura salvo reintento).
 window.campoMonitor = {
   async render(){
     const { $, esc, heading, api, toast } = window.campoUi;

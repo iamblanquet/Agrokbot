@@ -24,6 +24,19 @@ class JournalTests(unittest.TestCase):
         self.assertEqual(result['clientReference'], 'reporte-1')
         self.assertIn({'label':'Maquinaria','value':'Dron: 1 hrs (0 L)'},result['resources'])
 
+    def test_clean_notes_without_emojis_are_unwrapped(self):
+        notes = ('Fecha Operativa: 2026-10-15\nHora Captura (Con Internet): 11:15:52 hrs\n'
+                 'Responsable: Ana\nAvance: 1 ha\nCuadrilla (2 personas):\n'
+                 '  • Técnicos: Juan\n  • Auxiliares: Luis\nMaquinaria: Dron: 1 hrs (0 L)\n\n'
+                 'Tarea: Preparación\nAvance acumulado: 12 %\nCapturado: 2026-10-15 11:15:52 -0600\n\n'
+                 'Prueba\n\nRef: esta línea es parte de la nota\n\nRef: reporte-1')
+        result = presentation({'notes': notes}, {}, {})
+        self.assertTrue(result['parsed'])
+        self.assertEqual(result['reportedBy'], 'Ana')
+        self.assertEqual(result['observations'], 'Prueba\n\nRef: esta línea es parte de la nota')
+        self.assertEqual(result['clientReference'], 'reporte-1')
+        self.assertIn({'label':'Maquinaria','value':'Dron: 1 hrs (0 L)'},result['resources'])
+
     def test_unknown_or_incomplete_notes_are_preserved(self):
         for notes in ('Responsable: Ana\nPrueba', '📅 Fecha Operativa: 2026-10-15\nTexto', '<script>alert(1)</script>', ''):
             result = presentation({'notes': notes}, {}, {})
