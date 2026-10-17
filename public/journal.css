@@ -240,6 +240,11 @@
   margin-right: 6px;
 }
 
+.journal .task-panel .status-column {
+  white-space: nowrap;
+  width: 130px;
+}
+
 .journal .task-panel .photos-column {
   text-align: center;
   width: 80px;
@@ -669,6 +674,224 @@
   flex-shrink: 0;
 }
 
+/* Badges de Estado Modernos y Estéticos */
+.journal-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  width: fit-content;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.journal-status-badge .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.journal-status-badge.in_progress {
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.22);
+  color: #b45309;
+}
+
+.journal-status-badge.in_progress .status-dot {
+  background: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+  animation: statusPulse 2s infinite ease-in-out;
+}
+
+.journal-status-badge.finished {
+  background: rgba(22, 101, 52, 0.08);
+  border-color: rgba(22, 101, 52, 0.22);
+  color: #15803d;
+}
+
+.journal-status-badge.finished .status-dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+
+.journal-status-badge.created {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
+  color: #1d4ed8;
+}
+
+.journal-status-badge.created .status-dot {
+  background: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.journal-status-badge.cancelled {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.22);
+  color: #b91c1c;
+}
+
+.journal-status-badge.cancelled .status-dot {
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.75;
+  }
+}
+
+/* Píldora de Origen del Asiento */
+.journal-source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  width: fit-content;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.journal-source-pill .source-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.journal-source-pill.source-app {
+  background: rgba(44, 64, 1, 0.06);
+  border: 1px solid rgba(44, 64, 1, 0.16);
+  color: var(--brand-primary, #2c4001);
+}
+
+.journal-source-pill.source-telegram {
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  color: #0284c7;
+}
+
+.journal-source-pill.source-erp {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: #4f46e5;
+}
+
+/* Identificadores ERP Interactivos y Copiables */
+.ref-badge-interactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 6px 3px 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-light, #d7dec6);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  width: fit-content;
+  user-select: none;
+  max-width: 100%;
+}
+
+.ref-badge-interactive:hover {
+  background: var(--bg-subtle, #f7f9f2);
+  border-color: var(--border-strong, #b5c299);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.ref-badge-interactive svg {
+  color: var(--brand-primary, #2c4001);
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.ref-badge-interactive .ref-label {
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--text-secondary, #526038);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ref-badge-interactive .ref-mono-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-primary, #1a2405);
+  letter-spacing: 0.02em;
+}
+
+.ref-badge-interactive .btn-copy-tag {
+  border: none;
+  background: rgba(44, 64, 1, 0.07);
+  color: var(--brand-primary, #2c4001);
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  pointer-events: none;
+}
+
+.ref-badge-interactive:hover .btn-copy-tag {
+  background: rgba(44, 64, 1, 0.14);
+}
+
+.ref-badge-interactive .icon-copied {
+  display: none;
+}
+
+.ref-badge-interactive.copied {
+  border-color: #16a34a !important;
+  background: rgba(22, 163, 74, 0.06) !important;
+}
+
+.ref-badge-interactive.copied .icon-copy {
+  display: none;
+}
+
+.ref-badge-interactive.copied .icon-copied {
+  display: inline-block;
+  color: #16a34a;
+}
+
+.ref-badge-interactive.copied .copy-feedback {
+  color: #16a34a;
+}
+
+.ref-badge-interactive.copied .btn-copy-tag {
+  background: rgba(22, 163, 74, 0.15);
+  color: #16a34a;
+}
+
+.ref-badge-interactive.footer-ref-badge {
+  background: var(--bg-subtle, #f4f6ee);
+  border-color: var(--border-light, #e2e8d0);
+}
+
+/* Compatibilidad / Fallbacks */
 .ref-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   background: var(--bg-subtle);

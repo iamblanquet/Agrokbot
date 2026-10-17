@@ -15,19 +15,47 @@ window.campoJournal = {
       CANCELLED: 'Cancelado'
     })[s] || s || 'Sin estado';
 
-    const statusChipClass = s => ({
-      FINISHED: 'chip-status-finished',
-      IN_PROGRESS: 'chip-status-in_progress',
-      CREATED: 'chip-status-created',
-      CANCELLED: 'chip-status-cancelled'
-    })[s] || '';
+    const formatShortId = id => {
+      if (!id || typeof id !== 'string') return '—';
+      if (id.length <= 14) return id;
+      return id.slice(0, 8) + '…' + id.slice(-4);
+    };
 
-    const statusColorClass = s => ({
-      FINISHED: 'green',
-      IN_PROGRESS: 'amber',
-      CREATED: 'blue',
-      CANCELLED: 'red'
-    })[s] || '';
+    const getSourceInfo = src => {
+      const s = String(src || '').toLowerCase();
+      if (s.includes('webapp') || s.includes('campo') || s.includes('app')) {
+        return {
+          label: 'App de Campo',
+          type: 'app',
+          icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>'
+        };
+      }
+      if (s.includes('telegram') || s.includes('bot')) {
+        return {
+          label: 'Bot Telegram',
+          type: 'telegram',
+          icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>'
+        };
+      }
+      return {
+        label: 'ERP Central',
+        type: 'erp',
+        icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>'
+      };
+    };
+
+    const renderStatusBadge = status => {
+      const s = String(status || '').toUpperCase();
+      const statusKey = s === 'FINISHED' ? 'finished'
+        : s === 'IN_PROGRESS' ? 'in_progress'
+        : s === 'CANCELLED' ? 'cancelled'
+        : 'created';
+      const text = label(s);
+      return `<span class="journal-status-badge ${statusKey}">
+        <span class="status-dot"></span>
+        <span class="status-text">${esc(text)}</span>
+      </span>`;
+    };
 
     const progress = n => typeof n === 'number'
       ? `${(n / 100).toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
@@ -310,7 +338,7 @@ window.campoJournal = {
                   <span class="hl-label">Estado</span>
                 </div>
                 <div class="hl-val">
-                  <span class="chip ${statusChipClass(row.status)}">${esc(label(row.status))}</span>
+                  ${renderStatusBadge(row.status)}
                 </div>
               </div>
 
@@ -372,14 +400,28 @@ window.campoJournal = {
                 <div class="meta-field">
                   <dt>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="4" y1="9" x2="20" y2="9"></line>
-                      <line x1="4" y1="15" x2="20" y2="15"></line>
-                      <line x1="10" y1="3" x2="8" y2="21"></line>
-                      <line x1="16" y1="3" x2="14" y2="21"></line>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
                     </svg>
                     Referencia ERP
                   </dt>
-                  <dd><code class="ref-code">${esc(row.id)}</code></dd>
+                  <dd>
+                    <div class="ref-badge-interactive" data-copy-text="${esc(row.id)}" title="${esc(row.id)} · Clic para copiar ID completo">
+                      <span class="ref-mono-id">${esc(formatShortId(row.id))}</span>
+                      <button type="button" class="btn-copy-tag" aria-label="Copiar identificador">
+                        <svg class="icon-copy" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <svg class="icon-copied" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span class="copy-feedback">Copiar</span>
+                      </button>
+                    </div>
+                  </dd>
                 </div>
                 <div class="meta-field">
                   <dt>
@@ -426,7 +468,15 @@ window.campoJournal = {
                     </svg>
                     Origen del asiento
                   </dt>
-                  <dd><span class="origin-badge">${esc(row.source || 'ERP Central')}</span></dd>
+                  <dd>
+                    ${(() => {
+                      const src = getSourceInfo(row.source);
+                      return `<span class="journal-source-pill source-${src.type}">
+                        <span class="source-icon">${src.icon}</span>
+                        <span class="source-label">${esc(src.label)}</span>
+                      </span>`;
+                    })()}
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -596,15 +646,26 @@ window.campoJournal = {
 
           <div class="journal-modal-footer">
             <div class="dialog-footer-left">
-              <span class="journal-footer-ref">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; margin-right:4px;">
-                  <line x1="4" y1="9" x2="20" y2="9"></line>
-                  <line x1="4" y1="15" x2="20" y2="15"></line>
-                  <line x1="10" y1="3" x2="8" y2="21"></line>
-                  <line x1="16" y1="3" x2="14" y2="21"></line>
+              <div class="ref-badge-interactive footer-ref-badge" data-copy-text="${esc(row.id)}" title="${esc(row.id)} · Clic para copiar ID completo">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
                 </svg>
-                Asiento ERP: <code class="ref-code-inline">${esc(row.id)}</code>
-              </span>
+                <span class="ref-label">Asiento ERP</span>
+                <span class="ref-mono-id">${esc(formatShortId(row.id))}</span>
+                <button type="button" class="btn-copy-tag" aria-label="Copiar identificador">
+                  <svg class="icon-copy" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <svg class="icon-copied" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span class="copy-feedback">Copiar</span>
+                </button>
+              </div>
             </div>
             <div class="dialog-footer-right">
               <button type="button" id="journal-footer-close" class="btn">Cerrar</button>
@@ -859,6 +920,38 @@ window.campoJournal = {
         };
       });
 
+      // 5b. Manejo de copia interactiva de identificadores ERP
+      find('#journal-detail').querySelectorAll('.ref-badge-interactive').forEach(el => {
+        el.onclick = async e => {
+          e.stopPropagation();
+          const text = el.getAttribute('data-copy-text');
+          if (!text) return;
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text);
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = text;
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            }
+            el.classList.add('copied');
+            const feedback = el.querySelector('.copy-feedback');
+            if (feedback) feedback.textContent = '¡Copiado!';
+            setTimeout(() => {
+              el.classList.remove('copied');
+              if (feedback) feedback.textContent = 'Copiar';
+            }, 1800);
+          } catch (err) {
+            console.warn('Error al copiar:', err);
+          }
+        };
+      });
+
       find('#journal-detail').querySelectorAll('img').forEach(img => {
         img.onerror = () => {
           img.hidden = true;
@@ -1062,7 +1155,7 @@ window.campoJournal = {
                           <progress max="10000" value="${typeof r.progressBps === 'number' ? r.progressBps : 0}" aria-label="Avance"></progress>
                         </td>
                         <td class="status-column">
-                          <span class="status ${statusColorClass(r.status)}">${esc(label(r.status))}</span>
+                          ${renderStatusBadge(r.status)}
                         </td>
                         <td class="photos-column" style="text-align: center;">
                           ${photoCount > 0
