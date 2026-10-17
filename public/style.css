@@ -4091,36 +4091,93 @@ footer {
     margin-top: 14px;
   }
   .task-panel-head {
-    padding: 18px;
+    padding: 16px;
+    flex-direction: column;
+    align-items: stretch;
   }
   .filters {
     width: 100%;
+    flex-direction: column;
+    gap: 8px;
   }
-  .filters input {
+  .filters input,
+  .filters select {
     min-width: 0;
-    flex: 1;
+    width: 100%;
     max-width: none;
   }
-  .filters select {
-    max-width: 130px;
+  .task-panel .table-wrap {
+    overflow-x: visible;
   }
-  .task-name {
-    min-width: 180px;
+  .task-panel table,
+  .task-panel tbody {
+    display: block;
+    width: 100%;
   }
-  .status-column {
+  .task-panel thead {
     display: none;
   }
-  .task-progress {
-    min-width: 65px;
+  .task-panel tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 12px;
+    padding: 16px;
+    border-bottom: 1px solid var(--border-light);
+    width: 100%;
+    box-sizing: border-box;
   }
-  td, th {
-    padding: 14px 14px;
+  .task-panel tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .task-panel tbody td {
+    border: 0;
+    padding: 0;
+  }
+  .task-panel td.task-name,
+  .journal .task-panel td.task-name {
+    flex: 0 0 100%;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .task-panel td.person-column {
+    display: flex !important;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .task-panel td.status-column,
+  .journal .task-panel td.status-column {
+    display: flex !important;
+    align-items: center;
+    width: auto !important;
+  }
+  .task-panel td.task-progress {
+    flex: 1 1 120px;
+    min-width: 110px;
+  }
+  .journal .task-panel td.photos-column {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: auto !important;
+  }
+  .journal .task-panel td.photos-column::before {
+    content: "Fotos:";
+    font-size: 11px;
+    font-weight: 650;
+    color: var(--text-secondary);
+  }
+  .task-panel td.task-action {
+    margin-left: auto;
   }
   .task-action .btn {
-    font-size: 11px;
+    font-size: 12px;
+    padding: 6px 12px;
   }
   .table-caption {
-    padding: 12px 14px;
+    padding: 12px 16px;
     font-size: 11px;
   }
   .banner {

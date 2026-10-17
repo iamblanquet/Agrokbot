@@ -1630,6 +1630,10 @@
   .journal-meta-grid {
     grid-template-columns: 1fr;
   }
+
+  .journal .task-panel .table-caption {
+    padding: 14px 16px;
+  }
 }
 
 @media (max-width: 480px) {
