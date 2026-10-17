@@ -1641,3 +1641,14 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+#journal .task-panel-head .filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+#journal .task-panel-head .filters > * { max-width: 100%; }
+@media (max-width: 640px) {
+  #journal .task-panel-head .filters { width: 100%; }
+  #journal .task-panel-head .filters > * { flex: 1 1 140px; min-width: 0; }
+}

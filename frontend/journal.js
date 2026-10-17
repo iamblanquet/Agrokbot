@@ -155,6 +155,8 @@ window.campoJournal = {
               <p id="journal-active-project-name">Selecciona un proyecto</p>
             </div>
             <div class="filters">
+              <select id="journal-task" aria-label="Filtrar por tarea"><option value="">Todas las tareas</option></select>
+              <select id="journal-author" aria-label="Filtrar por responsable"><option value="">Todos los responsables</option></select>
               <input id="journal-search" type="search" placeholder="Buscar tarea…" aria-label="Buscar tarea">
               <select id="journal-status" aria-label="Filtrar estado">
                 <option value="">Todos los estados</option>
@@ -163,6 +165,8 @@ window.campoJournal = {
                 <option value="CREATED">Creados</option>
                 <option value="CANCELLED">Cancelados</option>
               </select>
+              <button id="journal-clear" class="btn subtle small" type="button">Limpiar filtros</button>
+              <button id="journal-export" class="btn small" type="button" disabled>Descargar CSV</button>
             </div>
           </div>
 
@@ -195,7 +199,7 @@ window.campoJournal = {
 
     const controls = () => {
       fill('#journal-task', self.rows.map(r => r.taskName), 'Todas las tareas');
-      fill('#journal-author', self.rows.map(r => r.author), 'Todos los autores');
+      fill('#journal-author', self.rows.map(r => r.responsible || r.author || 'Sin asignar'), 'Todos los responsables');
       fill('#journal-status', self.rows.map(r => r.status), 'Todos los estados');
       for (const key of ['from', 'to', 'task', 'author', 'status']) {
         const input = find('#journal-' + key);
@@ -1018,7 +1022,7 @@ window.campoJournal = {
         if (f.from && (!d || d < f.from)) return false;
         if (f.to && (!d || d > f.to)) return false;
         if (f.task && r.taskName !== f.task) return false;
-        if (f.author && r.author !== f.author) return false;
+        if (f.author && (r.responsible || r.author || 'Sin asignar') !== f.author) return false;
         if (f.status && r.status !== f.status) return false;
         if (f.hasPhotos && (!r.attachments || !r.attachments.length)) return false;
         if (sTerm) {
@@ -1027,6 +1031,33 @@ window.campoJournal = {
         }
         return true;
       });
+
+      const exportButton = find('#journal-export');
+      exportButton.disabled = !rows.length || !!invalid;
+      exportButton.textContent = `Descargar CSV (${rows.length})`;
+      exportButton.onclick = () => {
+        if (!rows.length || invalid) return;
+        const cell = value => {
+          let text = String(value ?? '');
+          // Prevent spreadsheet formula execution in externally supplied ERP text.
+          if (/^[\s\uFEFF]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
+          return '"' + text.replace(/"/g, '""') + '"';
+        };
+        const data = [['Proyecto', 'Referencia ERP', 'Fecha operativa', 'Tarea', 'Código de tarea', 'Actividad', 'Responsable', 'Reportado por', 'Estado', 'Avance acumulado (%)', 'Fotos', 'Observaciones']];
+        rows.forEach(r => data.push([
+          find('#journal-active-project-name').textContent, r.id, (r.operationDate || '').slice(0, 10),
+          r.taskName, r.taskCode, r.activityName, r.responsible || r.author || 'Sin asignar', r.author,
+          label(r.status), typeof r.progressBps === 'number' ? r.progressBps / 100 : '',
+          (r.attachments || []).length, r.presentation?.observations ?? r.notes ?? ''
+        ]));
+        const blob = new Blob(['\uFEFF' + data.map(record => record.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const href = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = `bitacora-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.append(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(href), 1000);
+      };
 
       // Franja de estadísticas en la parte SUPERIOR
       const totalPhotos = self.rows.reduce((acc, r) => acc + (r.attachments?.length || 0), 0);
@@ -1102,7 +1133,7 @@ window.campoJournal = {
                 </thead>
                 <tbody>
                   ${pageRows.map(r => {
-                    const authorName = r.author || r.responsible || 'Sin asignar';
+                    const authorName = r.responsible || r.author || 'Sin asignar';
                     const initials = esc(authorName.split(' ').filter(Boolean).map(s => s[0]).slice(0, 2).join('').toUpperCase() || 'A');
                     const opDate = (r.operationDate || '').slice(0, 10);
                     const photoCount = Array.isArray(r.attachments) ? r.attachments.length : 0;
