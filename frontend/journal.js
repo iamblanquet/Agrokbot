@@ -498,63 +498,98 @@ window.campoJournal = {
               </details>` : ''}
             </div>
 
-            <!-- 6. Galería de Evidencias -->
+            <!-- 6. Galería de Evidencias (Slider de 3 fotos con desplazamiento suave) -->
             <div class="journal-modal-section">
-              <h3 class="journal-section-subtitle">
-                <span class="section-icon-bubble">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
+              <div class="journal-gallery-header">
+                <h3 class="journal-section-subtitle">
+                  <span class="section-icon-bubble">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                      <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                  </span>
+                  <span>Evidencias fotográficas</span>
+                  <span class="photo-count-badge">${row.attachments.length} foto(s)</span>
+                </h3>
+                ${row.attachments && row.attachments.length > 3 ? `
+                <div class="gallery-slider-controls">
+                  <span class="gallery-slider-counter" id="gallery-slider-counter">1-3 de ${row.attachments.length}</span>
+                  <div class="gallery-nav-btns">
+                    <button type="button" class="gallery-nav-btn prev" id="gallery-slider-prev" aria-label="Fotos anteriores" title="Ver fotos anteriores">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
+                    </button>
+                    <button type="button" class="gallery-nav-btn next" id="gallery-slider-next" aria-label="Fotos siguientes" title="Ver fotos siguientes">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                </div>` : ''}
+              </div>
+
+              <div class="journal-gallery-slider-wrap">
+                ${row.attachments && row.attachments.length > 3 ? `
+                <button type="button" class="gallery-float-arrow prev" id="gallery-float-prev" aria-label="Fotos anteriores" title="Ver anteriores">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
                   </svg>
-                </span>
-                <span>Evidencias fotográficas</span>
-                <span class="photo-count-badge">${row.attachments.length} foto(s)</span>
-              </h3>
-              <div class="journal-gallery">
-                ${row.attachments.map((a, idx) => `
-                  <figure class="gallery-card" data-photo-index="${idx}">
-                    <div class="gallery-img-wrapper" data-photo-index="${idx}" title="Clic para ver en pantalla completa y deslizar">
-                      <img src="${esc(url(a, 'preview'))}" alt="${esc(a.originalFileName || 'Evidencia')}" loading="lazy">
-                      <div class="gallery-zoom-overlay">
-                        <span class="zoom-btn">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <polyline points="9 21 3 21 3 15"></polyline>
-                            <line x1="21" y1="3" x2="14" y2="10"></line>
-                            <line x1="3" y1="21" x2="10" y2="14"></line>
-                          </svg>
-                          <span>Ver en grande</span>
-                        </span>
+                </button>` : ''}
+
+                <div class="journal-gallery" id="journal-gallery-track" tabindex="0" role="region" aria-label="Carrusel de evidencias fotográficas">
+                  ${row.attachments.map((a, idx) => `
+                    <figure class="gallery-card" data-photo-index="${idx}">
+                      <div class="gallery-img-wrapper" data-photo-index="${idx}" title="Clic para ver en pantalla completa y deslizar">
+                        <img src="${esc(url(a, 'preview'))}" alt="${esc(a.originalFileName || 'Evidencia')}" loading="lazy">
+                        <div class="gallery-zoom-overlay">
+                          <span class="zoom-btn">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <polyline points="9 21 3 21 3 15"></polyline>
+                              <line x1="21" y1="3" x2="14" y2="10"></line>
+                              <line x1="3" y1="21" x2="10" y2="14"></line>
+                            </svg>
+                            <span>Ver en grande</span>
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <figcaption>
-                      <div class="gallery-file-info">
-                        <strong class="file-name" title="${esc(a.originalFileName || 'Fotografía')}">${esc(a.originalFileName || 'Fotografía')}</strong>
-                        <small class="file-size">${a.sizeBytes ? (a.sizeBytes / 1024).toFixed(1) + ' KB' : ''}</small>
-                      </div>
-                      <p class="journal-image-error" hidden>No se pudo cargar la vista previa. Intenta actualizar o descargar el original.</p>
-                      <div class="gallery-card-actions">
-                        <button type="button" class="btn small btn-view-photo" data-photo-index="${idx}">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            <line x1="11" y1="8" x2="11" y2="14"></line>
-                            <line x1="8" y1="11" x2="14" y2="11"></line>
-                          </svg>
-                          <span>Ver</span>
-                        </button>
-                        <a class="btn small btn-download-file" href="${esc(url(a, 'file'))}" download="${esc(a.originalFileName || 'evidencia')}">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                          </svg>
-                          <span>Descargar</span>
-                        </a>
-                      </div>
-                    </figcaption>
-                  </figure>
-                `).join('') || '<div class="gallery-empty"><p>Este asiento no tiene fotografías adjuntas.</p></div>'}
+                      <figcaption>
+                        <div class="gallery-file-info">
+                          <strong class="file-name" title="${esc(a.originalFileName || 'Fotografía')}">${esc(a.originalFileName || 'Fotografía')}</strong>
+                          <small class="file-size">${a.sizeBytes ? (a.sizeBytes / 1024).toFixed(1) + ' KB' : ''}</small>
+                        </div>
+                        <p class="journal-image-error" hidden>No se pudo cargar la vista previa. Intenta actualizar o descargar el original.</p>
+                        <div class="gallery-card-actions">
+                          <button type="button" class="btn small btn-view-photo" data-photo-index="${idx}">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                              <circle cx="11" cy="11" r="8"></circle>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                              <line x1="11" y1="8" x2="11" y2="14"></line>
+                              <line x1="8" y1="11" x2="14" y2="11"></line>
+                            </svg>
+                            <span>Ver</span>
+                          </button>
+                          <a class="btn small btn-download-file" href="${esc(url(a, 'file'))}" download="${esc(a.originalFileName || 'evidencia')}">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="7 10 12 15 17 10"></polyline>
+                              <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>Descargar</span>
+                          </a>
+                        </div>
+                      </figcaption>
+                    </figure>
+                  `).join('') || '<div class="gallery-empty"><p>Este asiento no tiene fotografías adjuntas.</p></div>'}
+                </div>
+
+                ${row.attachments && row.attachments.length > 3 ? `
+                <button type="button" class="gallery-float-arrow next" id="gallery-float-next" aria-label="Fotos siguientes" title="Ver siguientes">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>` : ''}
               </div>
             </div>
           </div>
@@ -831,6 +866,83 @@ window.campoJournal = {
           if (errEl) errEl.hidden = false;
         };
       });
+
+      // 6. Controles y gestor del slider horizontal de fotos (3 fotos por vista)
+      const galleryTrack = find('#journal-gallery-track');
+      if (galleryTrack && row.attachments && row.attachments.length > 0) {
+        const totalPhotos = row.attachments.length;
+        const prevBtns = [find('#gallery-slider-prev'), find('#gallery-float-prev')].filter(Boolean);
+        const nextBtns = [find('#gallery-slider-next'), find('#gallery-float-next')].filter(Boolean);
+        const counterEl = find('#gallery-slider-counter');
+
+        const getPhotoStep = () => {
+          const card = galleryTrack.querySelector('.gallery-card');
+          return card ? (card.offsetWidth + 12) : 260;
+        };
+
+        const updateGallerySliderUi = () => {
+          const scrollLeft = galleryTrack.scrollLeft;
+          const maxScroll = galleryTrack.scrollWidth - galleryTrack.clientWidth;
+          const isAtStart = scrollLeft <= 4;
+          const isAtEnd = scrollLeft >= (maxScroll - 6) || maxScroll <= 4;
+
+          prevBtns.forEach(b => { b.disabled = isAtStart; });
+          nextBtns.forEach(b => { b.disabled = isAtEnd; });
+
+          if (counterEl) {
+            const step = getPhotoStep();
+            const visible = Math.max(1, Math.round(galleryTrack.clientWidth / step));
+            const first = Math.min(totalPhotos - 1, Math.max(0, Math.round(scrollLeft / step)));
+            const last = Math.min(totalPhotos, first + visible);
+            counterEl.textContent = `${first + 1}-${last} de ${totalPhotos}`;
+          }
+        };
+
+        const slideGallery = dir => {
+          const step = getPhotoStep();
+          galleryTrack.scrollBy({ left: dir * step, behavior: 'smooth' });
+        };
+
+        prevBtns.forEach(b => {
+          b.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+            slideGallery(-1);
+          };
+        });
+
+        nextBtns.forEach(b => {
+          b.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+            slideGallery(1);
+          };
+        });
+
+        let galleryTicking = false;
+        galleryTrack.onscroll = () => {
+          if (!galleryTicking) {
+            window.requestAnimationFrame(() => {
+              updateGallerySliderUi();
+              galleryTicking = false;
+            });
+            galleryTicking = true;
+          }
+        };
+
+        galleryTrack.onkeydown = e => {
+          if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            slideGallery(1);
+          } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            slideGallery(-1);
+          }
+        };
+
+        // Actualizar UI inicial tras montaje y reflow
+        setTimeout(updateGallerySliderUi, 60);
+      }
     };
 
     const draw = () => {
