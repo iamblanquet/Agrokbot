@@ -551,7 +551,12 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/incidents/update':
                 if not (is_admin(user) or INCIDENTS.allowed(user)):
                     raise Problem(403, 'No tienes permiso para gestionar incidencias.')
-                return self.json(200, INCIDENTS.update(body,user))
+                result = INCIDENTS.update(body, user)
+                try:
+                    INCIDENTS.tick(TG_MODE == 'live')
+                except Exception:
+                    pass
+                return self.json(200, result)
             if path == '/api/notifications/status':
                 with connection() as db:
                     registered = db.execute('SELECT 1 FROM push_subscriptions WHERE endpoint=? AND user=?', (body.get('endpoint'), user)).fetchone()

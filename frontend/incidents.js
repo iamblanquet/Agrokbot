@@ -199,14 +199,18 @@ window.campoIncidents = {
                 <svg class="inc-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
               </summary>
               <div class="incident-timeline">
-                ${(r.events || []).map(e => `<div class="inc-timeline-item">
+                ${(r.events || []).map(e => {
+                  const [evTgText, evTgClass] = tgLabels[e.telegramState] || [e.telegramState || 'Pendiente', 'pending'];
+                  return `<div class="inc-timeline-item">
                   <div class="inc-timeline-head">
                     <span class="status ${statusTone[e.status] || ''}">${esc(labels[e.status] || e.status)}</span>
                     <strong>${esc(e.actor)}</strong>
                     <time>${fmtDate(e.created)}</time>
+                    ${e.telegramState ? `<span class="inc-tech-chip tg-${esc(evTgClass)}" style="margin-left:auto">${esc(evTgText)}</span>` : ''}
                   </div>
                   <p class="inc-timeline-note">${esc(e.note)}</p>
-                </div>`).join('')}
+                </div>`;
+                }).join('')}
               </div>
             </details>
           </div>

@@ -106,6 +106,13 @@ class WorkflowTests(unittest.TestCase):
         service.update({'id':body['id'],'version':3,'status':'open','note':'Volvió la fuga'},'manager')
         row=service.listing()['incidents'][0]
         self.assertEqual((row['status'],len(row['events'])),('open',4))
+        service.tick(True);service.tick(True)
+        self.assertEqual(telegram.call_count,4)
+        self.assertIn('SEGUIMIENTO DE INCIDENCIA',telegram.call_args_list[2].args[1]['text'])
+        self.assertIn('Nuevo estado: Resuelta',telegram.call_args_list[2].args[1]['text'])
+        self.assertIn('Reparada',telegram.call_args_list[2].args[1]['text'])
+        row=service.listing()['incidents'][0]
+        self.assertTrue(all(ev['telegramState']=='sent' for ev in row['events']))
 
     def test_incident_rejected_erp_never_notifies(self):
         from backend.http_client import RemoteFailure

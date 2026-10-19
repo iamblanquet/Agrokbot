@@ -50,9 +50,17 @@ class IncidentService:
             rows=[dict(r) for r in db.execute('SELECT * FROM incidents ORDER BY created DESC,id DESC LIMIT ? OFFSET ?', (limit,max(0,offset)))]
             for row in rows:
                 row['payload']=json.loads(row['payload'])
-                row['events']=[dict(e) for e in db.execute('SELECT actor,status,note,created FROM incident_events WHERE incident_id=? ORDER BY id',(row['id'],))]
                 sent=db.execute('SELECT state FROM reminder_deliveries WHERE id=?',('incident:'+row['id'],)).fetchone()
                 row['telegramState']=sent[0] if sent else 'pending'
+                events=[dict(e) for e in db.execute('SELECT id,actor,status,note,created FROM incident_events WHERE incident_id=? ORDER BY id',(row['id'],))]
+                for idx,ev in enumerate(events):
+                    ev_id=ev.pop('id')
+                    if idx==0:
+                        ev['telegramState']=row['telegramState']
+                    else:
+                        ev_sent=db.execute('SELECT state FROM reminder_deliveries WHERE id=?',(f"incident:{row['id']}:event:{ev_id}",)).fetchone()
+                        ev['telegramState']=ev_sent[0] if ev_sent else 'pending'
+                row['events']=events
                 report=db.execute('SELECT payload FROM reports WHERE id=?',(row['id'],)).fetchone()
                 ids=json.loads(report[0]).get('photos',[]) if report else []
                 states=[]
@@ -102,6 +110,34 @@ class IncidentService:
                 sent=db.execute('SELECT state FROM reminder_deliveries WHERE id=?',('incident:'+row['id'],)).fetchone()
             if sent and sent[0]=='sent':
                 self._photos(row)
+        self._followups()
+
+    def _followups(self):
+        with self.connection() as db:
+            followups=db.execute("""SELECT e.*,i.erp_log_id,i.payload AS incident_payload
+                FROM incident_events e
+                JOIN incidents i ON i.id=e.incident_id
+                JOIN reports r ON r.id=i.id
+                JOIN reminder_deliveries init_d ON init_d.id='incident:'||i.id AND init_d.state='sent'
+                LEFT JOIN reminder_deliveries ev_d ON ev_d.id='incident:'||i.id||':event:'||e.id
+                WHERE r.erp_log_id IS NOT NULL
+                  AND r.state NOT IN ('erp_sending','erp_review','erp_rejected','demo_published','evidence_review')
+                  AND e.id>(SELECT MIN(e0.id) FROM incident_events e0 WHERE e0.incident_id=i.id)
+                  AND (ev_d.id IS NULL OR ev_d.state='retry')
+                ORDER BY e.id""").fetchall()
+        status_labels={'open':'Abierta','in_progress':'En atención','resolved':'Resuelta'}
+        for ev in followups:
+            data=json.loads(ev['incident_payload'])
+            label=status_labels.get(ev['status'],ev['status'])
+            text=(f"SEGUIMIENTO DE INCIDENCIA · {ev['incident_id']}\n"
+                  f"Nuevo estado: {label}\n"
+                  f"Proyecto: {data.get('project','')}\n"
+                  f"Tarea: {data.get('task','')}\n"
+                  f"Actualizó: {ev['actor']}\n\n"
+                  f"{ev['note']}\n\n"
+                  f"Asiento ERP: {ev['erp_log_id']}")
+            self.delivery.send_notice(f"incident:{ev['incident_id']}:event:{ev['id']}",{
+                'chat_id':self.chat_id,'message_thread_id':self.delivery.topic(),'text':text[:2000]})
 
     def _photos(self, incident):
         if not self.telegram_photo:
