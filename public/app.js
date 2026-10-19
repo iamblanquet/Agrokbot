@@ -1212,3 +1212,165 @@ function updateStoppage(){
 $('#work-stopped').onchange=updateStoppage;
 $('#report-incident').onchange=()=>{const active=$('#report-incident').checked;$('#incident-fields').hidden=!active;$('#incident-fields').disabled=!active;};
 document.querySelectorAll('[name="stop-reason"]').forEach(el=>el.onchange=updateStoppage);
+
+(function initMobileGestures(){
+  if(typeof document==='undefined'||typeof window==='undefined')return;
+
+  const dialogs=['#report-dialog','#employee-dialog','#delete-employee-dialog','#photo-dialog']
+    .map(sel=>document.querySelector(sel))
+    .filter(Boolean);
+
+  dialogs.forEach(dialog=>{
+    // Close modal when tapping on the backdrop area outside the dialog box
+    dialog.addEventListener('click',e=>{
+      if(e.target!==dialog)return;
+      const rect=dialog.getBoundingClientRect();
+      const inside=rect.top<=e.clientY&&e.clientY<=rect.bottom&&rect.left<=e.clientX&&e.clientX<=rect.right;
+      if(!inside){
+        dialog.close();
+        if(dialog.id==='photo-dialog')$('#full-photo')?.removeAttribute('src');
+      }
+    });
+
+    let startY=0,startX=0,currentY=0,currentX=0,startTime=0,dragging=false,canPull=false;
+
+    dialog.addEventListener('touchstart',e=>{
+      if(e.touches.length!==1)return;
+      const touch=e.touches[0];
+      const target=e.target;
+      const scrollBody=dialog.querySelector('.modal-scroll-body');
+      const isHandle=Boolean(target.closest('.sheet-handle, .dialog-header-wrap, .dialog-heading'));
+      const atTop=!scrollBody||scrollBody.scrollTop<=2;
+      const isInteractive=Boolean(target.closest('input, textarea, select, button, label.ios-switch'));
+      canPull=isHandle||(atTop&&!isInteractive)||dialog.id==='photo-dialog';
+      if(!canPull)return;
+      startY=touch.clientY;
+      startX=touch.clientX;
+      currentY=startY;
+      currentX=startX;
+      startTime=Date.now();
+      dragging=false;
+    },{passive:true});
+
+    dialog.addEventListener('touchmove',e=>{
+      if(!canPull||e.touches.length!==1)return;
+      const touch=e.touches[0];
+      const dy=touch.clientY-startY;
+      const dx=touch.clientX-startX;
+
+      if(!dragging){
+        if(dy>10&&Math.abs(dy)>Math.abs(dx)*1.25){
+          dragging=true;
+          dialog.style.transition='none';
+        }else if(Math.abs(dx)>12||dy<-8){
+          canPull=false;
+          return;
+        }else{
+          return;
+        }
+      }
+
+      currentY=touch.clientY;
+      currentX=touch.clientX;
+      const offset=Math.max(0,dy);
+      dialog.style.transform=`translateY(${offset}px)`;
+      if(dialog.id==='photo-dialog'){
+        dialog.style.opacity=String(Math.max(0.35,1-offset/320));
+      }
+      if(e.cancelable)e.preventDefault();
+    },{passive:false});
+
+    const finishDrag=()=>{
+      if(!canPull&&!dragging)return;
+      const dy=currentY-startY;
+      const dx=currentX-startX;
+      const elapsed=Math.max(1,Date.now()-startTime);
+      const velocity=dy/elapsed;
+
+      // Horizontal swipe in #photo-dialog to switch between photos
+      if(!dragging&&dialog.id==='photo-dialog'&&Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.8){
+        const imgs=[...document.querySelectorAll('#photo-previews img, [data-report-photos] img')].map(img=>img.src).filter(Boolean);
+        const full=$('#full-photo');
+        if(full&&imgs.length>1){
+          const idx=imgs.indexOf(full.src);
+          if(idx!==-1){
+            const nextIdx=dx<0?(idx+1)%imgs.length:(idx-1+imgs.length)%imgs.length;
+            full.src=imgs[nextIdx];
+          }
+        }
+        canPull=false;
+        return;
+      }
+
+      if(dragging){
+        if(dy>90||(velocity>0.55&&dy>35)){
+          dialog.style.transition='transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease';
+          dialog.style.transform='translateY(100%)';
+          setTimeout(()=>{
+            dialog.style.transition='';
+            dialog.style.transform='';
+            dialog.style.opacity='';
+            if(dialog.open)dialog.close();
+            if(dialog.id==='photo-dialog')$('#full-photo')?.removeAttribute('src');
+          },190);
+        }else{
+          dialog.style.transition='transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease';
+          dialog.style.transform='translateY(0)';
+          dialog.style.opacity='';
+          setTimeout(()=>{
+            dialog.style.transition='';
+            dialog.style.transform='';
+          },220);
+        }
+      }
+      dragging=false;
+      canPull=false;
+    };
+
+    dialog.addEventListener('touchend',finishDrag,{passive:true});
+    dialog.addEventListener('touchcancel',finishDrag,{passive:true});
+  });
+
+  // Horizontal swipe on #main (mobile <= 760px) to navigate between visible tabs
+  const mainEl=$('#main');
+  if(mainEl){
+    let navStartX=0,navStartY=0,navStartTime=0,navBlocked=false;
+    mainEl.addEventListener('touchstart',e=>{
+      if(window.innerWidth>760||e.touches.length!==1)return;
+      if(document.querySelector('dialog[open]')){navBlocked=true;return;}
+      const target=e.target;
+      if(target.closest('.project-slider-track, .project-slider-wrapper, input, textarea, select, [contenteditable]')){
+        navBlocked=true;
+        return;
+      }
+      navBlocked=false;
+      navStartX=e.touches[0].clientX;
+      navStartY=e.touches[0].clientY;
+      navStartTime=Date.now();
+    },{passive:true});
+
+    mainEl.addEventListener('touchend',e=>{
+      if(navBlocked||window.innerWidth>760||!e.changedTouches.length)return;
+      if(document.querySelector('dialog[open]'))return;
+      const dx=e.changedTouches[0].clientX-navStartX;
+      const dy=e.changedTouches[0].clientY-navStartY;
+      const elapsed=Date.now()-navStartTime;
+      if(elapsed>650||Math.abs(dx)<80||Math.abs(dx)<Math.abs(dy)*2.3)return;
+
+      const tabs=[...document.querySelectorAll('aside nav .nav-item')].filter(btn=>!btn.hidden&&btn.offsetParent!==null);
+      if(tabs.length<2)return;
+      const currentIdx=tabs.findIndex(btn=>btn.dataset.view===state.view);
+      if(currentIdx===-1)return;
+      const targetIdx=dx<0?currentIdx+1:currentIdx-1;
+      if(targetIdx<0||targetIdx>=tabs.length)return;
+
+      const dirClass=dx<0?'swipe-enter-right':'swipe-enter-left';
+      tabs[targetIdx].click();
+      mainEl.classList.remove('swipe-enter-right','swipe-enter-left');
+      void mainEl.offsetWidth;
+      mainEl.classList.add(dirClass);
+      setTimeout(()=>mainEl.classList.remove(dirClass),260);
+    },{passive:true});
+  }
+})();
+

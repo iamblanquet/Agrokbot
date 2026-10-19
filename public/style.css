@@ -6464,3 +6464,67 @@ footer {
   }
 }
 
+/* ==========================================================================
+   Mobile Gestures: Bottom Sheets & Swipe Tab Transitions
+   ========================================================================== */
+.gesture-sheet-dialog .sheet-handle,
+.photo-sheet-handle {
+  display: none;
+}
+
+@keyframes swipeEnterRight {
+  from {
+    opacity: 0.55;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes swipeEnterLeft {
+  from {
+    opacity: 0.55;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+#main.swipe-enter-right {
+  animation: swipeEnterRight 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#main.swipe-enter-left {
+  animation: swipeEnterLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 760px) {
+  .gesture-sheet-dialog[open] {
+    margin: auto 0 0 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    padding: 12px 20px 28px;
+    box-sizing: border-box;
+  }
+  .gesture-sheet-dialog .sheet-handle,
+  .photo-sheet-handle {
+    display: block;
+    width: 42px;
+    height: 5px;
+    border-radius: 999px;
+    background: #cbd5c0;
+    margin: 4px auto 14px;
+    cursor: grab;
+  }
+  .modern-sheet-dialog .sheet-handle {
+    cursor: grab;
+    touch-action: none;
+  }
+}
+
+
