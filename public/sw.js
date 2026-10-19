@@ -1,10 +1,13 @@
-const CACHE = 'campo-shell-v44';
+const CACHE = 'campo-shell-v46';
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch (_) {}
   event.waitUntil(self.registration.showNotification(data.title || 'Campo', {
     body: data.body || 'Revisa tus reportes pendientes.', tag: data.tag || 'campo-reportes',
     icon: '/icon-192.png', badge: '/agrokool-mark-white.png', data: {url: '/'}
+  }));
+  if(data.refreshCatalog)event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(windows=>{
+    for(const client of windows)client.postMessage({type:'campo-refresh-catalog'});
   }));
 });
 self.addEventListener('notificationclick', event => {
@@ -13,7 +16,7 @@ self.addEventListener('notificationclick', event => {
 });
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/auth.js', '/storage.js', '/sync.js', '/admin.js', '/monitor.js', '/api-client.js', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/agrokool-mark.png', '/agrokool-mark-white.png', '/agrokool-logo.png', '/agrokool-logo-white.png', '/isologo-agk.png', '/agrokool-verde.png', '/agrokool-gold.png', '/agrokool-horizontal.png'];
 self.addEventListener('install', event => {
-  SHELL.push('/journal.js','/journal.css');
+  SHELL.push('/journal.js','/journal.css','/incidents.js');
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {

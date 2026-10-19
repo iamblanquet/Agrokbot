@@ -19,6 +19,14 @@ window.campoAdmin = {
       finally{button.disabled=false;}
     };
     let editingUser='';
+    $('#main').insertAdjacentHTML('afterbegin',`<section class="admin-panel"><h3>Permiso de seguimiento de incidencias</h3><p>Permite consultar todas las incidencias, comentar, resolver y reabrir sin ser administrador.</p><select id="incident-permission-user" aria-label="Usuario"></select><label><input type="checkbox" id="incident-permission-enabled"> Gestionar incidencias</label><button type="button" class="btn" id="incident-permission-save">Guardar permiso</button><p id="incident-permission-result" role="status"></p></section>`);
+    let permissionUsers=[];
+    $('#incident-permission-user').onchange=()=>{$('#incident-permission-enabled').checked=Boolean(permissionUsers.find(u=>u.username===$('#incident-permission-user').value)?.canManageIncidents);};
+    $('#incident-permission-save').onclick=async()=>{
+      const button=$('#incident-permission-save');button.disabled=true;
+      try{await api('/api/admin/incidents/permission',{user:$('#incident-permission-user').value,enabled:$('#incident-permission-enabled').checked});$('#incident-permission-result').textContent='Permiso guardado. El usuario lo verá al sincronizar.';await load();}
+      catch(e){$('#incident-permission-result').textContent=e.message;}finally{button.disabled=false;}
+    };
     $('#main').insertAdjacentHTML('afterbegin', `<section class="admin-panel"><h3>Vista previa de reportes faltantes</h3><p>Consulta actual del ERP, no el corte definitivo de las 21:00. La prueba envía push solo a responsables con tareas faltantes; no publica en Telegram ni modifica el corte nocturno.</p><button id="reminders-preview" class="btn" type="button">Consultar faltantes y destinatarios</button> <button id="reminders-test" class="btn" type="button" disabled>Enviar prueba a responsables</button><div id="reminders-result" role="status" aria-live="polite"></div></section>`);
     const previewButton=$('#reminders-preview'),testButton=$('#reminders-test'),resultPanel=$('#reminders-result');
     const showPreview=data=>{
@@ -48,6 +56,9 @@ window.campoAdmin = {
         const [people,data,audit,keyStatus]=await Promise.all([api('/api/admin/responsibles').catch(()=>({responsibles:[]})),api('/api/admin/users'),api('/api/admin/audit'),api('/api/admin/integration/erp-key')]);
         $('#erp-key-status').textContent=keyStatus.configured?`Configurada: ${keyStatus.masked}`:'No configurada';
         auditEntries=audit.entries||[];
+        permissionUsers=data.users;
+        $('#incident-permission-user').innerHTML=data.users.map(u=>`<option value="${esc(u.username)}">${esc(u.responsible_name)} (${esc(u.username)})</option>`).join('');
+        $('#incident-permission-user').onchange();
         $('#admin-assignment').innerHTML='<option value="">Selecciona un empleado</option>'+people.responsibles.map(p=>`<option value="${esc(p.assignmentId)}">${esc(p.name)} · ${esc(p.employeeNumber)}</option>`).join('');
         $('#admin-available').textContent=people.responsibles.length;
         $('#admin-assignment').onchange=()=>{const p=people.responsibles.find(x=>x.assignmentId===$('#admin-assignment').value);$('#admin-selected').textContent=p?`Usuario generado: ${p.employeeNumber.toLowerCase()} · Asignación: ${p.assignmentId}`:'';};

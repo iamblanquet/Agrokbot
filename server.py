@@ -21,6 +21,7 @@ from backend.auth import AuthError, AuthService
 from backend.audit import AuditService
 from backend.database import DatabaseService
 from backend.reminders import Reminders
+from backend.incidents import IncidentService
 from backend.push import Push, validate_subscription
 from backend.delivery import DeliveryService
 from backend.monitor import MonitorService
@@ -336,6 +337,7 @@ def worker():
     while True:
         try:
             deliver()
+            INCIDENTS.tick(TG_MODE == 'live')
         except Exception as error:
             print(f"Worker error: {type(error).__name__}", flush=True)
         time.sleep(4)
@@ -397,6 +399,10 @@ class Handler(BaseHTTPRequestHandler):
                 user = self.session()
                 if path == '/api/notifications/key':
                     return self.json(200, {'publicKey': PUSH.public_key()})
+                if path == '/api/incidents':
+                    if not (is_admin(user) or INCIDENTS.allowed(user)):
+                        raise Problem(403, 'No tienes permiso para gestionar incidencias.')
+                    return self.json(200, INCIDENTS.listing())
                 if path.startswith("/api/admin/") and not path.startswith("/api/admin/journal/") and not is_admin(user):
                     raise Problem(403, "Solo el administrador puede gestionar usuarios.")
                 if path.startswith('/api/admin/journal/'):
@@ -464,7 +470,7 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 if path == "/api/me":
                     profile = profile_for(user)
-                    return self.json(200, {"user": user, "responsibleName": profile.get("responsible_name", ""), "isAdmin": is_admin(user)})
+                    return self.json(200, {"user": user, "responsibleName": profile.get("responsible_name", ""), "isAdmin": is_admin(user), 'canManageIncidents':is_admin(user) or INCIDENTS.allowed(user)})
                 if path == "/api/config":
                     scope = "Todos los proyectos de la integración" if is_admin(user) else "Tareas asignadas al empleado ERP"
                     return self.json(200, {"erpMode": ERP_MODE, "telegramMode": TG_MODE, "telegramConfigured": bool(BOT_TOKEN and CHAT_ID), "publicUrl": PUBLIC_URL, "authScope": scope})
@@ -481,7 +487,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self.json(200, {"reports": reports, "topics": topics, "clarifications": clarifications})
                 raise Problem(404, "Ruta no encontrada.")
             files = {"/actualizar": "refresh.html", "/refresh.js": "refresh.js", "/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/storage.js": "../frontend/storage.js", "/sync.js": "../frontend/sync.js", "/auth.js": "../frontend/auth.js", "/admin.js": "../frontend/admin.js", "/monitor.js": "../frontend/monitor.js", "/style.css": "style.css", "/sw.js": "sw.js", "/manifest.webmanifest": "manifest.webmanifest", "/icon.svg": "icon.svg", "/icon-192.png": "icon-192.png", "/icon-512.png": "icon-512.png", "/apple-touch-icon.png": "apple-touch-icon.png", "/agrokool-mark.png": "agrokool-mark.png", "/agrokool-mark-white.png": "agrokool-mark-white.png", "/agrokool-logo.png": "agrokool-logo.png", "/agrokool-logo-white.png": "agrokool-logo-white.png", "/isologo-agk.png": "isologo-agk.png", "/agrokool-verde.png": "agrokool-verde.png", "/agrokool-gold.png": "agrokool-gold.png", "/agrokool-horizontal.png": "agrokool-horizontal.png", "/agrokool-vertical.png": "agrokool-vertical.png", "/agrokool-symbol.png": "agrokool-symbol.png", "/api-client.js": "../frontend/api.js"}
-            files.update({'/journal.js': '../frontend/journal.js', '/journal.css': 'journal.css'})
+            files.update({'/journal.js': '../frontend/journal.js', '/journal.css': 'journal.css', '/incidents.js':'../frontend/incidents.js'})
             if path not in files:
                 raise Problem(404, "Archivo no encontrado.")
             file = ROOT / "public" / files[path]
@@ -518,6 +524,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/login":
                 return self.login(body)
             user = self.session()
+            if path == '/api/incidents/update':
+                if not (is_admin(user) or INCIDENTS.allowed(user)):
+                    raise Problem(403, 'No tienes permiso para gestionar incidencias.')
+                return self.json(200, INCIDENTS.update(body,user))
             if path == '/api/notifications/status':
                 with connection() as db:
                     registered = db.execute('SELECT 1 FROM push_subscriptions WHERE endpoint=? AND user=?', (body.get('endpoint'), user)).fetchone()
@@ -540,6 +550,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, {'ok': True})
             if path.startswith("/api/admin/") and not is_admin(user):
                 raise Problem(403, "Solo el administrador puede gestionar usuarios.")
+            if path == '/api/admin/incidents/permission':
+                result = INCIDENTS.set_permission(body,user)
+                audit_event('incident_permission',body['user'],{'enabled':body['enabled']})
+                return self.json(200,result)
             if path in ('/api/admin/reminders/preview', '/api/admin/reminders/test'):
                 from zoneinfo import ZoneInfo
                 from backend.reminders import belongs
@@ -640,6 +654,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 REMINDERS = Reminders(connection, ERP, telegram, CHAT_ID)
+INCIDENTS = IncidentService(connection, now, telegram, CHAT_ID, Problem)
 PUSH = Push(DATA, PUBLIC_URL)
 
 

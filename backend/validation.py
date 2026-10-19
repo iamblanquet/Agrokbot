@@ -68,6 +68,16 @@ class ValidationService:
                 if result["details"]["quantity"] != 0 or payload["progressBps"] != payload["baseProgressBps"]:
                     raise self.problem(400, "Un día sin actividad debe tener avance de jornada cero y conservar el porcentaje acumulado.")
                 result["details"]["stoppage"] = {"reason": stop["reason"], "description": description.strip() if stop["reason"] == "Otro" else ""}
+            if 'incident' in details:
+                incident = details['incident']
+                if not isinstance(incident, dict):
+                    raise self.problem(400, 'Incidencia inválida.')
+                description = incident.get('description')
+                if not isinstance(description,str) or not 1 <= len(description.strip()) <= 800 or any(ord(c)<32 and c not in '\n\r\t' for c in description):
+                    raise self.problem(400, 'Describe la incidencia (1 a 800 caracteres).')
+                if incident.get('priority') not in ('low','normal','high','critical') or type(incident.get('stopsWork')) is not bool:
+                    raise self.problem(400, 'Revisa la prioridad y el impacto de la incidencia.')
+                result['details']['incident'] = {'description':description.strip(),'priority':incident['priority'],'stopsWork':incident['stopsWork']}
         if "photos" in payload:
             ids = payload["photos"]
             if not isinstance(ids, list) or len(ids) > 6 or any(not valid_id(pid) for pid in ids) or len(set(ids)) != len(ids):
@@ -96,6 +106,9 @@ class ValidationService:
         machines = " · ".join(f"{machine['name']}: {machine['hours']:g} hrs ({machine['liters']:g} L)" for machine in details["machinery"]) or "Sin maquinaria"
         stoppage = details.get("stoppage")
         status = f"\nEstatus: Día sin actividad (Paro)\nMotivo: {stoppage['reason']}" + (f" — {stoppage['description']}" if stoppage["description"] else "") if stoppage else ""
+        incident = details.get('incident')
+        if incident:
+            status += f"\nINCIDENCIA · Prioridad: {incident['priority']} · Detiene actividad: {'Sí' if incident['stopsWork'] else 'No'}\n{incident['description']}"
         return (f"Fecha Operativa: {clean['operationDate']}"
                 f"\nHora Captura ({'Sin Internet' if details['offline'] else 'Con Internet'}): {captured:%H:%M:%S} hrs"
                 f"{status}\n" + (f"Autor: {details['author']} - {details['title']}" if details.get("title") else f"Responsable: {details['author']}") + f"\nAvance: {details['quantity']:g} {details['unit']}"

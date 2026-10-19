@@ -19,6 +19,7 @@
   <script src="/auth.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/admin.js" defer></script>
+  <script src="/incidents.js" defer></script>
   <script src="/monitor.js" defer></script>
   <script src="/journal.js" defer></script>
   <link rel="stylesheet" href="/journal.css">
@@ -337,6 +338,17 @@
           </fieldset>
         </section>
 
+        <section class="evidence-box-card">
+          <label><input id="report-incident" type="checkbox"> Reportar incidencia</label>
+          <fieldset id="incident-fields" hidden disabled>
+            <label for="incident-description">Descripción de la incidencia</label>
+            <textarea id="incident-description" maxlength="800" rows="3" required></textarea>
+            <label for="incident-priority">Prioridad</label>
+            <select id="incident-priority"><option value="normal">Normal</option><option value="low">Baja</option><option value="high">Alta</option><option value="critical">Crítica</option></select>
+            <label><input id="incident-stops" type="checkbox"> La incidencia detiene la actividad</label>
+            <p class="capture-note">Se incluirá en el diario ERP y se notificará en Incidencias. Si no hubo actividad en toda la jornada, marca también el paro operativo.</p>
+          </fieldset>
+        </section>
         <!-- Evidencias fotográficas - Ubicado abajo -->
         <section class="evidence-box-card" aria-labelledby="photos-heading">
           <h3 id="photos-heading" class="box-section-title"><span class="title-camera-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></span> Evidencias fotográficas</h3>

@@ -25,7 +25,7 @@ class AdminService:
 
     def users(self):
         with self.connection() as db:
-            return [dict(row) for row in db.execute("SELECT username,responsible_name,employee_number,assignment_id,active,created FROM app_users ORDER BY username")]
+            return [dict(row) for row in db.execute("SELECT username,responsible_name,employee_number,assignment_id,active,created, COALESCE((SELECT incidents FROM user_permissions WHERE user=username),0) AS canManageIncidents FROM app_users ORDER BY username")]
 
     def audit_entries(self):
         return self.audit.entries()
@@ -69,6 +69,7 @@ class AdminService:
                 db.execute("UPDATE app_users SET username=? WHERE username=?", (username, previous_username))
                 db.execute("UPDATE sessions SET user=? WHERE user=?", (username, previous_username))
                 db.execute("UPDATE user_profiles SET user=? WHERE user=?", (username, previous_username))
+                db.execute("UPDATE user_permissions SET user=? WHERE user=?", (username, previous_username))
             db.execute("INSERT INTO app_users(username,pin_hash,responsible_name,employee_number,assignment_id,created) VALUES (?,?,?,?,?,?) ON CONFLICT(username) DO UPDATE SET pin_hash=excluded.pin_hash,responsible_name=excluded.responsible_name,employee_number=excluded.employee_number,assignment_id=excluded.assignment_id,active=1", (username, self.pin_hash(pin), name.strip(), employee.strip(), assignment.strip(), self.now()))
             db.execute("INSERT INTO user_profiles(user,responsible_name,employee_number,assignment_id,updated) VALUES (?,?,?,?,?) ON CONFLICT(user) DO UPDATE SET responsible_name=excluded.responsible_name,employee_number=excluded.employee_number,assignment_id=excluded.assignment_id,updated=excluded.updated", (username, name.strip(), employee.strip(), assignment.strip(), self.now()))
         self._audit("user_update" if previous_username else "user_upsert", username, {"previousUsername": previous_username, "employeeNumber": employee.strip(), "assignmentId": assignment.strip()})

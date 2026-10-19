@@ -12,10 +12,10 @@ async function run({offline=false, reject=false, failPhoto=false}={}) {
   vm.createContext(context);
   vm.runInContext(readFileSync(require('node:path').join(__dirname,'../frontend/sync.js'),'utf8'),context);
   const state={user:'dev',local:[item],reports:[]};
-  const api=async(path)=>{
+  const api=async(path,body)=>{
     calls.push(path);
     if(path==='/api/me')return {user:'dev'};
-    if(path==='/api/reports')return calls.filter(p=>p===path).length===1?{id:'report',state:reject?'erp_review':'photos_pending'}:{reports:[],topics:[]};
+    if(path==='/api/reports')return body?{id:'report',state:reject?'erp_review':'photos_pending'}:{reports:[],topics:[]};
     if(path==='/api/photos'&&failPhoto)throw Object.assign(new Error('sin conexión'),{status:503});
     return {};
   };

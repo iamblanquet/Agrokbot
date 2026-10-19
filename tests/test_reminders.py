@@ -40,22 +40,56 @@ class ReminderTests(unittest.TestCase):
             tasks.append({**tasks[0], 'id':'tomorrow', 'plannedStartDate':'2026-10-20','plannedEndDate':'2026-10-20'})
             tasks.append({**tasks[0], 'id':'finished', 'status':'FINISHED'})
             erp.request.side_effect = lambda path: {'projects':[{'id':'p1'}]} if path=='/external/projects' else {'project':project}
-            service.tick(datetime(2026,10,20,2,59,tzinfo=timezone.utc),push)
+            service.tick(datetime(2026,10,19,13,29,tzinfo=timezone.utc),push)
             erp.request.assert_not_called()
             service.tick(datetime(2026,10,20,3,0,tzinfo=timezone.utc),push)
             push.assert_called_once()
             self.assertEqual(push.call_args.args[0]['endpoint'],'missing')
             self.assertIn('1 tareas',push.call_args.args[1]['body'])
-            telegram.assert_called_once()
-            self.assertEqual(telegram.call_args.args[1]['message_thread_id'],22)
-            self.assertIn('1 tareas programadas sin reporte',telegram.call_args.args[1]['text'])
-            self.assertIn('Responsable pendiente',telegram.call_args.args[1]['text'])
+            telegram.assert_not_called()
             service.tick(datetime(2026,10,20,3,1,tzinfo=timezone.utc),push)
             push.assert_called_once()
-            telegram.assert_called_once()
+            telegram.assert_not_called()
             with connection() as db:
                 self.assertEqual(db.execute('SELECT count(*) FROM reminder_runs').fetchone()[0],1)
-                self.assertEqual(db.execute("SELECT count(*) FROM reminder_deliveries WHERE state='sent'").fetchone()[0],2)
+                self.assertEqual(db.execute("SELECT count(*) FROM reminder_deliveries WHERE state='sent'").fetchone()[0],1)
+            # A report arriving between the PWA reminder and Telegram summary is included.
+            tasks[0]['operationLogs']=[{'id':'late','operationDate':'2026-10-19','progressBps':1500}]
+            service.tick(datetime(2026,10,20,3,29,tzinfo=timezone.utc),push)
+            telegram.assert_not_called()
+            service.tick(datetime(2026,10,20,3,30,tzinfo=timezone.utc),push)
+            telegram.assert_called_once()
+            text=telegram.call_args.args[1]['text']
+            self.assertIn('2 tareas con reporte',text)
+            self.assertIn('15 %',text)
+            self.assertIn('0 tareas programadas sin reporte',text)
+            self.assertEqual(telegram.call_args.args[1]['message_thread_id'],22)
+            service.tick(datetime(2026,10,20,3,31,tzinfo=timezone.utc),push)
+            telegram.assert_called_once()
+            push.assert_called_once()
+            # Separate morning cut includes already reported tasks and per-user assignment.
+            push.reset_mock();telegram.reset_mock()
+            service.tick(datetime(2026,10,19,13,30,tzinfo=timezone.utc),push)
+            self.assertEqual(push.call_count,2)
+            self.assertEqual({c.args[0]['endpoint'] for c in push.call_args_list},{'missing','reported'})
+            self.assertTrue(all(c.args[1]['refreshCatalog'] for c in push.call_args_list))
+            telegram.assert_called_once()
+            self.assertIn('3 tareas planificadas',telegram.call_args.args[1]['text'])
+            service.tick(datetime(2026,10,19,13,31,tzinfo=timezone.utc),push)
+            self.assertEqual(push.call_count,2)
+            telegram.assert_called_once()
+
+    def test_slots_weekdays_and_no_late_morning_after_nine(self):
+        from unittest.mock import Mock
+        service=Reminders(None,None,None,None)
+        service.run_slot=Mock()
+        service.tick(datetime(2026,10,18,13,30,tzinfo=timezone.utc),None)
+        service.run_slot.assert_not_called()
+        service.tick(datetime(2026,10,17,13,30,tzinfo=timezone.utc),None)
+        service.run_slot.assert_called_once_with('2026-10-17','morning',None)
+        service.run_slot.reset_mock()
+        service.tick(datetime(2026,10,20,4,0,tzinfo=timezone.utc),None)
+        self.assertEqual([c.args[1] for c in service.run_slot.call_args_list],['missing','evening'])
 
     def test_success_and_ambiguous_delivery_are_not_duplicated(self):
         import sqlite3

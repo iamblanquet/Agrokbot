@@ -18,6 +18,26 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_incident_permission_is_enforced_and_revocable(self):
+        self.assertEqual(self.request('/api/incidents')[0],401)
+        self.request('/api/login',{'user':'tester','password':'prueba-ñ'})
+        with server.connection() as db:
+            db.execute('INSERT INTO app_users VALUES (?,?,?,?,?,?,?)',('tester','hash','Test','1','a',1,'now'))
+        with patch.object(server,'is_admin',return_value=False):
+            self.assertEqual(self.request('/api/incidents')[0],403)
+            self.assertEqual(self.request('/api/incidents/update',{})[0],403)
+            self.assertEqual(self.request('/api/admin/incidents/permission',{'user':'tester','enabled':True})[0],403)
+        with patch.object(server,'is_admin',return_value=True):
+            self.assertEqual(self.request('/api/admin/incidents/permission',{'user':'tester','enabled':True})[0],200)
+        with patch.object(server,'is_admin',return_value=False):
+            self.assertEqual(self.request('/api/incidents')[0],200)
+            self.assertTrue(self.request('/api/me')[1]['canManageIncidents'])
+            self.assertEqual(self.request('/api/incidents/update',{})[0],400)
+        with patch.object(server,'is_admin',return_value=True):
+            self.request('/api/admin/incidents/permission',{'user':'tester','enabled':False})
+        with patch.object(server,'is_admin',return_value=False):
+            self.assertEqual(self.request('/api/incidents')[0],403)
+
     def test_push_transfer_requires_subscription_keys_and_detaches_on_request(self):
         self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
         subscription={'endpoint':'https://fcm.googleapis.com/test', 'keys':{

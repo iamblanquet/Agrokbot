@@ -9,7 +9,7 @@ window.campoAuth={
       await storage.clear();
       state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.local=[];state.selected=null;state.topic=null;
     }
-    state.user=result.user;state.isAdmin=Boolean(result.isAdmin);await storage.write('meta',state.user,'user');await storage.write('meta',state.isAdmin,'isAdmin');
+    state.user=result.user;state.canManageIncidents=false;state.isAdmin=Boolean(result.isAdmin);await storage.write('meta',state.user,'user');await storage.write('meta',state.isAdmin,'isAdmin');
     const saved=await storage.get('meta',`snapshot:${state.user}`);if(saved)Object.assign(state,saved);
     await reloadLocal();showApp();await sync();
     if(window.campoRestorePush)await window.campoRestorePush();
@@ -22,7 +22,7 @@ window.campoAuth={
         const subscription=registration?.pushManager&&await registration.pushManager.getSubscription();
         if(subscription)await api('/api/notifications/unsubscribe',{endpoint:subscription.endpoint});
       }
-      await api('/api/logout',{});await storage.clear();state.user=null;state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.simulation=false;showLogin();
+      await api('/api/logout',{});await storage.clear();state.user=null;state.canManageIncidents=false;state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.simulation=false;showLogin();
     }catch(error){toast(error.message);}
   },
   async setupTelegram({showLogin,$}){

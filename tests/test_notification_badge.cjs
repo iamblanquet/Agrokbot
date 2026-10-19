@@ -3,6 +3,15 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
+test('morning push wakes open clients to refresh',async()=>{
+  const handlers={},messages=[],pending=[];
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../public/sw.js'),'utf8'),{
+    self:{addEventListener:(name,fn)=>handlers[name]=fn,registration:{showNotification:async()=>{}}},
+    clients:{matchAll:async()=>[{postMessage:message=>messages.push(message)}]}
+  });
+  handlers.push({data:{json:()=>({refreshCatalog:true})},waitUntil:p=>pending.push(p)});
+  await Promise.all(pending);assert.equal(messages[0].type,'campo-refresh-catalog');
+});
 test('push includes app icon and cached monochrome badge',async()=>{
   const handlers={},notifications=[];
   const source=fs.readFileSync(path.join(__dirname,'../public/sw.js'),'utf8');

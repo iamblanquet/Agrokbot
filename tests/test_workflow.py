@@ -75,6 +75,52 @@ class WorkflowTests(unittest.TestCase):
     def details(self):
         return {'author': 'Abner Díaz', 'title': 'Residente de Campo', 'capturedAt': '2026-09-03T19:20:00Z', 'timezoneOffset': 360, 'offline': True, 'quantity': 2.5, 'unit': 'ha', 'machinery': [{'name': 'Máquina', 'hours': 8, 'liters': 140}]}
 
+    def test_incident_is_in_erp_diary_and_telegram_is_once_after_delivery(self):
+        from backend.incidents import IncidentService
+        from unittest.mock import Mock
+        incident={'description':'Fuga en tubería','priority':'high','stopsWork':True}
+        body=self.payload(details={**self.details(),'incident':incident})
+        catalog=server.catalog()
+        with patch.object(server,'ERP_MODE','live'),patch.object(server,'catalog',return_value=catalog),patch.object(server,'erp',return_value={'operationLog':{'id':'erp-incident'}}) as erp:
+            server.create_report(body,'dev')
+        self.assertEqual(erp.call_args.args[1]['metadataJson']['fieldReport']['incident'],incident)
+        self.assertIn('Fuga en tubería',erp.call_args.args[1]['notes'])
+        telegram=Mock(return_value={'message_id':5})
+        service=IncidentService(server.connection,server.now,telegram,'group',server.Problem)
+        with server.connection() as db:
+            db.execute("INSERT INTO settings VALUES ('incident_topic','33')")
+        service.tick(True);service.tick(True)
+        telegram.assert_not_called()
+        rows=service.listing()['incidents'];self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['erp_log_id'],'erp-incident')
+        with server.connection() as db:
+            db.execute("UPDATE reports SET state='published' WHERE id=?",(body['id'],))
+        service.tick(True);service.tick(True)
+        telegram.assert_called_once()
+        self.assertEqual(telegram.call_args.args[1]['message_thread_id'],33)
+        self.assertIn('Fuga en tubería',telegram.call_args.args[1]['text'])
+        service.update({'id':body['id'],'version':1,'status':'in_progress','note':'Se asignó técnico'},'manager')
+        with self.assertRaises(server.Problem):
+            service.update({'id':body['id'],'version':1,'status':'resolved','note':'Comentario desactualizado'},'manager')
+        service.update({'id':body['id'],'version':2,'status':'resolved','note':'Reparada'},'manager')
+        service.update({'id':body['id'],'version':3,'status':'open','note':'Volvió la fuga'},'manager')
+        row=service.listing()['incidents'][0]
+        self.assertEqual((row['status'],len(row['events'])),('open',4))
+
+    def test_incident_rejected_erp_never_notifies(self):
+        from backend.http_client import RemoteFailure
+        body=self.payload(details={**self.details(),'incident':{'description':'Falla','priority':'normal','stopsWork':False}})
+        catalog=server.catalog()
+        with patch.object(server,'ERP_MODE','live'),patch.object(server,'catalog',return_value=catalog),patch.object(server,'erp',side_effect=RemoteFailure('ERP no disponible')):
+            server.create_report(body,'dev')
+        server.INCIDENTS.ingest()
+        self.assertEqual(server.INCIDENTS.listing()['incidents'],[])
+
+    def test_invalid_incident_is_not_saved(self):
+        for incident in [{},{'description':'','priority':'high','stopsWork':False},{'description':'Falla','priority':'urgent','stopsWork':False},{'description':'Falla','priority':'normal','stopsWork':'yes'}]:
+            with self.assertRaises(server.Problem):
+                server.create_report(self.payload(details={**self.details(),'incident':incident}),'dev')
+
     def test_field_message_photo_storage_and_metadata(self):
         body = self.payload(details=self.details())
         photo = self.photo(body['id'])

@@ -3,10 +3,15 @@
 // Sincronización de catálogo, fotos y reportes pendientes.
 window.campoSync={
   async refresh({state,api}){
+    const user=state.user;
     const [catalog,config,reports]=await Promise.all([api('/api/catalog'),api('/api/config'),api('/api/reports')]);
-    state.catalog=catalog;state.config=config;state.reports=reports.reports;state.topics=reports.topics;state.clarifications=reports.clarifications||[];
-    await window.campoStorage.purgeDeliveredPhotos(state.user,state.reports);
-    await window.campoStorage.write('meta',{catalog,config,reports:state.reports,topics:state.topics,clarifications:state.clarifications||[]},`snapshot:${state.user}`);
+    if(state.user!==user)throw new Error('La cuenta cambió durante la descarga.');
+    const savedCatalog={...catalog,offlineSavedAt:new Date().toISOString()};
+    const snapshot={catalog:savedCatalog,config,reports:reports.reports,topics:reports.topics,clarifications:reports.clarifications||[]};
+    await window.campoStorage.write('meta',snapshot,`snapshot:${user}`);
+    if(state.user!==user)return;
+    Object.assign(state,snapshot);
+    await window.campoStorage.purgeDeliveredPhotos(user,state.reports);
   },
   async sync({state,api,online,banner,updateChrome,reloadLocal,render}){
     if(state.syncing||!state.user)return;
@@ -14,6 +19,9 @@ window.campoSync={
     state.syncing=true;updateChrome();
     try{
       const identity=await api('/api/me');if(identity.user!==state.user)throw new Error('La sesión pertenece a otro usuario. Vuelve a iniciar sesión con tu cuenta.');
+      state.canManageIncidents=Boolean(identity.canManageIncidents);state.isAdmin=Boolean(identity.isAdmin);
+      // Download field data first; a slow outbox must not delay the offline catalog.
+      await this.refresh({state,api});
       await reloadLocal();
       const now=Date.now();
       for(const item of state.local.filter(row=>row.state==='pending').slice().reverse()){
