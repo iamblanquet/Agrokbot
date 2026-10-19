@@ -18,29 +18,34 @@ import server
 
 
 class AuthTests(unittest.TestCase):
-    def test_admin_push_test_permissions_ownership_and_delivery(self):
+    def test_admin_push_broadcast_active_users_and_partial_failures(self):
         path = '/api/admin/notifications/test'
         with patch.object(server.PUSH, 'send') as send:
             self.assertEqual(self.request(path, {'endpoint':'own'})[0], 401)
             self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
             with server.connection() as db:
+                for name, active in [('another',1),('disabled',0)]:
+                    db.execute('INSERT INTO app_users VALUES (?,?,?,?,?,?,?)', (name,'hash',name,name,name,active,'now'))
                 db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)', ('own','tester',json.dumps({'endpoint':'own'})))
-                db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)', ('other','another','{}'))
+                db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)', ('other','another',json.dumps({'endpoint':'other'})))
+                db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)', ('disabled','disabled','{}'))
+                db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)', ('orphan','missing','{}'))
             with patch.object(server, 'is_admin', return_value=False):
                 self.assertEqual(self.request(path, {'endpoint':'own'})[0], 403)
             with patch.object(server, 'is_admin', return_value=True):
-                self.assertEqual(self.request(path, {})[0], 400)
-                self.assertEqual(self.request(path, {'endpoint':'other'})[0], 404)
-                self.assertEqual(self.request(path, {'endpoint':'missing'})[0], 404)
                 send.assert_not_called()
-                self.assertEqual(self.request(path, {'endpoint':'own'})[0], 200)
-                send.assert_called_once()
-                self.assertEqual(send.call_args.args[0], {'endpoint':'own'})
+                status, body = self.request(path, {})
+                self.assertEqual(status, 200)
+                self.assertEqual((body['total'],body['sent'],body['failed']), (2,2,0))
+                self.assertEqual({c.args[0]['endpoint'] for c in send.call_args_list}, {'own','other'})
                 self.assertEqual(send.call_args.args[1]['tag'], 'campo-prueba-admin')
-                send.side_effect = RuntimeError('sensitive provider response')
-                status, body = self.request(path, {'endpoint':'own'})
-                self.assertEqual(status, 502)
+                send.side_effect = [RuntimeError('sensitive provider response'), None]
+                status, body = self.request(path, {})
+                self.assertEqual((status,body['sent'],body['failed']), (200,1,1))
                 self.assertNotIn('sensitive', json.dumps(body))
+                with server.connection() as db:
+                    db.execute('DELETE FROM push_subscriptions')
+                self.assertEqual(self.request(path, {})[1]['total'], 0)
 
     def test_notification_status_is_authenticated_and_account_scoped(self):
         path = '/api/notifications/status'
