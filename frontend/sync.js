@@ -20,6 +20,7 @@ window.campoSync={
     try{
       const identity=await api('/api/me');if(identity.user!==state.user)throw new Error('La sesión pertenece a otro usuario. Vuelve a iniciar sesión con tu cuenta.');
       state.canManageIncidents=Boolean(identity.canManageIncidents);state.isAdmin=Boolean(identity.isAdmin);
+      await window.campoStorage.write('meta',state.canManageIncidents,'canManageIncidents');await window.campoStorage.write('meta',state.isAdmin,'isAdmin');
       // Download field data first; a slow outbox must not delay the offline catalog.
       await this.refresh({state,api});
       await reloadLocal();

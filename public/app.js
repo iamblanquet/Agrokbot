@@ -4,7 +4,9 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;',
 const pct = value => `${new Intl.NumberFormat('es-MX', {maximumFractionDigits:2}).format((value || 0) / 100)} %`;
 const prettyDate = value => new Date(value).toLocaleString('es-MX', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const today = () => {const d = new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
-const state = {user:null, catalog:{projects:[],tasks:[]}, config:{erpMode:'demo',telegramMode:'demo'}, reports:[], local:[], topics:[], view:'projects', selected:null, topic:null, search:'', taskFilter:'all', reportFilter:'all', simulation:false, reachable:navigator.onLine, syncing:false, currentTask:null,  install:null};
+const validViews = ['projects','employees','reports','telegram','settings','admin','monitor','incidents','journal'];
+const savedView = (()=>{try{const v=typeof sessionStorage!=='undefined'&&sessionStorage.getItem('campo-active-view');return validViews.includes(v)?v:'projects';}catch(_){return 'projects';}})();
+const state = {user:null, catalog:{projects:[],tasks:[]}, config:{erpMode:'demo',telegramMode:'demo'}, reports:[], local:[], topics:[], view:savedView, selected:null, topic:null, search:'', taskFilter:'all', reportFilter:'all', simulation:false, reachable:navigator.onLine, syncing:false, currentTask:null,  install:null};
 let toastTimer;
 
 function openDatabase(){return window.campoStorage.open();}
@@ -72,7 +74,7 @@ function heading(title,subtitle,action=''){return `<div class="page-heading"><di
 window.campoUi={ $, esc, heading, api, toast };
 function taskById(id){return state.catalog.tasks.find(t=>t.id===id);}
 function projectById(id){return state.catalog.projects.find(p=>p.id===id);}
-function render(){updateChrome();if(state.view==='incidents'){$('#breadcrumb-current').textContent='Incidencias';if(!(state.isAdmin||state.canManageIncidents)){$('#main').textContent='No tienes permiso para gestionar incidencias.';return;}if($('#incident-list'))return;return window.campoIncidents.render();}if(state.view==='journal'){$('#breadcrumb-current').textContent='Bitácora ERP';if($('#journal'))return;return window.campoJournal.render();}({projects:renderProjects,employees:renderEmployees,reports:renderReports,telegram:renderTelegram,settings:renderSettings,admin:()=>window.campoAdmin?.render?.(),monitor:()=>window.campoMonitor?.render?.()})[state.view]();}
+function render(){if((state.view==='admin'||state.view==='monitor')&&!state.isAdmin)state.view='projects';try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem('campo-active-view',state.view);}catch(_){}updateChrome();if(state.view==='incidents'){$('#breadcrumb-current').textContent='Incidencias';if(!(state.isAdmin||state.canManageIncidents)){$('#main').textContent='No tienes permiso para gestionar incidencias.';return;}if($('#incident-list'))return;return window.campoIncidents.render();}if(state.view==='journal'){$('#breadcrumb-current').textContent='Bitácora ERP';if($('#journal'))return;return window.campoJournal.render();}({projects:renderProjects,employees:renderEmployees,reports:renderReports,telegram:renderTelegram,settings:renderSettings,admin:()=>window.campoAdmin?.render?.(),monitor:()=>window.campoMonitor?.render?.()})[state.view]();}
 function renderProjects(){
   const projects=state.catalog.projects,tasks=state.catalog.tasks;
   if(!state.selected||!projectById(state.selected))state.selected=projects[0]?.id;

@@ -22,7 +22,7 @@ window.campoAuth={
         const subscription=registration?.pushManager&&await registration.pushManager.getSubscription();
         if(subscription)await api('/api/notifications/unsubscribe',{endpoint:subscription.endpoint});
       }
-      await api('/api/logout',{});await storage.clear();state.user=null;state.canManageIncidents=false;state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.simulation=false;showLogin();
+      await api('/api/logout',{});await storage.clear();state.user=null;state.canManageIncidents=false;state.view='projects';try{if(typeof sessionStorage!=='undefined')sessionStorage.removeItem('campo-active-view');}catch(_){}state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.simulation=false;showLogin();
     }catch(error){toast(error.message);}
   },
   async setupTelegram({showLogin,$}){
@@ -34,7 +34,7 @@ window.campoAuth={
   },
   async boot({state,storage,showLogin,showApp,reloadLocal,sync,setupTelegram,banner,$}){
     try{
-      await storage.open();await storage.removeDemoCatalog();state.user=await storage.get('meta','user');state.isAdmin=Boolean(await storage.get('meta','isAdmin'));state.simulation=Boolean(await storage.get('meta','simulation'));
+      await storage.open();await storage.removeDemoCatalog();state.user=await storage.get('meta','user');state.isAdmin=Boolean(await storage.get('meta','isAdmin'));state.canManageIncidents=Boolean(await storage.get('meta','canManageIncidents'));state.simulation=Boolean(await storage.get('meta','simulation'));
       if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>banner('No se pudo preparar el modo offline. Abre la app por HTTPS o localhost.'));
       if(await setupTelegram())return;
       if(state.user){const saved=await storage.get('meta',`snapshot:${state.user}`);if(saved)Object.assign(state,saved);await reloadLocal();showApp();await sync();}else showLogin();
