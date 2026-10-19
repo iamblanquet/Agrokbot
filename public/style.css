@@ -4467,11 +4467,15 @@ footer {
   .app-shell {
     display: block;
     position: relative;
+    padding-top: 58px;
     padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
   }
   .sidebar {
-    position: relative;
-    z-index: 20;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 890;
     height: 58px;
     padding: 0 14px;
     display: flex;
@@ -4623,7 +4627,7 @@ footer {
     display: none;
   }
   .topbar {
-    position: absolute;
+    position: fixed;
     top: 0;
     right: 56px;
     left: auto;
@@ -4633,7 +4637,7 @@ footer {
     background: transparent;
     border-bottom: 0;
     box-shadow: none;
-    z-index: 25;
+    z-index: 895;
   }
   .topbar-left,
   .topbar .connection {
