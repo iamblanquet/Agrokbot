@@ -15,6 +15,7 @@ CMD ["python", "server.py"]
 
 FROM runtime AS test
 COPY --chown=campo:campo tests /app/tests
+COPY --chown=campo:campo deploy/activate-release.sh /app/deploy/activate-release.sh
 ENV DATA_DIR=/tmp/campo-tests ERP_MODE=demo TELEGRAM_MODE=demo TELEGRAM_POLLING=false REMINDERS_ENABLED=false
 CMD ["python", "-m", "unittest", "discover", "-s", "tests"]
 
