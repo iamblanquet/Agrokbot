@@ -143,7 +143,7 @@ function renderProjects(){
     initProjectSlider();
   }
 
-  if($('#task-filter')){$('#task-filter').value=state.taskFilter;$('#task-filter').onchange=e=>{state.taskFilter=e.target.value;renderTaskTable();};$('#task-search').oninput=e=>{state.search=e.target.value;renderTaskTable();};renderTaskTable();}
+  if($('#task-filter')){$('#task-filter').value=state.taskFilter;$('#task-filter').onchange=e=>{state.taskFilter=e.target.value;state.taskPage=1;renderTaskTable();};$('#task-search').oninput=e=>{state.search=e.target.value;state.taskPage=1;renderTaskTable();};renderTaskTable();}
 }
 
 function initProjectSlider(){
@@ -222,6 +222,7 @@ function initProjectSlider(){
       if(state.selected===projId)return;
       state.selected=projId;
       state.search='';
+      state.taskPage=1;
       cards.forEach(c=>{
         const isSel=c.dataset.project===state.selected;
         c.classList.toggle('selected',isSel);
@@ -275,16 +276,30 @@ function initProjectSlider(){
 }
 function renderTaskTable(){
   const tasks=state.catalog.tasks.filter(t=>t.projectId===state.selected&&(state.taskFilter==='all'||(state.taskFilter==='done'?t.progressBps===10000:t.progressBps<10000))&&`${t.name} ${t.code}`.toLowerCase().includes(state.search.toLowerCase()));
-  $('#task-table').innerHTML=tasks.length?`<div class="table-wrap"><table><thead><tr><th>TAREA / ACTIVIDAD</th><th class="person-column">RESPONSABLE</th><th>AVANCE</th><th class="status-column">ESTADO</th><th><span class="muted">ACCIÓN</span></th></tr></thead><tbody>${tasks.map(t=>{const wp=t.workPackage?.name?`${esc(t.workPackage.name)} · `:'' ;const act=esc(t.activity?.name||'');return `<tr><td class="task-name"><strong>${esc(t.name)}</strong><small><span class="task-code">${esc(t.code)}</span> ${wp}${act}</small></td><td class="person-column"><span class="person"><span class="person-circle">${esc((t.responsibleName||'—').split(' ').map(s=>s[0]).slice(0,2).join(''))}</span>${esc(t.responsibleName||'Sin asignar')}</span></td><td class="task-progress"><span>${pct(t.progressBps)}</span><progress max="10000" value="${Number(t.progressBps)||0}" aria-label="Avance de ${esc(t.code)}"></progress></td><td class="status-column">${taskStatus(t)}</td><td class="task-action"><button class="btn subtle" data-capture="${esc(t.id)}">Reportar</button></td></tr>`;}).join('')}</tbody></table></div><div class="table-caption">${tasks.length} tareas · Los reportes se publican en el tema de este proyecto después de sincronizar.</div>`:'<div class="empty"><h3>No hay tareas con este filtro</h3><p>Prueba otro estado o nombre.</p></div>';
+  const pageSize=10;
+  const totalPages=Math.max(1,Math.ceil(tasks.length/pageSize));
+  state.taskPage=Math.min(Math.max(1,state.taskPage||1),totalPages);
+  const start=(state.taskPage-1)*pageSize;
+  const pageTasks=tasks.slice(start,start+pageSize);
+  $('#task-table').innerHTML=tasks.length?`<div class="table-wrap"><table><thead><tr><th>TAREA / ACTIVIDAD</th><th class="person-column">RESPONSABLE</th><th>AVANCE</th><th class="status-column">ESTADO</th><th><span class="muted">ACCIÓN</span></th></tr></thead><tbody>${pageTasks.map(t=>{const wp=t.workPackage?.name?`${esc(t.workPackage.name)} · `:'' ;const act=esc(t.activity?.name||'');return `<tr><td class="task-name"><strong>${esc(t.name)}</strong><small><span class="task-code">${esc(t.code)}</span> ${wp}${act}</small></td><td class="person-column"><span class="person"><span class="person-circle">${esc((t.responsibleName||'—').split(' ').map(s=>s[0]).slice(0,2).join(''))}</span>${esc(t.responsibleName||'Sin asignar')}</span></td><td class="task-progress"><span>${pct(t.progressBps)}</span><progress max="10000" value="${Number(t.progressBps)||0}" aria-label="Avance de ${esc(t.code)}"></progress></td><td class="status-column">${taskStatus(t)}</td><td class="task-action"><button class="btn subtle" data-capture="${esc(t.id)}">Reportar</button></td></tr>`;}).join('')}</tbody></table></div><div class="table-caption table-pagination-bar"><span>Mostrando ${start+1}–${Math.min(tasks.length,start+pageTasks.length)} de ${tasks.length} tareas · Página ${state.taskPage} de ${totalPages}</span><div class="pagination-btns"><button type="button" class="btn subtle small" id="task-page-prev" ${state.taskPage<=1?'disabled':''}>&lt; Anterior</button><button type="button" class="btn subtle small" id="task-page-next" ${state.taskPage>=totalPages?'disabled':''}>Siguiente &gt;</button></div></div>`:'<div class="empty"><h3>No hay tareas con este filtro</h3><p>Prueba otro estado o nombre.</p></div>';
   document.querySelectorAll('[data-capture]').forEach(el=>el.onclick=()=>openCapture(el.dataset.capture));
+  if($('#task-page-prev'))$('#task-page-prev').onclick=()=>{if(state.taskPage>1){state.taskPage--;renderTaskTable();}};
+  if($('#task-page-next'))$('#task-page-next').onclick=()=>{if(state.taskPage<totalPages){state.taskPage++;renderTaskTable();}};
 }
 function combinedReports(){const localIds=new Set(state.local.map(r=>r.id));return [...state.local,...state.reports.filter(r=>!localIds.has(r.id))].sort((a,b)=>b.created.localeCompare(a.created));}
 function renderReports(){
   const items=combinedReports().filter(r=>state.reportFilter==='all'||(state.reportFilter==='pending'?['pending','conflict','invalid'].includes(r.state):['published','demo_published'].includes(r.state)));
-  $('#main').innerHTML=heading('Mis reportes','Del trabajo en campo al registro de tu equipo.')+`<div class="view-tools"><select id="report-filter" aria-label="Filtrar reportes"><option value="all">Todos los reportes</option><option value="pending">En este dispositivo</option><option value="published">Publicados</option></select><button id="export-reports" class="btn small">Exportar pendientes</button><span class="muted">${state.local.length} pendientes en este dispositivo</span></div><div class="report-list">${items.map(r=>{const p=r.payload,t=taskById(p.taskId||r.task_id),project=projectById(t?.projectId||r.project_id);return `<article class="report-card"><div class="report-card-head"><div><h3>${esc(t?.code||'Tarea')} · ${esc(t?.name||p.taskId||r.task_id)}</h3><span class="muted">${esc(project?.name||'Proyecto')}</span></div>${badge(r.state)}</div><p>${esc(p.notes)}</p>${crewSummary(p.crew)}${fieldSummary(p)}<div class="photo-grid" data-report-photos="${esc(r.id)}"></div><div class="report-meta"><strong>Avance: ${pct(p.progressBps)}</strong><span>Operación: ${esc(p.operationDate)}</span><span>Capturado: ${prettyDate(r.created)}</span><span>Ref. ${esc(r.id.slice(0,8))}</span></div>${r.error?`<div class="report-error">${esc(r.error)}</div>`:''}<div class="report-actions">${r.state==='telegram_failed'?`<button class="btn small" data-retry="${esc(r.id)}">Reintentar envío</button>`:''}</div></article>`;}).join('')||'<div class="empty"><h3>Tu primer reporte empieza en una tarea</h3><p>Selecciona un proyecto y pulsa Reportar.</p></div>'}</div>`;
-  fillReportPhotos(items);
-  $('#report-filter').value=state.reportFilter;$('#report-filter').onchange=e=>{state.reportFilter=e.target.value;renderReports();};
+  const pageSize=8;
+  const totalPages=Math.max(1,Math.ceil(items.length/pageSize));
+  state.reportPage=Math.min(Math.max(1,state.reportPage||1),totalPages);
+  const start=(state.reportPage-1)*pageSize;
+  const pageItems=items.slice(start,start+pageSize);
+  $('#main').innerHTML=heading('Mis reportes','Del trabajo en campo al registro de tu equipo.')+`<div class="view-tools"><select id="report-filter" aria-label="Filtrar reportes"><option value="all">Todos los reportes</option><option value="pending">En este dispositivo</option><option value="published">Publicados</option></select><button id="export-reports" class="btn small">Exportar pendientes</button><span class="muted">${state.local.length} pendientes en este dispositivo</span></div><div class="report-list">${pageItems.map(r=>{const p=r.payload,t=taskById(p.taskId||r.task_id),project=projectById(t?.projectId||r.project_id);return `<article class="report-card"><div class="report-card-head"><div><h3>${esc(t?.code||'Tarea')} · ${esc(t?.name||p.taskId||r.task_id)}</h3><span class="muted">${esc(project?.name||'Proyecto')}</span></div>${badge(r.state)}</div><p>${esc(p.notes)}</p>${crewSummary(p.crew)}${fieldSummary(p)}<div class="photo-grid" data-report-photos="${esc(r.id)}"></div><div class="report-meta"><strong>Avance: ${pct(p.progressBps)}</strong><span>Operación: ${esc(p.operationDate)}</span><span>Capturado: ${prettyDate(r.created)}</span><span>Ref. ${esc(r.id.slice(0,8))}</span></div>${r.error?`<div class="report-error">${esc(r.error)}</div>`:''}<div class="report-actions">${r.state==='telegram_failed'?`<button class="btn small" data-retry="${esc(r.id)}">Reintentar envío</button>`:''}</div></article>`;}).join('')||'<div class="empty"><h3>Tu primer reporte empieza en una tarea</h3><p>Selecciona un proyecto y pulsa Reportar.</p></div>'}</div>${items.length?`<div class="table-caption table-pagination-bar"><span>Mostrando ${start+1}–${Math.min(items.length,start+pageItems.length)} de ${items.length} reporte(s) · Página ${state.reportPage} de ${totalPages}</span><div class="pagination-btns"><button type="button" class="btn subtle small" id="report-page-prev" ${state.reportPage<=1?'disabled':''}>&lt; Anterior</button><button type="button" class="btn subtle small" id="report-page-next" ${state.reportPage>=totalPages?'disabled':''}>Siguiente &gt;</button></div></div>`:''}`;
+  fillReportPhotos(pageItems);
+  $('#report-filter').value=state.reportFilter;$('#report-filter').onchange=e=>{state.reportFilter=e.target.value;state.reportPage=1;renderReports();};
   $('#export-reports').onclick=exportPending;
+  if($('#report-page-prev'))$('#report-page-prev').onclick=()=>{if(state.reportPage>1){state.reportPage--;renderReports();}};
+  if($('#report-page-next'))$('#report-page-next').onclick=()=>{if(state.reportPage<totalPages){state.reportPage++;renderReports();}};
   document.querySelectorAll('[data-retry]').forEach(el=>el.onclick=async()=>{try{await api('/api/retry-telegram',{id:el.dataset.retry});toast('Envío puesto en cola.');await sync();}catch(e){toast(e.message);}});
 }
 function renderTelegram(){
@@ -580,13 +595,18 @@ function renderEmployees(){
   $('#main').innerHTML=heading('Empleados','Registra tu cuadrilla y asigna los roles que puede desempeñar.', '<button id="new-employee" class="btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nuevo empleado</button>')+`
     <p class="muted">La gestión requiere conexión. El catálogo descargado permite seleccionar personal al reportar sin señal.</p>
     <div class="view-tools"><input id="employee-search" type="search" placeholder="Buscar por nombre…" aria-label="Buscar empleados" value="${esc(state.employeeSearch||'')}"><button id="refresh-employees" class="btn small">Actualizar catálogo</button></div><div id="employee-list"></div>`;
-  $('#employee-search').oninput=e=>{state.employeeSearch=e.target.value;renderEmployeeList();};
+  $('#employee-search').oninput=e=>{state.employeeSearch=e.target.value;state.employeePage=1;renderEmployeeList();};
   $('#new-employee').onclick=()=>openEmployee();
   $('#refresh-employees').onclick=async()=>{try{await refreshEmployees();renderEmployeeList();toast('Catálogo actualizado.');}catch(error){toast(error.message);}};
   renderEmployeeList();
 }
 function renderEmployeeList(){
   const all=state.catalog.employees||[],items=all.filter(e=>e.name.toLocaleLowerCase('es').includes((state.employeeSearch||'').toLocaleLowerCase('es')));
+  const pageSize=10;
+  const totalPages=Math.max(1,Math.ceil(items.length/pageSize));
+  state.employeePage=Math.min(Math.max(1,state.employeePage||1),totalPages);
+  const start=(state.employeePage-1)*pageSize;
+  const pageItems=items.slice(start,start+pageSize);
   $('#employee-list').innerHTML=items.length?`
     <div class="table-wrap">
       <table class="employee-table">
@@ -599,7 +619,7 @@ function renderEmployeeList(){
           </tr>
         </thead>
         <tbody>
-          ${items.map(e=>`
+          ${pageItems.map(e=>`
             <tr>
               <td class="person-column">
                 <span class="person">
@@ -628,8 +648,16 @@ function renderEmployeeList(){
         </tbody>
       </table>
     </div>
-    <div class="table-caption">${items.length} empleado(s) registrado(s) en tu cuadrilla de campo.</div>
+    <div class="table-caption table-pagination-bar">
+      <span>Mostrando ${start+1}–${Math.min(items.length,start+pageItems.length)} de ${items.length} empleado(s) · Página ${state.employeePage} de ${totalPages}</span>
+      <div class="pagination-btns">
+        <button type="button" class="btn subtle small" id="emp-page-prev" ${state.employeePage<=1?'disabled':''}>&lt; Anterior</button>
+        <button type="button" class="btn subtle small" id="emp-page-next" ${state.employeePage>=totalPages?'disabled':''}>Siguiente &gt;</button>
+      </div>
+    </div>
   `:`<div class="empty"><h3>${all.length?'No hay coincidencias':'Aún no hay empleados'}</h3><p>${all.length?'Prueba otro nombre.':'Pulsa Nuevo empleado para registrar a la primera persona de tu cuadrilla.'}</p></div>`;
+  if($('#emp-page-prev'))$('#emp-page-prev').onclick=()=>{if(state.employeePage>1){state.employeePage--;renderEmployeeList();}};
+  if($('#emp-page-next'))$('#emp-page-next').onclick=()=>{if(state.employeePage<totalPages){state.employeePage++;renderEmployeeList();}};
   document.querySelectorAll('[data-edit-employee]').forEach(el=>el.onclick=()=>openEmployee(all.find(e=>e.id===el.dataset.editEmployee)));
   document.querySelectorAll('[data-delete-employee]').forEach(el=>el.onclick=()=>{state.deletingEmployee=all.find(e=>e.id===el.dataset.deleteEmployee);$('#delete-employee-description').textContent=`¿Eliminar a ${state.deletingEmployee.name} del catálogo?`;$('#delete-employee-error').textContent='';$('#delete-employee-dialog').showModal();});
 }

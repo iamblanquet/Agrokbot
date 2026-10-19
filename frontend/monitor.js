@@ -17,21 +17,51 @@ window.campoMonitor = {
     const label={ok:['green','Correcto'],pending:['blue','En proceso'],waiting:['','—'],review:['amber','Verificar'],failed:['red','Error'],unknown:['','?']};
     const pill=v=>{const [c,t]=label[v]||label.unknown;return `<span class="status ${c}">${t}</span>`;};
     const when=iso=>{const d=new Date(iso);return isNaN(d)?esc(iso):d.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});};
+    let page=1, transactions=[];
+    const PAGE_SIZE=10;
+
+    const drawTable=()=>{
+      if(!$('#monitor-table'))return;
+      if(!transactions.length){
+        $('#monitor-table').innerHTML='<div class="empty"><h3>Sin transacciones</h3><p>No hay reportes que coincidan con el filtro.</p></div>';
+        return;
+      }
+      const totalPages=Math.max(1,Math.ceil(transactions.length/PAGE_SIZE));
+      page=Math.min(Math.max(1,page),totalPages);
+      const start=(page-1)*PAGE_SIZE;
+      const pageRows=transactions.slice(start,start+PAGE_SIZE);
+
+      $('#monitor-table').innerHTML=`<div class="admin-table"><div class="monitor-row admin-head"><span>FECHA</span><span>USUARIO</span><span>PROYECTO</span><span>ERP</span><span>TELEGRAM</span><span>DETALLE</span><span></span></div>${pageRows.map(t=>`<div class="monitor-row"><span>${when(t.created)}<small>${t.ageMinutes<1?'menos de 1 min':t.ageMinutes+' min abierta(s)'}</small></span><span>${esc(t.user)}</span><span>${esc(t.project)}<small>${t.photos?t.photos+' foto(s)':'sin fotos'}</small></span><span>${pill(t.erp)}</span><span>${pill(t.telegram)}${t.stuck?' <span class="status amber">Atorado</span>':''}</span><span class="mono">${esc(t.error||'')}${t.erpLogId?`<small>ERP: ${esc(t.erpLogId)}</small>`:''}<small>Ref: ${esc(t.id.slice(0,8))}</small></span><span>${t.state==='telegram_failed'?`<button class="btn small" data-retry="${esc(t.id)}">Reintentar</button>`:''}${['erp_review','telegram_review'].includes(t.state)?`<button class="btn small" data-resolve="${esc(t.id)}">Resolver</button>`:''}</span></div>`).join('')}</div>
+      <div class="table-caption table-pagination-bar">
+        <span>Mostrando ${start+1}–${Math.min(transactions.length,start+pageRows.length)} de ${transactions.length} transacción(es) · Página ${page} de ${totalPages}</span>
+        <div class="pagination-btns">
+          <button type="button" class="btn subtle small" id="monitor-prev" ${page<=1?'disabled':''}>&lt; Anterior</button>
+          <button type="button" class="btn subtle small" id="monitor-next" ${page>=totalPages?'disabled':''}>Siguiente &gt;</button>
+        </div>
+      </div>`;
+
+      if($('#monitor-prev'))$('#monitor-prev').onclick=()=>{if(page>1){page--;drawTable();}};
+      if($('#monitor-next'))$('#monitor-next').onclick=()=>{if(page<totalPages){page++;drawTable();}};
+      document.querySelectorAll('#monitor-table [data-retry]').forEach(b=>b.onclick=async()=>{try{await api('/api/admin/monitor/retry',{id:b.dataset.retry});toast('Envío puesto en cola.');await load();}catch(e){toast(e.message);}});
+      document.querySelectorAll('#monitor-table [data-resolve]').forEach(b=>b.onclick=async()=>{const decision=prompt('Escribe CONFIRMAR para validar el resultado o RECHAZAR para dejarlo como no enviado.');if(!decision)return;const normalized=decision.trim().toLowerCase();if(!['confirmar','rechazar'].includes(normalized)){toast('Decisión inválida.');return;}const note=prompt('Describe la evidencia o motivo de la resolución:');if(!note?.trim())return;try{await api('/api/admin/monitor/resolve',{id:b.dataset.resolve,decision:normalized==='confirmar'?'confirm':'reject',note:note.trim()});toast('Resolución registrada en la bitácora.');await load();}catch(e){toast(e.message);}});
+    };
+
     const load=async()=>{
       if(!$('#monitor-root'))return;
       try{
         const data=await api(`/api/admin/monitor?state=${encodeURIComponent($('#monitor-state').value)}&hours=${$('#monitor-hours').value}`);
         const s=data.summary;
+        transactions=data.transactions||[];
         $('#monitor-stats').innerHTML=[['TOTAL',s.total,'reportes en el periodo',''],['PUBLICADOS',s.ok,'ERP y Telegram',''],['EN PROCESO',s.pending,s.stuck?`${s.stuck} atorado(s)`:'sin atorados',s.stuck?'warn':''],['POR VERIFICAR',s.review,'resultado ambiguo',s.review?'warn':''],['CON ERROR',s.failed,'requieren acción',s.failed?'bad':'']]
           .map(([a,b,c,k])=>`<div class="monitor-stat ${k}"><small>${a}</small><strong>${b}</strong><span>${c}</span></div>`).join('');
-        $('#monitor-table').innerHTML=data.transactions.length?`<div class="admin-table"><div class="monitor-row admin-head"><span>FECHA</span><span>USUARIO</span><span>PROYECTO</span><span>ERP</span><span>TELEGRAM</span><span>DETALLE</span><span></span></div>${data.transactions.map(t=>`<div class="monitor-row"><span>${when(t.created)}<small>${t.ageMinutes<1?'menos de 1 min':t.ageMinutes+' min abierta(s)'}</small></span><span>${esc(t.user)}</span><span>${esc(t.project)}<small>${t.photos?t.photos+' foto(s)':'sin fotos'}</small></span><span>${pill(t.erp)}</span><span>${pill(t.telegram)}${t.stuck?' <span class="status amber">Atorado</span>':''}</span><span class="mono">${esc(t.error||'')}${t.erpLogId?`<small>ERP: ${esc(t.erpLogId)}</small>`:''}<small>Ref: ${esc(t.id.slice(0,8))}</small></span><span>${t.state==='telegram_failed'?`<button class="btn small" data-retry="${esc(t.id)}">Reintentar</button>`:''}${['erp_review','telegram_review'].includes(t.state)?`<button class="btn small" data-resolve="${esc(t.id)}">Resolver</button>`:''}</span></div>`).join('')}</div>`:'<div class="empty"><h3>Sin transacciones</h3><p>No hay reportes que coincidan con el filtro.</p></div>';
+        drawTable();
         $('#monitor-updated').textContent='Actualizado '+new Date().toLocaleTimeString('es-MX');
         $('#monitor-error').textContent='';
-        document.querySelectorAll('#monitor-table [data-retry]').forEach(b=>b.onclick=async()=>{try{await api('/api/admin/monitor/retry',{id:b.dataset.retry});toast('Envío puesto en cola.');await load();}catch(e){toast(e.message);}});
-        document.querySelectorAll('#monitor-table [data-resolve]').forEach(b=>b.onclick=async()=>{const decision=prompt('Escribe CONFIRMAR para validar el resultado o RECHAZAR para dejarlo como no enviado.');if(!decision)return;const normalized=decision.trim().toLowerCase();if(!['confirmar','rechazar'].includes(normalized)){toast('Decisión inválida.');return;}const note=prompt('Describe la evidencia o motivo de la resolución:');if(!note?.trim())return;try{await api('/api/admin/monitor/resolve',{id:b.dataset.resolve,decision:normalized==='confirmar'?'confirm':'reject',note:note.trim()});toast('Resolución registrada en la bitácora.');await load();}catch(e){toast(e.message);}});
       }catch(e){$('#monitor-error').textContent=e.message;}
     };
-    $('#monitor-state').onchange=load;$('#monitor-hours').onchange=load;$('#monitor-refresh').onclick=load;
+    $('#monitor-state').onchange=()=>{page=1;load();};
+    $('#monitor-hours').onchange=()=>{page=1;load();};
+    $('#monitor-refresh').onclick=load;
     await load();
     const timer=setInterval(()=>{if(!$('#monitor-root'))return clearInterval(timer);if(!document.hidden)load();},30000);
   }

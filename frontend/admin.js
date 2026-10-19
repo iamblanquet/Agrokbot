@@ -177,6 +177,23 @@ window.campoAdmin = {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exportar bitácora
             </button>
           </div>
+          <div class="admin-toolbar">
+            <div class="admin-search-wrap">
+              <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input id="admin-audit-search" type="search" placeholder="Filtrar bitácora por actor, referencia o detalle…">
+            </div>
+            <select id="admin-audit-action" aria-label="Filtrar por tipo de acción">
+              <option value="all">Todas las acciones</option>
+              <option value="user_upsert">Alta / actualización</option>
+              <option value="user_update">Edición / reasignación</option>
+              <option value="user_toggle">Cambio de estado usuario</option>
+              <option value="user_delete">Eliminación lógica</option>
+              <option value="report_created">Reporte capturado</option>
+              <option value="photo_uploaded">Fotografía cargada</option>
+              <option value="report_state_changed">Cambio de estado reporte</option>
+              <option value="monitor_retry_telegram">Reintento Telegram</option>
+            </select>
+          </div>
           <div id="admin-audit">Cargando bitácora…</div>
         </section>
       </div>`;
@@ -193,6 +210,9 @@ window.campoAdmin = {
     };
     let editingUser='';
     let permissionUsers=[];
+    let userPage=1, auditPage=1;
+    const USER_PAGE_SIZE=8, AUDIT_PAGE_SIZE=10;
+
     $('#incident-permission-user').onchange=()=>{$('#incident-permission-enabled').checked=Boolean(permissionUsers.find(u=>u.username===$('#incident-permission-user').value)?.canManageIncidents);};
     $('#incident-permission-save').onclick=async()=>{
       const button=$('#incident-permission-save');button.disabled=true;
@@ -225,7 +245,7 @@ window.campoAdmin = {
     const load=async()=>{
       try{
         const [people,data,audit,keyStatus]=await Promise.all([api('/api/admin/responsibles').catch(()=>({responsibles:[]})),api('/api/admin/users'),api('/api/admin/audit'),api('/api/admin/integration/erp-key')]);
-        $('#erp-key-status').textContent=keyStatus.configured?`Configurada: ${keyStatus.masked}`:'No configurada';
+        $('#erp-key-status').textContent=keyStatus.configured?`Configurada: ${resultMask(keyStatus)}`:'No configurada';
         $('#erp-key-status').className=`admin-status-pill ${keyStatus.configured?'ok':'warn'}`;
         auditEntries=audit.entries||[];
         permissionUsers=data.users;
@@ -234,25 +254,76 @@ window.campoAdmin = {
         $('#admin-assignment').innerHTML='<option value="">Selecciona un empleado</option>'+people.responsibles.map(p=>`<option value="${esc(p.assignmentId)}">${esc(p.name)} · ${esc(p.employeeNumber)}</option>`).join('');
         $('#admin-available').textContent=people.responsibles.length;
         $('#admin-assignment').onchange=()=>{const p=people.responsibles.find(x=>x.assignmentId===$('#admin-assignment').value);$('#admin-selected').textContent=p?`Usuario generado: ${p.employeeNumber.toLowerCase()} · Asignación: ${p.assignmentId}`:'';};
-        const draw=()=>{
+        const labels={user_upsert:'Alta / actualización',user_update:'Edición / reasignación',user_toggle:'Cambio de estado',user_delete:'Eliminación lógica',report_created:'Reporte capturado',photo_uploaded:'Fotografía cargada',report_state_changed:'Cambio de estado',monitor_retry_telegram:'Reintento Telegram'};
+        const detail=item=>{let d={};try{d=JSON.parse(item.details||'{}');}catch{}const transition=d.from&&d.to?` · ${d.from} -> ${d.to}`:'';const error=d.error?` · ${d.error}`:'';const origin=d.origin?` · Origen: ${d.origin}`:'';return `${transition}${origin}${error}`;};
+
+        const drawUsers=()=>{
           const q=($('#admin-search')?.value||'').toLowerCase(),status=$('#admin-status')?.value||'all';
           const rows=data.users.filter(u=>(status==='all'||(status==='active'?u.active:!u.active))&&(`${u.username} ${u.responsible_name} ${u.employee_number}`).toLowerCase().includes(q));
           $('#admin-total').textContent=data.users.length;
           $('#admin-active').textContent=data.users.filter(u=>u.active).length;
           $('#admin-assigned').textContent=data.users.filter(u=>u.assignment_id).length;
-          $('#admin-users').innerHTML=`<div class="admin-table"><div class="admin-row admin-head"><span>USUARIO</span><span>EMPLEADO</span><span>NÚMERO</span><span>ASIGNACIÓN ERP</span><span>ESTADO</span><span>ACCIONES</span></div>${rows.map(u=>`<div class="admin-row"><span><strong class="admin-user-chip">${esc(u.username)}</strong></span><span>${esc(u.responsible_name)}</span><span>${esc(u.employee_number)}</span><span class="mono">${esc(u.assignment_id)}</span><span><em class="admin-badge ${u.active?'ok':'off'}">${u.active?'Activo':'Inactivo'}</em></span><span class="admin-row-actions"><button class="btn small" data-edit-user="${esc(u.username)}">Editar PIN</button> <button class="btn small" data-toggle-user="${esc(u.username)}">${u.active?'Desactivar':'Activar'}</button> <button class="btn small danger" data-delete-user="${esc(u.username)}">Eliminar</button></span></div>`).join('')||'<p class="admin-empty-row muted">No hay usuarios que coincidan.</p>'}</div>`;
+
+          const totalPages=Math.max(1,Math.ceil(rows.length/USER_PAGE_SIZE));
+          userPage=Math.min(Math.max(1,userPage),totalPages);
+          const start=(userPage-1)*USER_PAGE_SIZE;
+          const pageRows=rows.slice(start,start+USER_PAGE_SIZE);
+
+          $('#admin-users').innerHTML=`<div class="admin-table"><div class="admin-row admin-head"><span>USUARIO</span><span>EMPLEADO</span><span>NÚMERO</span><span>ASIGNACIÓN ERP</span><span>ESTADO</span><span>ACCIONES</span></div>${pageRows.map(u=>`<div class="admin-row"><span><strong class="admin-user-chip">${esc(u.username)}</strong></span><span>${esc(u.responsible_name)}</span><span>${esc(u.employee_number)}</span><span class="mono">${esc(u.assignment_id)}</span><span><em class="admin-badge ${u.active?'ok':'off'}">${u.active?'Activo':'Inactivo'}</em></span><span class="admin-row-actions"><button class="btn small" data-edit-user="${esc(u.username)}">Editar PIN</button> <button class="btn small" data-toggle-user="${esc(u.username)}">${u.active?'Desactivar':'Activar'}</button> <button class="btn small danger" data-delete-user="${esc(u.username)}">Eliminar</button></span></div>`).join('')||'<p class="admin-empty-row muted">No hay usuarios que coincidan.</p>'}</div>
+          <div class="table-caption table-pagination-bar">
+            <span>${rows.length?`Mostrando ${start+1}–${Math.min(rows.length,start+pageRows.length)} de ${rows.length} usuario(s) · Página ${userPage} de ${totalPages}`:'0 usuarios · Página 1 de 1'}</span>
+            <div class="pagination-btns">
+              <button type="button" class="btn subtle small" id="admin-users-prev" ${userPage<=1?'disabled':''}>&lt; Anterior</button>
+              <button type="button" class="btn subtle small" id="admin-users-next" ${userPage>=totalPages?'disabled':''}>Siguiente &gt;</button>
+            </div>
+          </div>`;
+
+          if($('#admin-users-prev'))$('#admin-users-prev').onclick=()=>{if(userPage>1){userPage--;drawUsers();}};
+          if($('#admin-users-next'))$('#admin-users-next').onclick=()=>{if(userPage<totalPages){userPage++;drawUsers();}};
           document.querySelectorAll('[data-edit-user]').forEach(b=>b.onclick=()=>{const u=data.users.find(item=>item.username===b.dataset.editUser);if(!u)return;editingUser=u.username;$('#admin-assignment').value=u.assignment_id;$('#admin-pin').value='';$('#admin-submit').textContent='Actualizar PIN';$('#admin-cancel-edit').hidden=false;$('#admin-selected').textContent=`Editando ${u.username}. Captura el nuevo PIN.`;$('#admin-error').textContent='';$('#admin-pin').focus();});
           document.querySelectorAll('[data-toggle-user]').forEach(b=>b.onclick=async()=>{await api('/api/admin/users/toggle',{username:b.dataset.toggleUser});await load();});
           document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=async()=>{if(confirm(`¿Eliminar ${b.dataset.deleteUser}?`)){await api('/api/admin/users/delete',{username:b.dataset.deleteUser});await load();}});
-          const labels={user_upsert:'Alta / actualización',user_update:'Edición / reasignación',user_toggle:'Cambio de estado',user_delete:'Eliminación lógica',report_created:'Reporte capturado',photo_uploaded:'Fotografía cargada',report_state_changed:'Cambio de estado',monitor_retry_telegram:'Reintento Telegram'};
-          const detail=item=>{let data={};try{data=JSON.parse(item.details||'{}');}catch{}const transition=data.from&&data.to?` · ${data.from} -> ${data.to}`:'';const error=data.error?` · ${data.error}`:'';const origin=data.origin?` · Origen: ${data.origin}`:'';return `${transition}${origin}${error}`;};
-          $('#admin-audit').innerHTML=`<div class="admin-table"><div class="admin-row admin-audit-row admin-head"><span>FECHA</span><span>ACCIÓN</span><span>REFERENCIA</span><span>ACTOR</span><span>DETALLE</span></div>${audit.entries.map(item=>`<div class="admin-row admin-audit-row"><span>${esc(item.created)}</span><span><strong>${esc(labels[item.action]||item.action)}</strong></span><span class="mono">${esc(item.target)}</span><span>${esc(item.actor)}</span><span>${esc(detail(item))}</span></div>`).join('')||'<p class="admin-empty-row muted">Sin movimientos registrados.</p>'}</div>`;
         };
-        draw();
-        $('#admin-search').oninput=draw;
-        $('#admin-status').onchange=draw;
+
+        const drawAudit=()=>{
+          const q=($('#admin-audit-search')?.value||'').toLowerCase();
+          const act=($('#admin-audit-action')?.value||'all');
+          const filtered=(audit.entries||[]).filter(item=>{
+            if(act!=='all'&&item.action!==act)return false;
+            if(q){
+              const text=`${item.created||''} ${labels[item.action]||item.action||''} ${item.target||''} ${item.actor||''} ${detail(item)}`.toLowerCase();
+              if(!text.includes(q))return false;
+            }
+            return true;
+          });
+
+          const totalPages=Math.max(1,Math.ceil(filtered.length/AUDIT_PAGE_SIZE));
+          auditPage=Math.min(Math.max(1,auditPage),totalPages);
+          const start=(auditPage-1)*AUDIT_PAGE_SIZE;
+          const pageRows=filtered.slice(start,start+AUDIT_PAGE_SIZE);
+
+          $('#admin-audit').innerHTML=`<div class="admin-table"><div class="admin-row admin-audit-row admin-head"><span>FECHA</span><span>ACCIÓN</span><span>REFERENCIA</span><span>ACTOR</span><span>DETALLE</span></div>${pageRows.map(item=>`<div class="admin-row admin-audit-row"><span>${esc(item.created)}</span><span><strong>${esc(labels[item.action]||item.action)}</strong></span><span class="mono">${esc(item.target)}</span><span>${esc(item.actor)}</span><span>${esc(detail(item))}</span></div>`).join('')||'<p class="admin-empty-row muted">Sin movimientos registrados.</p>'}</div>
+          <div class="table-caption table-pagination-bar">
+            <span>${filtered.length?`Mostrando ${start+1}–${Math.min(filtered.length,start+pageRows.length)} de ${filtered.length} movimiento(s) · Página ${auditPage} de ${totalPages}`:'0 movimientos · Página 1 de 1'}</span>
+            <div class="pagination-btns">
+              <button type="button" class="btn subtle small" id="admin-audit-prev" ${auditPage<=1?'disabled':''}>&lt; Anterior</button>
+              <button type="button" class="btn subtle small" id="admin-audit-next" ${auditPage>=totalPages?'disabled':''}>Siguiente &gt;</button>
+            </div>
+          </div>`;
+
+          if($('#admin-audit-prev'))$('#admin-audit-prev').onclick=()=>{if(auditPage>1){auditPage--;drawAudit();}};
+          if($('#admin-audit-next'))$('#admin-audit-next').onclick=()=>{if(auditPage<totalPages){auditPage++;drawAudit();}};
+        };
+
+        drawUsers();
+        drawAudit();
+        $('#admin-search').oninput=()=>{userPage=1;drawUsers();};
+        $('#admin-status').onchange=()=>{userPage=1;drawUsers();};
+        if($('#admin-audit-search'))$('#admin-audit-search').oninput=()=>{auditPage=1;drawAudit();};
+        if($('#admin-audit-action'))$('#admin-audit-action').onchange=()=>{auditPage=1;drawAudit();};
       }catch(e){$('#admin-error').textContent=e.message;}
     };
+    function resultMask(k){return k.masked||'';}
     $('#admin-user-form').onsubmit=async e=>{e.preventDefault();try{const body={assignmentId:$('#admin-assignment').value,pin:$('#admin-pin').value.trim()};if(editingUser)body.username=editingUser;await api('/api/admin/users',body);const message=editingUser?'Usuario actualizado.':'Usuario creado y asignado.';resetEditor();await load();toast(message);}catch(error){$('#admin-error').textContent=error.message;}};
     await load();
   }

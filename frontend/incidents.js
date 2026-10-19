@@ -68,10 +68,12 @@ window.campoIncidents = {
           <div id="incident-list" class="incident-cards-list">
             <div class="incidents-loading">Cargando incidencias…</div>
           </div>
+          <div class="table-caption table-pagination-bar" id="incident-pagination"></div>
         </section>
       </div>`;
 
     const list = $('#incident-list');
+    const paginationEl = $('#incident-pagination');
     const error = $('#incident-error');
     const filter = $('#incident-filter');
     const priorityFilter = $('#incident-priority-filter');
@@ -88,6 +90,8 @@ window.campoIncidents = {
     };
 
     let rows = [];
+    let page = 1;
+    const PAGE_SIZE = 6;
 
     const updateStats = () => {
       const openCount = rows.filter(r => r.status === 'open').length;
@@ -120,6 +124,22 @@ window.campoIncidents = {
         return true;
       });
 
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      page = Math.min(Math.max(1, page), totalPages);
+      const start = (page - 1) * PAGE_SIZE;
+      const pageRows = filtered.slice(start, start + PAGE_SIZE);
+
+      if (paginationEl) {
+        paginationEl.innerHTML = `
+          <span>${filtered.length ? `Mostrando ${start + 1}–${Math.min(filtered.length, start + pageRows.length)} de ${filtered.length} incidencia(s) · Página ${page} de ${totalPages}` : '0 incidencias · Página 1 de 1'}</span>
+          <div class="pagination-btns">
+            <button type="button" class="btn subtle small" id="incident-prev" ${page <= 1 ? 'disabled' : ''}>&lt; Anterior</button>
+            <button type="button" class="btn subtle small" id="incident-next" ${page >= totalPages ? 'disabled' : ''}>Siguiente &gt;</button>
+          </div>`;
+        if ($('#incident-prev')) $('#incident-prev').onclick = () => { if (page > 1) { page--; draw(); } };
+        if ($('#incident-next')) $('#incident-next').onclick = () => { if (page < totalPages) { page++; draw(); } };
+      }
+
       if (!filtered.length) {
         const hasFilters = Boolean(filter.value || prio || q);
         list.innerHTML = `<div class="incidents-empty">
@@ -132,7 +152,7 @@ window.campoIncidents = {
         return;
       }
 
-      list.innerHTML = filtered.map(r => {
+      list.innerHTML = pageRows.map(r => {
         const p = r.payload || {};
         const stTone = statusTone[r.status] || '';
         const prTone = priorityTone[p.priority] || 'normal';
@@ -254,12 +274,13 @@ window.campoIncidents = {
     document.querySelectorAll('[data-status-tab]').forEach(btn => {
       btn.onclick = () => {
         filter.value = btn.dataset.statusTab;
+        page = 1;
         draw();
       };
     });
-    filter.onchange = draw;
-    if (priorityFilter) priorityFilter.onchange = draw;
-    if (searchInput) searchInput.oninput = draw;
+    filter.onchange = () => { page = 1; draw(); };
+    if (priorityFilter) priorityFilter.onchange = () => { page = 1; draw(); };
+    if (searchInput) searchInput.oninput = () => { page = 1; draw(); };
     $('#incident-refresh').onclick = load;
     await load();
   }

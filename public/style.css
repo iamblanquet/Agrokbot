@@ -5894,3 +5894,69 @@ footer {
   }
 }
 
+/* ==========================================================================
+   Unified Table Pagination Bar
+   ========================================================================== */
+.table-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: #f8faf5;
+  border-top: 1px solid #e2e8dd;
+}
+
+.admin-table {
+  border-radius: 14px 14px 0 0;
+}
+
+.admin-table + .table-pagination-bar {
+  border: 1px solid #e2e8dd;
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+}
+
+#incident-pagination.table-pagination-bar {
+  margin-top: 16px;
+  border: 1px solid #e2e8dd;
+  border-radius: 12px;
+}
+
+.report-list + .table-pagination-bar {
+  margin-top: 14px;
+  border: 1px solid #e2e8dd;
+  border-radius: 12px;
+}
+
+.pagination-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btns .btn {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5c0;
+  color: var(--brand-primary);
+}
+
+.pagination-btns .btn:hover:not(:disabled) {
+  background: #eef4e6;
+  border-color: var(--brand-primary);
+}
+
+.pagination-btns .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
