@@ -158,10 +158,12 @@ window.campoIncidents = {
         const prTone = priorityTone[p.priority] || 'normal';
         const prLabel = priorityLabels[p.priority] || p.priority || 'Normal';
         const [tgText, tgClass] = tgLabels[r.telegramState] || [r.telegramState || 'Pendiente', 'pending'];
-        return `<article class="incident-card status-border-${esc(r.status)}">
+        const isResolved = r.status === 'resolved';
+        return `<article class="incident-card status-border-${esc(r.status)} ${isResolved ? 'is-archived' : ''}">
           <header class="incident-card-head">
             <div class="incident-badges">
               <span class="status ${stTone}">${esc(labels[r.status] || r.status)}</span>
+              ${isResolved ? '<span class="inc-archived-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Archivada</span>' : ''}
               <span class="inc-prio-badge prio-${esc(prTone)}">Prioridad ${esc(prLabel)}</span>
               ${p.stopsWork
                 ? '<span class="inc-stop-badge stops"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="10" y1="15" x2="10" y2="9"></line><line x1="14" y1="15" x2="14" y2="9"></line></svg> Detiene actividad</span>'
@@ -215,6 +217,11 @@ window.campoIncidents = {
             </details>
           </div>
 
+          ${isResolved ? `
+          <div class="incident-archived-footer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <span><strong>Incidencia resuelta y archivada</strong> · El seguimiento concluyó y ya no admite más comentarios ni cambios de estado.</span>
+          </div>` : `
           <form class="incident-followup-form" data-incident="${esc(r.id)}">
             <div class="inc-form-grid">
               <div class="inc-form-field inc-field-status">
@@ -233,7 +240,7 @@ window.campoIncidents = {
                 <button class="btn primary inc-save-btn" type="submit">Guardar seguimiento</button>
               </div>
             </div>
-          </form>
+          </form>`}
         </article>`;
       }).join('');
 

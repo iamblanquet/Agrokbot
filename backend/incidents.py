@@ -77,7 +77,10 @@ class IncidentService:
         if status not in ('open','in_progress','resolved') or not isinstance(note,str) or not 1<=len(note.strip())<=1000 or type(body.get('version')) is not int:
             raise self.problem(400,'Selecciona estado y escribe un comentario (1 a 1000 caracteres).')
         with self.connection() as db:
-            changed=db.execute('UPDATE incidents SET status=?,version=version+1,updated=? WHERE id=? AND version=?',(status,self.now(),body.get('id'),body['version'])).rowcount
+            current=db.execute('SELECT status FROM incidents WHERE id=?',(body.get('id'),)).fetchone()
+            if current and current[0]=='resolved':
+                raise self.problem(409,'Esta incidencia ya fue resuelta y archivada; no admite más comentarios ni cambios.')
+            changed=db.execute("UPDATE incidents SET status=?,version=version+1,updated=? WHERE id=? AND version=? AND status!='resolved'",(status,self.now(),body.get('id'),body['version'])).rowcount
             if not changed:
                 raise self.problem(409,'La incidencia cambió o no existe. Actualiza la lista antes de guardar.')
             db.execute('INSERT INTO incident_events(incident_id,actor,status,note,created) VALUES (?,?,?,?,?)',(body['id'],actor,status,note.strip(),self.now()))

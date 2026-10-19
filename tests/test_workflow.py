@@ -103,11 +103,12 @@ class WorkflowTests(unittest.TestCase):
         with self.assertRaises(server.Problem):
             service.update({'id':body['id'],'version':1,'status':'resolved','note':'Comentario desactualizado'},'manager')
         service.update({'id':body['id'],'version':2,'status':'resolved','note':'Reparada'},'manager')
-        service.update({'id':body['id'],'version':3,'status':'open','note':'Volvió la fuga'},'manager')
+        with self.assertRaises(server.Problem):
+            service.update({'id':body['id'],'version':3,'status':'open','note':'Volvió la fuga'},'manager')
         row=service.listing()['incidents'][0]
-        self.assertEqual((row['status'],len(row['events'])),('open',4))
+        self.assertEqual((row['status'],len(row['events'])),('resolved',3))
         service.tick(True);service.tick(True)
-        self.assertEqual(telegram.call_count,4)
+        self.assertEqual(telegram.call_count,3)
         self.assertIn('SEGUIMIENTO DE INCIDENCIA',telegram.call_args_list[2].args[1]['text'])
         self.assertIn('Nuevo estado: Resuelta',telegram.call_args_list[2].args[1]['text'])
         self.assertIn('Reparada',telegram.call_args_list[2].args[1]['text'])
