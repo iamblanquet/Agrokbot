@@ -4466,13 +4466,14 @@ footer {
 @media (max-width: 760px) {
   .app-shell {
     display: block;
+    position: relative;
     padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
   }
   .sidebar {
     position: relative;
-    z-index: auto;
-    height: auto;
-    padding: 12px 16px;
+    z-index: 20;
+    height: 58px;
+    padding: 0 14px;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -4498,7 +4499,7 @@ footer {
   .brand-app {
     font-size: 8px;
   }
-  .workspace, .nav-label, .offline-card, .sidebar-install, .profile-info {
+  .workspace, .nav-label, .offline-card, .sidebar-install, .profile-info, .avatar {
     display: none !important;
   }
   .sidebar-bottom {
@@ -4512,17 +4513,15 @@ footer {
     padding: 0;
     gap: 8px;
   }
-  .avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 12px;
-  }
   .logout-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    color: #dbe7d5;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4624,27 +4623,79 @@ footer {
     display: none;
   }
   .topbar {
-    height: 54px;
-    padding: 0 16px;
+    position: absolute;
+    top: 0;
+    right: 56px;
+    left: auto;
+    height: 58px;
+    width: auto;
+    padding: 0;
+    background: transparent;
+    border-bottom: 0;
+    box-shadow: none;
+    z-index: 25;
   }
-  .breadcrumb {
-    font-size: 12px;
-  }
-  .breadcrumb-sep {
-    margin: 0 6px;
+  .topbar-left,
+  .topbar .connection {
+    display: none !important;
   }
   .topbar-actions {
-    gap: 10px;
-  }
-  .connection {
-    font-size: 11px;
-    padding: 4px 8px;
+    gap: 8px;
   }
   .btn.small {
     font-size: 11px;
   }
+  .topbar #notifications-bell {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+  }
+  .topbar #notifications-bell svg {
+    width: 17px;
+    height: 17px;
+  }
+  .topbar #notifications-bell[data-notification-state="active"] {
+    background: rgba(163, 217, 74, 0.22);
+    border: 1.5px solid #a3d94a;
+    color: #e8f9c2;
+  }
+  .topbar #notifications-bell[data-notification-state="active"]::after {
+    background: #a3d94a;
+    top: 4px;
+    right: 4px;
+  }
+  .topbar #notifications-bell[data-notification-state="blocked"] {
+    color: #fca5a5;
+    border-color: rgba(252, 165, 165, 0.45);
+  }
   .topbar #sync {
-    padding: 6px 10px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+  }
+  .topbar #sync span {
+    display: none !important;
+  }
+  .topbar #sync .sync-icon {
+    width: 16px;
+    height: 16px;
+    margin: 0;
   }
   main {
     padding: 24px 18px;
