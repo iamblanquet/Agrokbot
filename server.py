@@ -692,7 +692,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 REMINDERS = Reminders(connection, ERP, telegram, CHAT_ID)
-INCIDENTS = IncidentService(connection, now, telegram, CHAT_ID, Problem)
+INCIDENTS = IncidentService(connection, now, telegram, CHAT_ID, Problem,
+    lambda photo,thread_id,caption='':telegram_photo(photo,thread_id,caption=caption),
+    lambda attachment_id:ERP.attachment_file(attachment_id))
 PUSH = Push(DATA, PUBLIC_URL, connection)
 
 

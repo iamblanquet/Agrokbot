@@ -190,6 +190,7 @@ window.campoIncidents = {
               <span class="inc-tech-chip">Ref: <code>${esc(r.id.slice(0, 8))}</code></span>
               <span class="inc-tech-chip">Asiento ERP: <code>${esc(r.erp_log_id)}</code></span>
               <span class="inc-tech-chip tg-${esc(tgClass)}">${esc(tgText)}</span>
+              ${r.telegramPhotos?.total ? `<span class="inc-tech-chip">Fotos en Incidencias: ${esc(r.telegramPhotos.sent)}/${esc(r.telegramPhotos.total)}</span>` : ''}
             </div>
 
             <details class="incident-history">
