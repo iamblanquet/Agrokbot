@@ -479,8 +479,6 @@ function paintNotificationState(value){
   const labels={active:'Notificaciones activadas',inactive:'Activar notificaciones',blocked:'Notificaciones bloqueadas',checking:'Comprobando notificaciones',unknown:'No se pudo verificar la suscripción',unsupported:'Notificaciones no disponibles'};
   bell.title=labels[value];bell.setAttribute('aria-label',labels[value]);
   if(value==='active'){bell.title=`Avisos activos para ${state.user} en este dispositivo`;bell.setAttribute('aria-label',bell.title);}
-  const status=$('#notification-account-status');
-  if(status)status.textContent=bell.title;
   bell.setAttribute('aria-pressed',String(value==='active'));
 }
 async function refreshNotificationState(force=false){
