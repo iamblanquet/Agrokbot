@@ -594,71 +594,147 @@ async function refreshEmployees(){
   const result=await api('/api/employees');state.catalog.employees=result.employees;
   await dbWrite('meta',{catalog:state.catalog,config:state.config,reports:state.reports,topics:state.topics,clarifications:state.clarifications||[]},`snapshot:${state.user}`);
 }
+function empInitials(name){
+  const parts=String(name||'').trim().split(/\s+/).filter(Boolean);
+  const filtered=parts.length>1?parts.filter(w=>!['de','del','la','las','los','y'].includes(w.toLowerCase())):parts;
+  const source=filtered.length?filtered:parts;
+  return source.map(s=>s[0]).slice(0,2).join('').toUpperCase()||'EM';
+}
 function renderEmployees(){
-  $('#main').innerHTML=heading('Empleados','Registra tu cuadrilla y asigna los roles que puede desempeñar.', '<button id="new-employee" class="btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nuevo empleado</button>')+`
-    <p class="muted">La gestión requiere conexión. El catálogo descargado permite seleccionar personal al reportar sin señal.</p>
-    <div class="view-tools"><input id="employee-search" type="search" placeholder="Buscar por nombre…" aria-label="Buscar empleados" value="${esc(state.employeeSearch||'')}"><button id="refresh-employees" class="btn small">Actualizar catálogo</button></div><div id="employee-list"></div>`;
+  state.employeeRoleFilter=state.employeeRoleFilter||'all';
+  $('#main').innerHTML=heading('Empleados','Directorio de cuadrilla y asignación de roles operativos en campo.', '<button id="new-employee" class="btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nuevo empleado</button>')+`
+    <section class="employees-panel">
+      <div id="employees-stats" class="employees-stats"></div>
+      <div class="employees-toolbar">
+        <div class="employees-search-row">
+          <div class="emp-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input id="employee-search" type="search" placeholder="Buscar integrante por nombre…" aria-label="Buscar empleados" value="${esc(state.employeeSearch||'')}">
+          </div>
+          <button id="refresh-employees" class="btn small subtle emp-refresh-btn" title="Actualizar catálogo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>Actualizar</span>
+          </button>
+        </div>
+        <div class="emp-role-filters" id="emp-role-filters">
+          <button type="button" class="emp-filter-pill ${state.employeeRoleFilter==='all'?'active':''}" data-emp-role="all">Todos</button>
+          <button type="button" class="emp-filter-pill ${state.employeeRoleFilter==='operator'?'active':''}" data-emp-role="operator">Operadores</button>
+          <button type="button" class="emp-filter-pill ${state.employeeRoleFilter==='technician'?'active':''}" data-emp-role="technician">Técnicos</button>
+          <button type="button" class="emp-filter-pill ${state.employeeRoleFilter==='assistant'?'active':''}" data-emp-role="assistant">Auxiliares</button>
+        </div>
+      </div>
+      <div id="employee-list"></div>
+    </section>`;
   $('#employee-search').oninput=e=>{state.employeeSearch=e.target.value;state.employeePage=1;renderEmployeeList();};
   $('#new-employee').onclick=()=>openEmployee();
   $('#refresh-employees').onclick=async()=>{try{await refreshEmployees();renderEmployeeList();toast('Catálogo actualizado.');}catch(error){toast(error.message);}};
+  document.querySelectorAll('[data-emp-role]').forEach(btn=>{
+    btn.onclick=()=>{
+      state.employeeRoleFilter=btn.dataset.empRole;
+      state.employeePage=1;
+      document.querySelectorAll('[data-emp-role]').forEach(b=>b.classList.toggle('active',b.dataset.empRole===state.employeeRoleFilter));
+      renderEmployeeList();
+    };
+  });
   renderEmployeeList();
 }
 function renderEmployeeList(){
-  const all=state.catalog.employees||[],items=all.filter(e=>e.name.toLocaleLowerCase('es').includes((state.employeeSearch||'').toLocaleLowerCase('es')));
+  const all=state.catalog.employees||[];
+  const roleFilter=state.employeeRoleFilter||'all';
+  const search=(state.employeeSearch||'').toLocaleLowerCase('es').trim();
+  const items=all.filter(e=>{
+    const matchName=!search||e.name.toLocaleLowerCase('es').includes(search);
+    const matchRole=roleFilter==='all'||(Array.isArray(e.roles)&&e.roles.includes(roleFilter));
+    return matchName&&matchRole;
+  });
+  const statsEl=$('#employees-stats');
+  if(statsEl){
+    const countRole=r=>all.filter(e=>Array.isArray(e.roles)&&e.roles.includes(r)).length;
+    statsEl.innerHTML=`
+      <article class="emp-stat-card">
+        <span class="emp-stat-label">Total cuadrilla</span>
+        <strong class="emp-stat-value">${all.length}</strong>
+      </article>
+      <article class="emp-stat-card emp-stat-operator">
+        <span class="emp-stat-label">Operadores</span>
+        <strong class="emp-stat-value">${countRole('operator')}</strong>
+      </article>
+      <article class="emp-stat-card emp-stat-technician">
+        <span class="emp-stat-label">Técnicos</span>
+        <strong class="emp-stat-value">${countRole('technician')}</strong>
+      </article>
+      <article class="emp-stat-card emp-stat-assistant">
+        <span class="emp-stat-label">Auxiliares</span>
+        <strong class="emp-stat-value">${countRole('assistant')}</strong>
+      </article>
+    `;
+  }
   const pageSize=10;
   const totalPages=Math.max(1,Math.ceil(items.length/pageSize));
   state.employeePage=Math.min(Math.max(1,state.employeePage||1),totalPages);
   const start=(state.employeePage-1)*pageSize;
   const pageItems=items.slice(start,start+pageSize);
   $('#employee-list').innerHTML=items.length?`
-    <div class="table-wrap">
+    <div class="table-wrap emp-table-wrap">
       <table class="employee-table">
         <thead>
           <tr>
-            <th class="person-column">EMPLEADO</th>
-            <th>ROLES HABILITADOS</th>
+            <th class="person-column">INTEGRANTE</th>
+            <th class="roles-column">ROLES HABILITADOS</th>
             <th class="status-column">ESTADO</th>
             <th style="text-align:right"><span class="muted">ACCIONES</span></th>
           </tr>
         </thead>
         <tbody>
-          ${pageItems.map(e=>`
+          ${pageItems.map(e=>{
+            const roleBadges=e.roles.map(r=>`<span class="chip role-chip role-${esc(r)}">${esc(crewRoles[r]||r)}</span>`).join('');
+            return `
             <tr>
               <td class="person-column">
-                <span class="person">
-                  <span class="person-circle">${esc(e.name.split(' ').map(s=>s[0]).slice(0,2).join(''))}</span>
-                  <strong>${esc(e.name)}</strong>
-                </span>
+                <div class="person emp-person-cell">
+                  <div class="person-avatar-wrap">
+                    <span class="person-circle">${esc(empInitials(e.name))}</span>
+                    <span class="person-status-dot" title="Habilitado"></span>
+                  </div>
+                  <div class="person-info">
+                    <strong class="person-name">${esc(e.name)}</strong>
+                    <div class="person-mobile-meta">
+                      ${roleBadges}
+                    </div>
+                  </div>
+                </div>
               </td>
-              <td>
+              <td class="roles-column">
                 <div class="role-tags">
-                  ${e.roles.map(r=>`<span class="chip role-chip role-${esc(r)}">${esc(crewRoles[r]||r)}</span>`).join('')}
+                  ${roleBadges}
                 </div>
               </td>
               <td class="status-column"><span class="status green">Habilitado</span></td>
               <td class="table-action" style="text-align:right">
-                <div class="action-btn-group">
-                  <button class="btn small subtle" data-edit-employee="${esc(e.id)}" title="Editar empleado">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Editar
+                <div class="action-btn-group emp-actions">
+                  <button class="btn small subtle emp-btn-edit" data-edit-employee="${esc(e.id)}" title="Editar empleado" aria-label="Editar ${esc(e.name)}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    <span class="emp-btn-label">Editar</span>
                   </button>
-                  <button class="btn small danger" data-delete-employee="${esc(e.id)}" title="Eliminar empleado">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>Eliminar
+                  <button class="btn small danger emp-btn-delete" data-delete-employee="${esc(e.id)}" title="Eliminar empleado" aria-label="Eliminar ${esc(e.name)}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span class="emp-btn-label">Eliminar</span>
                   </button>
                 </div>
               </td>
             </tr>
-          `).join('')}
+          `;}).join('')}
         </tbody>
       </table>
     </div>
     <div class="table-caption table-pagination-bar">
-      <span>Mostrando ${start+1}–${Math.min(items.length,start+pageItems.length)} de ${items.length} empleado(s) · Página ${state.employeePage} de ${totalPages}</span>
+      <span>Mostrando ${start+1}–${Math.min(items.length,start+pageItems.length)} de ${items.length} integrante(s) · Página ${state.employeePage} de ${totalPages}</span>
       <div class="pagination-btns">
         <button type="button" class="btn subtle small" id="emp-page-prev" ${state.employeePage<=1?'disabled':''}>&lt; Anterior</button>
         <button type="button" class="btn subtle small" id="emp-page-next" ${state.employeePage>=totalPages?'disabled':''}>Siguiente &gt;</button>
       </div>
     </div>
-  `:`<div class="empty"><h3>${all.length?'No hay coincidencias':'Aún no hay empleados'}</h3><p>${all.length?'Prueba otro nombre.':'Pulsa Nuevo empleado para registrar a la primera persona de tu cuadrilla.'}</p></div>`;
+  `:`<div class="empty"><h3>${all.length?'No hay coincidencias':'Aún no hay empleados'}</h3><p>${all.length?'Prueba otro nombre o filtro de rol.':'Pulsa Nuevo empleado para registrar a la primera persona de tu cuadrilla.'}</p></div>`;
   if($('#emp-page-prev'))$('#emp-page-prev').onclick=()=>{if(state.employeePage>1){state.employeePage--;renderEmployeeList();}};
   if($('#emp-page-next'))$('#emp-page-next').onclick=()=>{if(state.employeePage<totalPages){state.employeePage++;renderEmployeeList();}};
   document.querySelectorAll('[data-edit-employee]').forEach(el=>el.onclick=()=>openEmployee(all.find(e=>e.id===el.dataset.editEmployee)));

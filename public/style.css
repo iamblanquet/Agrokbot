@@ -4873,13 +4873,18 @@ footer {
     font-size: 12px;
     padding: 6px 12px;
   }
-  /* Empleados: Responsive Stacked Cards on Mobile (no horizontal scroll) */
+  /* Empleados: Clean Directory Cards on Mobile (single-row horizontal layout) */
   #employee-list .table-wrap {
     overflow-x: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .employee-table,
   .employee-table tbody {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     width: 100%;
   }
   .employee-table thead {
@@ -4887,17 +4892,20 @@ footer {
   }
   .employee-table tbody tr {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
-    gap: 10px 12px;
-    padding: 16px;
-    border-bottom: 1px solid var(--border-light);
+    gap: 12px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border: 1px solid #dfe7d8;
+    border-radius: 14px;
+    box-shadow: 0 2px 6px rgba(27, 56, 24, 0.04);
     width: 100%;
     box-sizing: border-box;
   }
   .employee-table tbody tr:last-child {
-    border-bottom: 0;
+    border-bottom: 1px solid #dfe7d8;
   }
   .employee-table tbody td {
     border: 0;
@@ -4906,30 +4914,37 @@ footer {
   .employee-table td.person-column {
     display: flex !important;
     align-items: center;
-    flex: 1 1 60%;
-    min-width: 0;
-  }
-  .employee-table td.person-column .person {
-    min-width: 0;
-  }
-  .employee-table td.person-column .person strong {
-    font-size: 15px;
-    color: var(--brand-primary);
-    word-break: break-word;
-  }
-  .employee-table td.status-column {
-    display: flex !important;
-    align-items: center;
-    width: auto !important;
-    margin-left: auto;
-  }
-  .employee-table tbody td:nth-child(2) {
     flex: 1 1 auto;
     min-width: 0;
   }
+  .employee-table td.roles-column,
+  .employee-table td.status-column {
+    display: none !important;
+  }
+  .employee-table .person-mobile-meta {
+    display: flex !important;
+  }
   .employee-table td.table-action {
+    flex: 0 0 auto;
     margin-left: auto;
     text-align: right;
+  }
+  .employee-table .emp-actions {
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .employee-table .emp-actions .btn {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .employee-table .emp-btn-label {
+    display: none;
   }
   /* Admin & Monitor Tables: Responsive Stacked Cards on Mobile (no horizontal scroll) */
   .admin-table {
@@ -6101,3 +6116,244 @@ footer {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ==========================================================================
+   Empleados Directory Redesign (Desktop & Mobile)
+   ========================================================================== */
+.employees-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.employees-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.emp-stat-card {
+  background: #ffffff;
+  border: 1px solid #dfe7d8;
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(27, 56, 24, 0.03);
+}
+
+.emp-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.emp-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  line-height: 1.1;
+}
+
+.emp-stat-operator .emp-stat-value {
+  color: #166534;
+}
+
+.emp-stat-technician .emp-stat-value {
+  color: #1e40af;
+}
+
+.emp-stat-assistant .emp-stat-value {
+  color: #92400e;
+}
+
+.employees-toolbar {
+  background: #ffffff;
+  border: 1px solid #dfe7d8;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(27, 56, 24, 0.03);
+}
+
+.employees-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.emp-search-box {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.emp-search-box svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.emp-search-box input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px 0 36px;
+  border-radius: 10px;
+  border: 1px solid #cbd5c0;
+  background: #f8faf5;
+  font-size: 13.5px;
+}
+
+.emp-search-box input:focus {
+  background: #ffffff;
+  border-color: var(--brand-primary);
+}
+
+.emp-refresh-btn {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.emp-role-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.emp-filter-pill {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #d5dfd0;
+  background: #f6f9f3;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.emp-filter-pill:hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.emp-filter-pill.active {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+}
+
+.emp-person-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.person-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.emp-person-cell .person-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #275021 0%, #1b3818 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(27, 56, 24, 0.16);
+}
+
+.person-status-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid #ffffff;
+}
+
+.person-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.person-name {
+  font-size: 14.5px;
+  font-weight: 750;
+  color: #1b3818;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.person-mobile-meta {
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.person-mobile-meta .role-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  height: auto;
+  min-height: 20px;
+}
+
+@media (max-width: 760px) {
+  .employees-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .emp-stat-card {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .emp-stat-value {
+    font-size: 19px;
+  }
+  .emp-refresh-btn span {
+    display: none;
+  }
+  .emp-refresh-btn {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  #employee-list .table-pagination-bar {
+    margin-top: 10px;
+    border: 1px solid #dfe7d8;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+}
+
