@@ -338,14 +338,45 @@
           </fieldset>
         </section>
 
-        <section class="evidence-box-card">
-          <label><input id="report-incident" type="checkbox"> Reportar incidencia</label>
+        <section class="incident-banner-card" aria-labelledby="incident-heading">
+          <div class="incident-banner-main">
+            <div class="incident-icon-box">
+              <span class="incident-alert-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+            </div>
+            <div class="incident-text-block">
+              <span id="incident-heading" class="incident-eyebrow">ALERTA Y SEGUIMIENTO</span>
+              <span class="incident-title">Reportar incidencia</span>
+            </div>
+            <label class="ios-switch incident-switch" for="report-incident" aria-label="Reportar incidencia">
+              <input id="report-incident" type="checkbox" role="switch">
+              <span class="ios-slider"></span>
+            </label>
+          </div>
           <fieldset id="incident-fields" hidden disabled>
-            <label for="incident-description">Descripción de la incidencia</label>
-            <textarea id="incident-description" maxlength="800" rows="3" required></textarea>
-            <label for="incident-priority">Prioridad</label>
-            <select id="incident-priority"><option value="normal">Normal</option><option value="low">Baja</option><option value="high">Alta</option><option value="critical">Crítica</option></select>
-            <label><input id="incident-stops" type="checkbox"> La incidencia detiene la actividad</label>
+            <div class="field-wrap">
+              <label for="incident-description">Descripción de la incidencia</label>
+              <textarea id="incident-description" maxlength="800" rows="3" required placeholder="Describe el problema, falla o bloqueo detectado en campo…"></textarea>
+            </div>
+            <div class="incident-controls-grid">
+              <div class="field-wrap">
+                <label for="incident-priority">Prioridad</label>
+                <div class="custom-select-wrap">
+                  <select id="incident-priority">
+                    <option value="normal">Normal</option>
+                    <option value="low">Baja</option>
+                    <option value="high">Alta</option>
+                    <option value="critical">Crítica</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-wrap incident-stops-wrap">
+                <span class="incident-stops-label">Impacto operativo</span>
+                <label class="incident-stops-check" for="incident-stops">
+                  <input id="incident-stops" type="checkbox">
+                  <span>La incidencia detiene la actividad</span>
+                </label>
+              </div>
+            </div>
             <p class="capture-note">Se incluirá en el diario ERP y se notificará en Incidencias. Si no hubo actividad en toda la jornada, marca también el paro operativo.</p>
           </fieldset>
         </section>

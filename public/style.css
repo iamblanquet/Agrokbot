@@ -286,6 +286,17 @@ input, select, textarea {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+input[type="checkbox"], input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 0 6px 0 0;
+  vertical-align: middle;
+  accent-color: var(--brand-primary);
+  cursor: pointer;
+}
+
 input:hover, select:hover, textarea:hover {
   border-color: var(--brand-primary-light);
 }
@@ -2732,6 +2743,167 @@ dialog::backdrop {
   background: #d97706;
   border-color: #d97706;
   box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+
+/* --- Card: Reportar Incidencia --- */
+.incident-banner-card {
+  background: #fffafa;
+  border: 1px solid #fecdd3;
+  border-radius: 16px;
+  padding: 13px 16px;
+  margin-bottom: 16px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.incident-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.incident-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #fee2e2;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.incident-alert-icon {
+  font-size: 20px;
+  color: #dc2626;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incident-text-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.incident-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #b91c1c;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.incident-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+  color: #1e293b;
+}
+
+.incident-switch input:checked + .ios-slider {
+  background-color: #dc2626;
+}
+
+#incident-fields {
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px;
+  margin: 14px 0 0;
+}
+
+#incident-fields .field-wrap:last-of-type {
+  margin-bottom: 0;
+}
+
+textarea#incident-description {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  width: 100%;
+  background: #ffffff;
+  outline: none;
+  min-height: 76px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+textarea#incident-description:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.incident-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 12px;
+  align-items: end;
+  margin-top: 4px;
+}
+
+.incident-stops-wrap {
+  margin-bottom: 12px;
+}
+
+.incident-stops-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  color: #1e293b;
+  margin: 0 0 6px;
+}
+
+.incident-stops-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  margin: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.incident-stops-check:hover {
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+
+.incident-stops-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0;
+  accent-color: #dc2626;
+  flex-shrink: 0;
+}
+
+.incident-stops-check span {
+  line-height: 1.25;
+}
+
+#incident-fields .capture-note {
+  margin: 6px 0 0;
+}
+
+@media (max-width: 600px) {
+  .incident-controls-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 
 /* --- Card: Evidencias Fotográficas --- */
