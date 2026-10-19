@@ -5,6 +5,58 @@ from backend.push import validate_subscription
 
 
 class ReminderTests(unittest.TestCase):
+    def test_full_evening_cycle_targets_only_missing_responsible_and_never_duplicates(self):
+        import sqlite3
+        import tempfile
+        import json
+        from pathlib import Path
+        from unittest.mock import Mock
+        from contextlib import contextmanager
+        with tempfile.TemporaryDirectory() as folder:
+            @contextmanager
+            def connection():
+                db = sqlite3.connect(Path(folder) / 'cycle.sqlite')
+                db.row_factory = sqlite3.Row
+                try:
+                    with db:
+                        yield db
+                finally:
+                    db.close()
+            erp, telegram, push = Mock(), Mock(), Mock()
+            service = Reminders(connection, erp, telegram, 'test-group')
+            service.initialize()
+            with connection() as db:
+                db.executescript('''CREATE TABLE settings(key TEXT PRIMARY KEY,value TEXT);
+                    INSERT INTO settings VALUES ('reminder_topic','22');
+                    CREATE TABLE app_users(username TEXT PRIMARY KEY,active INTEGER);
+                    CREATE TABLE user_profiles(user TEXT,assignment_id TEXT,employee_number TEXT);''')
+                for user, assignment, active in [('missing','a1',1),('reported','a2',1),('disabled','a1',0),('unrelated','a3',1)]:
+                    db.execute('INSERT INTO app_users VALUES (?,?)',(user,active))
+                    db.execute('INSERT INTO user_profiles VALUES (?,?,?)',(user,assignment,''))
+                    db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)',(user,user,json.dumps({'endpoint':user})))
+            project = self.project(responsible={'assignmentId':'a1','fullName':'Responsable pendiente'})[0]
+            tasks = project['activities'][0]['tasks']
+            tasks.append({**tasks[0], 'id':'reported', 'responsible':{'assignmentId':'a2'}, 'operationLogs':[{'operationDate':'2026-10-19'}]})
+            tasks.append({**tasks[0], 'id':'tomorrow', 'plannedStartDate':'2026-10-20','plannedEndDate':'2026-10-20'})
+            tasks.append({**tasks[0], 'id':'finished', 'status':'FINISHED'})
+            erp.request.side_effect = lambda path: {'projects':[{'id':'p1'}]} if path=='/external/projects' else {'project':project}
+            service.tick(datetime(2026,10,20,2,59,tzinfo=timezone.utc),push)
+            erp.request.assert_not_called()
+            service.tick(datetime(2026,10,20,3,0,tzinfo=timezone.utc),push)
+            push.assert_called_once()
+            self.assertEqual(push.call_args.args[0]['endpoint'],'missing')
+            self.assertIn('1 tareas',push.call_args.args[1]['body'])
+            telegram.assert_called_once()
+            self.assertEqual(telegram.call_args.args[1]['message_thread_id'],22)
+            self.assertIn('1 tareas programadas sin reporte',telegram.call_args.args[1]['text'])
+            self.assertIn('Responsable pendiente',telegram.call_args.args[1]['text'])
+            service.tick(datetime(2026,10,20,3,1,tzinfo=timezone.utc),push)
+            push.assert_called_once()
+            telegram.assert_called_once()
+            with connection() as db:
+                self.assertEqual(db.execute('SELECT count(*) FROM reminder_runs').fetchone()[0],1)
+                self.assertEqual(db.execute("SELECT count(*) FROM reminder_deliveries WHERE state='sent'").fetchone()[0],2)
+
     def test_success_and_ambiguous_delivery_are_not_duplicated(self):
         import sqlite3
         import tempfile

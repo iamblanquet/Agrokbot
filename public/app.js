@@ -478,6 +478,9 @@ function paintNotificationState(value){
   bell.dataset.notificationState=value;
   const labels={active:'Notificaciones activadas',inactive:'Activar notificaciones',blocked:'Notificaciones bloqueadas',checking:'Comprobando notificaciones',unknown:'No se pudo verificar la suscripción',unsupported:'Notificaciones no disponibles'};
   bell.title=labels[value];bell.setAttribute('aria-label',labels[value]);
+  if(value==='active'){bell.title=`Avisos activos para ${state.user} en este dispositivo`;bell.setAttribute('aria-label',bell.title);}
+  const status=$('#notification-account-status');
+  if(status)status.textContent=bell.title;
   bell.setAttribute('aria-pressed',String(value==='active'));
 }
 async function refreshNotificationState(force=false){
@@ -532,6 +535,9 @@ async function activateNotificationsDirectly(){
   finally{notificationRequestBusy=false;bell.disabled=false;await refreshNotificationState(true);}
 }
 $('#notifications-bell').onclick=activateNotificationsDirectly;
+window.campoRestorePush=async()=>{
+  if('Notification' in window&&Notification.permission==='granted')await activateNotificationsDirectly();
+};
 window.addEventListener('focus',()=>refreshNotificationState(true));
 document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>{state.view=el.dataset.view;render();});
 window.addEventListener('offline',()=>{state.reachable=false;updateChrome();banner('Sin conexión. Puedes capturar avances; se guardarán en este dispositivo.');});

@@ -528,9 +528,10 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as error:
                     raise Problem(400, str(error)) from None
                 with connection() as db:
-                    existing = db.execute('SELECT user FROM push_subscriptions WHERE endpoint=?', (subscription['endpoint'],)).fetchone()
+                    existing = db.execute('SELECT user,payload FROM push_subscriptions WHERE endpoint=?', (subscription['endpoint'],)).fetchone()
                     if existing and existing['user'] != user:
-                        raise Problem(409, 'Desactiva los avisos de la cuenta anterior en este dispositivo.')
+                        if json.loads(existing['payload']).get('keys') != subscription['keys']:
+                            raise Problem(409, 'No se pudo verificar la suscripción de este dispositivo.')
                     db.execute('INSERT OR REPLACE INTO push_subscriptions VALUES (?,?,?)', (subscription['endpoint'], user, json.dumps(subscription)))
                 return self.json(200, {'ok': True})
             if path == '/api/notifications/unsubscribe':
@@ -539,6 +540,29 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, {'ok': True})
             if path.startswith("/api/admin/") and not is_admin(user):
                 raise Problem(403, "Solo el administrador puede gestionar usuarios.")
+            if path in ('/api/admin/reminders/preview', '/api/admin/reminders/test'):
+                from zoneinfo import ZoneInfo
+                from backend.reminders import belongs
+                day = datetime.now(ZoneInfo('America/Mexico_City')).date().isoformat()
+                snapshot = REMINDERS.snapshot(day)
+                with connection() as db:
+                    devices = [dict(r) for r in db.execute('''SELECT s.payload,s.user,p.assignment_id,p.employee_number
+                        FROM push_subscriptions s JOIN user_profiles p ON p.user=s.user
+                        JOIN app_users u ON u.username=s.user WHERE u.active=1''')]
+                recipients = [(d, sum(belongs(t,d) for t in snapshot['tasks'])) for d in devices]
+                recipients = [(d,n) for d,n in recipients if n]
+                sent = failed = 0
+                if path.endswith('/test'):
+                    for device, count in recipients:
+                        try:
+                            PUSH.send(json.loads(device['payload']), {'title':'PRUEBA · Reportes pendientes',
+                                'body':f'Consulta de prueba: {count} tareas programadas sin reporte hoy. No es el corte de las 21:00.',
+                                'tag':'campo-prueba-faltantes'})
+                            sent += 1
+                        except Exception:
+                            failed += 1
+                return self.json(200, {**snapshot, 'recipients':[{'user':d['user'],'tasks':n} for d,n in recipients],
+                    'devices':len(recipients),'sent':sent,'failed':failed})
             if path == '/api/admin/notifications/test':
                 with connection() as db:
                     subscriptions = db.execute('''SELECT s.payload FROM push_subscriptions s

@@ -12,10 +12,18 @@ window.campoAuth={
     state.user=result.user;state.isAdmin=Boolean(result.isAdmin);await storage.write('meta',state.user,'user');await storage.write('meta',state.isAdmin,'isAdmin');
     const saved=await storage.get('meta',`snapshot:${state.user}`);if(saved)Object.assign(state,saved);
     await reloadLocal();showApp();await sync();
+    if(window.campoRestorePush)await window.campoRestorePush();
   },
   async logout({state,api,storage,showLogin,toast}){
     if(state.local.length){toast('Sincroniza o corrige tus reportes pendientes antes de cerrar sesión.');return;}
-    try{await api('/api/logout',{});await storage.clear();state.user=null;state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.simulation=false;showLogin();}catch(error){toast(error.message);}
+    try{
+      if('serviceWorker' in navigator){
+        const registration=await navigator.serviceWorker.getRegistration();
+        const subscription=registration?.pushManager&&await registration.pushManager.getSubscription();
+        if(subscription)await api('/api/notifications/unsubscribe',{endpoint:subscription.endpoint});
+      }
+      await api('/api/logout',{});await storage.clear();state.user=null;state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.simulation=false;showLogin();
+    }catch(error){toast(error.message);}
   },
   async setupTelegram({showLogin,$}){
     if(!location.hash.includes('tgWebAppData')&&!location.search.includes('tgWebAppData'))return false;

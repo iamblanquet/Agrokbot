@@ -19,6 +19,24 @@ window.campoAdmin = {
       finally{button.disabled=false;}
     };
     let editingUser='';
+    $('#main').insertAdjacentHTML('afterbegin', `<section class="admin-panel"><h3>Vista previa de reportes faltantes</h3><p>Consulta actual del ERP, no el corte definitivo de las 21:00. La prueba envía push solo a responsables con tareas faltantes; no publica en Telegram ni modifica el corte nocturno.</p><button id="reminders-preview" class="btn" type="button">Consultar faltantes y destinatarios</button> <button id="reminders-test" class="btn" type="button" disabled>Enviar prueba a responsables</button><div id="reminders-result" role="status" aria-live="polite"></div></section>`);
+    const previewButton=$('#reminders-preview'),testButton=$('#reminders-test'),resultPanel=$('#reminders-result');
+    const showPreview=data=>{
+      resultPanel.innerHTML=`<p>${esc(data.day)} · ${data.tasks.length} tareas sin reporte · ${data.devices} dispositivos destinatarios · ${data.unscheduled} tareas sin fechas válidas.</p><ul>${data.tasks.map(t=>`<li>${esc(t.project)} · ${esc(t.task)} · ${esc(t.responsible)}</li>`).join('')}</ul><p>Destinatarios: ${data.recipients.map(r=>`${esc(r.user)} (${r.tasks} tareas)`).join(', ')||'Sin dispositivos elegibles'}</p>`;
+    };
+    previewButton.onclick=async()=>{
+      previewButton.disabled=true;testButton.disabled=true;resultPanel.textContent='Consultando ERP…';
+      try{const data=await api('/api/admin/reminders/preview',{});showPreview(data);testButton.disabled=!data.devices;}
+      catch(error){resultPanel.textContent=error.message;}
+      finally{previewButton.disabled=false;}
+    };
+    testButton.onclick=async()=>{
+      if(!confirm('¿Enviar una notificación marcada como PRUEBA a los responsables elegibles? Se consultará nuevamente el ERP.'))return;
+      testButton.disabled=true;previewButton.disabled=true;
+      try{const data=await api('/api/admin/reminders/test',{});showPreview(data);resultPanel.insertAdjacentHTML('beforeend',`<p>Prueba: ${data.sent} aceptadas por el proveedor; ${data.failed} fallidas. No confirma recepción en pantalla.</p>`);}
+      catch(error){resultPanel.textContent=error.message;}
+      finally{previewButton.disabled=false;}
+    };
     const resetEditor=()=>{editingUser='';$('#admin-user-form').reset();$('#admin-submit').innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Guardar usuario';$('#admin-cancel-edit').hidden=true;$('#admin-selected').textContent='';$('#admin-error').textContent='';};
     $('#admin-cancel-edit').onclick=resetEditor;
     $('#erp-key-form').onsubmit=async e=>{e.preventDefault();const key=$('#erp-api-key').value.trim();if(!key)return;try{const result=await api('/api/admin/integration/erp-key',{apiKey:key});$('#erp-api-key').value='';$('#erp-key-status').textContent=`Configurada: ${result.masked}`;toast('API key ERP actualizada.');await load();}catch(error){$('#erp-key-status').textContent=error.message;}};

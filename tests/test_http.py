@@ -18,6 +18,43 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_push_transfer_requires_subscription_keys_and_detaches_on_request(self):
+        self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
+        subscription={'endpoint':'https://fcm.googleapis.com/test', 'keys':{
+            'p256dh':base64.urlsafe_b64encode(b'x'*65).decode(), 'auth':base64.urlsafe_b64encode(b'y'*16).decode()}}
+        with server.connection() as db:
+            db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)',(subscription['endpoint'],'previous',json.dumps(subscription)))
+        wrong={**subscription,'keys':{**subscription['keys'],'auth':base64.urlsafe_b64encode(b'z'*16).decode()}}
+        self.assertEqual(self.request('/api/notifications/subscribe',wrong)[0],409)
+        self.assertEqual(self.request('/api/notifications/subscribe',subscription)[0],200)
+        with server.connection() as db:
+            self.assertEqual(db.execute('SELECT user FROM push_subscriptions').fetchone()[0],'tester')
+        self.assertEqual(self.request('/api/notifications/unsubscribe',{'endpoint':subscription['endpoint']})[0],200)
+        with server.connection() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM push_subscriptions').fetchone()[0],0)
+
+    def test_reminder_preview_and_test_do_not_change_daily_cut(self):
+        self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
+        snapshot={'day':'2026-10-19','tasks':[{'id':'t','task':'Tarea','project':'Proyecto','responsible':'Ana','assignmentId':'a'}],'unscheduled':0}
+        with server.connection() as db:
+            db.execute('INSERT INTO app_users VALUES (?,?,?,?,?,?,?)',('worker','hash','Ana','1','a',1,'now'))
+            db.execute('INSERT INTO user_profiles VALUES (?,?,?,?,?)',('worker','Ana','1','a','now'))
+            db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)',('device','worker','{}'))
+        with patch.object(server.REMINDERS,'snapshot',return_value=snapshot), patch.object(server.PUSH,'send') as send:
+            with patch.object(server,'is_admin',return_value=False):
+                self.assertEqual(self.request('/api/admin/reminders/preview',{})[0],403)
+                self.assertEqual(self.request('/api/admin/reminders/test',{})[0],403)
+            with patch.object(server,'is_admin',return_value=True):
+                status, result=self.request('/api/admin/reminders/preview',{})
+                self.assertEqual((status,result['devices']),(200,1))
+                self.assertNotIn('payload',json.dumps(result))
+                send.assert_not_called()
+                self.assertEqual(self.request('/api/admin/reminders/test',{})[1]['sent'],1)
+                self.assertIn('PRUEBA',send.call_args.args[1]['title'])
+            with server.connection() as db:
+                self.assertEqual(db.execute('SELECT count(*) FROM reminder_runs').fetchone()[0],0)
+                self.assertEqual(db.execute('SELECT count(*) FROM reminder_deliveries').fetchone()[0],0)
+
     def test_admin_push_broadcast_active_users_and_partial_failures(self):
         path = '/api/admin/notifications/test'
         with patch.object(server.PUSH, 'send') as send:
