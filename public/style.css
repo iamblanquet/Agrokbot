@@ -6329,7 +6329,64 @@ footer {
   min-height: 20px;
 }
 
+.emp-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 16px 0 11px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2d5a27 0%, #1b3818 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(27, 56, 24, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.emp-new-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(27, 56, 24, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  filter: brightness(1.05);
+}
+
+.emp-new-btn:active {
+  transform: translateY(0);
+}
+
+.emp-new-btn-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(163, 217, 74, 0.22);
+  border: 1px solid rgba(163, 217, 74, 0.38);
+  color: #d9f99d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 @media (max-width: 760px) {
+  .emp-new-btn {
+    height: 38px;
+    min-height: 38px;
+    padding: 0 13px 0 9px;
+    font-size: 12.5px;
+    border-radius: 11px;
+    gap: 7px;
+    align-self: flex-start;
+  }
+  .emp-new-btn-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+  }
   .employees-stats {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;

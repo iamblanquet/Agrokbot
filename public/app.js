@@ -602,7 +602,7 @@ function empInitials(name){
 }
 function renderEmployees(){
   state.employeeRoleFilter=state.employeeRoleFilter||'all';
-  $('#main').innerHTML=heading('Empleados','Directorio de cuadrilla y asignación de roles operativos en campo.', '<button id="new-employee" class="btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Nuevo empleado</button>')+`
+  $('#main').innerHTML=heading('Empleados','Directorio de cuadrilla y asignación de roles operativos en campo.', '<button id="new-employee" class="btn primary emp-new-btn"><span class="emp-new-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></span><span>Nuevo empleado</span></button>')+`
     <section class="employees-panel">
       <div id="employees-stats" class="employees-stats"></div>
       <div class="employees-toolbar">
