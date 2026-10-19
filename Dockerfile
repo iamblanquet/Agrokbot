@@ -1,6 +1,7 @@
 FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 DATA_DIR=/data PORT=8080
 WORKDIR /app
+RUN pip install --no-cache-dir pywebpush==2.0.3 tzdata==2026.2
 RUN groupadd --gid 10001 campo && useradd --uid 10001 --gid campo --no-create-home campo && mkdir /data && chown campo:campo /data
 COPY --chown=campo:campo server.py /app/server.py
 COPY --chown=campo:campo telegram_bot.py /app/telegram_bot.py

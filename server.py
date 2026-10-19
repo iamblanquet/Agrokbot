@@ -20,6 +20,8 @@ from backend.access import AccessService
 from backend.auth import AuthError, AuthService
 from backend.audit import AuditService
 from backend.database import DatabaseService
+from backend.reminders import Reminders
+from backend.push import Push, validate_subscription
 from backend.delivery import DeliveryService
 from backend.monitor import MonitorService
 from backend.employees import EmployeeService, ROLES
@@ -127,7 +129,8 @@ DATABASE = DatabaseService(DATA, connection, now)
 
 
 def initialize():
-    return DATABASE.initialize(ERP_MODE, TG_MODE, ERP_URL, CHAT_ID)
+    DATABASE.initialize(ERP_MODE, TG_MODE, ERP_URL, CHAT_ID)
+    REMINDERS.initialize()
 
 
 EMPLOYEES = EmployeeService(connection, LOCK, Problem)
@@ -392,6 +395,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(status, payload)
             if path.startswith("/api/"):
                 user = self.session()
+                if path == '/api/notifications/key':
+                    return self.json(200, {'publicKey': PUSH.public_key()})
                 if path.startswith("/api/admin/") and not path.startswith("/api/admin/journal/") and not is_admin(user):
                     raise Problem(403, "Solo el administrador puede gestionar usuarios.")
                 if path.startswith('/api/admin/journal/'):
@@ -513,6 +518,21 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/login":
                 return self.login(body)
             user = self.session()
+            if path == '/api/notifications/subscribe':
+                try:
+                    subscription = validate_subscription(body)
+                except ValueError as error:
+                    raise Problem(400, str(error)) from None
+                with connection() as db:
+                    existing = db.execute('SELECT user FROM push_subscriptions WHERE endpoint=?', (subscription['endpoint'],)).fetchone()
+                    if existing and existing['user'] != user:
+                        raise Problem(409, 'Desactiva los avisos de la cuenta anterior en este dispositivo.')
+                    db.execute('INSERT OR REPLACE INTO push_subscriptions VALUES (?,?,?)', (subscription['endpoint'], user, json.dumps(subscription)))
+                return self.json(200, {'ok': True})
+            if path == '/api/notifications/unsubscribe':
+                with connection() as db:
+                    db.execute('DELETE FROM push_subscriptions WHERE endpoint=? AND user=?', (body.get('endpoint'), user))
+                return self.json(200, {'ok': True})
             if path.startswith("/api/admin/") and not is_admin(user):
                 raise Problem(403, "Solo el administrador puede gestionar usuarios.")
             if path == "/api/admin/users":
@@ -572,9 +592,25 @@ class Handler(BaseHTTPRequestHandler):
             self.json(500, {"error": "Error interno. El pendiente se conserva; reintenta con el mismo identificador."})
 
 
+REMINDERS = Reminders(connection, ERP, telegram, CHAT_ID)
+PUSH = Push(DATA, PUBLIC_URL)
+
+
+def reminder_worker():
+    while True:
+        try:
+            REMINDERS.tick(datetime.now(timezone.utc), PUSH.send)
+        except Exception as error:
+            print('Reminder worker:', type(error).__name__, flush=True)
+        time.sleep(60)
+
+
 if __name__ == "__main__":
     initialize()
     threading.Thread(target=worker, daemon=True).start()
+    if ERP_MODE == 'live' and TG_MODE == 'live' and os.getenv('REMINDERS_ENABLED', 'false') == 'true':
+        PUSH.public_key()
+        threading.Thread(target=reminder_worker, daemon=True).start()
     if TG_MODE == "live" and os.getenv("TELEGRAM_POLLING", "true").lower() == "true":
         from telegram_bot import ReportBot
         bot = ReportBot(sys.modules[__name__])

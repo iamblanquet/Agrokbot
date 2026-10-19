@@ -3,3 +3,4 @@ data/
 __pycache__/
 *.sqlite*
 test-results/
+.venv-notifications/
