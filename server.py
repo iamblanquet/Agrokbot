@@ -518,6 +518,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/login":
                 return self.login(body)
             user = self.session()
+            if path == '/api/notifications/status':
+                with connection() as db:
+                    registered = db.execute('SELECT 1 FROM push_subscriptions WHERE endpoint=? AND user=?', (body.get('endpoint'), user)).fetchone()
+                return self.json(200, {'subscribed': bool(registered)})
             if path == '/api/notifications/subscribe':
                 try:
                     subscription = validate_subscription(body)

@@ -18,6 +18,16 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_notification_status_is_authenticated_and_account_scoped(self):
+        path = '/api/notifications/status'
+        self.assertEqual(self.request(path, {'endpoint':'test'})[0], 401)
+        self.request('/api/login', {'user':'tester','password':'prueba-ñ'})
+        with server.connection() as db:
+            db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)', ('own','tester','{}'))
+            db.execute('INSERT INTO push_subscriptions VALUES (?,?,?)', ('other','another','{}'))
+        for endpoint, expected in [('own',True),('other',False),('missing',False)]:
+            self.assertEqual(self.request(path, {'endpoint':endpoint}), (200, {'subscribed':expected}))
+
     def test_journal_is_authenticated_and_read_only(self):
         with patch.object(server.ERP, 'request', return_value={'projects':[]}) as erp:
             self.assertEqual(self.request('/api/admin/journal/projects')[0],401)

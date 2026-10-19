@@ -34,6 +34,7 @@ function showLogin(){ $('#app').hidden=true;$('#login').hidden=false;$('#usernam
 function showApp(){ $('#login').hidden=true;$('#app').hidden=false;$('#profile-user').textContent=state.user;$('#avatar').textContent=state.user.slice(0,1).toUpperCase();if(state.isAdmin&&!$('[data-view="admin"]')){const b=document.createElement('button');b.className='nav-item';b.dataset.view='admin';b.innerHTML='<span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span><span class="nav-text-full">Administración</span><span class="nav-text-short">Ajustes</span>';b.onclick=()=>{state.view='admin';render();};document.querySelector('nav')?.append(b);}if(state.isAdmin&&!$('[data-view="monitor"]')){const m=document.createElement('button');m.className='nav-item';m.dataset.view='monitor';m.innerHTML='<span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span><span>Monitoreo</span>';m.onclick=()=>{state.view='monitor';render();};document.querySelector('nav')?.append(m);}render(); }
 function updateChrome(){
   updateNotificationNotice();
+  refreshNotificationState();
   if(!$('[data-view="journal"]')){
     const button=document.createElement('button');button.className='nav-item';button.dataset.view='journal';button.innerHTML='<span class="nav-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg></span><span class="nav-text-full">Bitácora ERP</span><span class="nav-text-short">Bitácora</span>';
     button.onclick=()=>{state.view='journal';render();};document.querySelector('nav')?.append(button);
@@ -471,6 +472,32 @@ async function logout(){return window.campoAuth.logout({state,api,storage:window
 function exportPending(){const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),user:state.user,reports:state.local},null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`campo-pendientes-${today()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
 $('#logout').onclick=logout;$('#sync').onclick=()=>sync();
 let notificationRequestBusy=false;
+let notificationCheckBusy=false, notificationCheckedUser=null, notificationCheckedAt=0, notificationRevision=0;
+function paintNotificationState(value){
+  const bell=$('#notifications-bell');
+  bell.dataset.notificationState=value;
+  const labels={active:'Notificaciones activadas',inactive:'Activar notificaciones',blocked:'Notificaciones bloqueadas',checking:'Comprobando notificaciones',unknown:'No se pudo verificar la suscripción',unsupported:'Notificaciones no disponibles'};
+  bell.title=labels[value];bell.setAttribute('aria-label',labels[value]);
+  bell.setAttribute('aria-pressed',String(value==='active'));
+}
+async function refreshNotificationState(force=false){
+  updateNotificationNotice();
+  if(!state.user||$('#app').hidden||notificationCheckBusy||notificationRequestBusy)return;
+  if(!force&&notificationCheckedUser===state.user&&Date.now()-notificationCheckedAt<60000)return;
+  const user=state.user, revision=notificationRevision;notificationCheckBusy=true;notificationCheckedUser=user;notificationCheckedAt=Date.now();
+  paintNotificationState('checking');
+  try{
+    if(!('PushManager' in window)||!('Notification' in window)){paintNotificationState('unsupported');return;}
+    if(Notification.permission!=='granted'){paintNotificationState(Notification.permission==='denied'?'blocked':'inactive');return;}
+    const reg=await navigator.serviceWorker.getRegistration();
+    const sub=reg&&await reg.pushManager.getSubscription();
+    if(state.user!==user||$('#app').hidden||revision!==notificationRevision)return;
+    if(!sub){paintNotificationState('inactive');return;}
+    const result=await api('/api/notifications/status',{endpoint:sub.endpoint});
+    if(state.user===user&&!$('#app').hidden&&revision===notificationRevision)paintNotificationState(result.subscribed?'active':'inactive');
+  }catch(_){if(state.user===user&&revision===notificationRevision)paintNotificationState('unknown');}
+  finally{notificationCheckBusy=false;if(revision!==notificationRevision||state.user!==user)refreshNotificationState(true);}
+}
 function updateNotificationNotice(message){
   const notice=$('#notification-permission-notice');
   if(!notice)return;
@@ -485,6 +512,7 @@ function updateNotificationNotice(message){
 async function activateNotificationsDirectly(){
   if(notificationRequestBusy)return;
   notificationRequestBusy=true;
+  notificationRevision++;
   const bell=$('#notifications-bell');bell.disabled=true;
   try{
     if(!('PushManager' in window)||!('Notification' in window))throw Error('Este navegador no admite avisos push. En iPhone, instala la PWA en la pantalla de inicio.');
@@ -501,9 +529,10 @@ async function activateNotificationsDirectly(){
     try{localStorage.removeItem('campo-notification-permission-pending');}catch(_){}
     updateNotificationNotice();toast('Avisos activados para esta cuenta y dispositivo.');
   }catch(e){updateNotificationNotice(e.message);}
-  finally{notificationRequestBusy=false;bell.disabled=false;}
+  finally{notificationRequestBusy=false;bell.disabled=false;await refreshNotificationState(true);}
 }
 $('#notifications-bell').onclick=activateNotificationsDirectly;
+window.addEventListener('focus',()=>refreshNotificationState(true));
 document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>{state.view=el.dataset.view;render();});
 window.addEventListener('offline',()=>{state.reachable=false;updateChrome();banner('Sin conexión. Puedes capturar avances; se guardarán en este dispositivo.');});
 window.addEventListener('online',()=>{state.reachable=true;if(state.user)sync();});

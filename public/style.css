@@ -4687,3 +4687,6 @@ footer {
 @media(max-width:900px){.monitor-stats{grid-template-columns:repeat(2,1fr)}.monitor-row{min-width:900px}}
 #notifications-bell { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; flex-shrink: 0; color: var(--green, #304600); }
 #notifications-bell:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+#notifications-bell[data-notification-state="active"] { background: #dcebd6; color: #205b24; border: 2px solid #49833e; position: relative; }
+#notifications-bell[data-notification-state="active"]::after { content: ''; position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: #205b24; }
+#notifications-bell[data-notification-state="blocked"] { color: #a13c24; }
