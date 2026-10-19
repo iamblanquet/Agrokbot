@@ -4685,3 +4685,5 @@ footer {
 .monitor-row small{display:block;color:var(--text-muted)}
 .monitor-row .mono{word-break:break-word}
 @media(max-width:900px){.monitor-stats{grid-template-columns:repeat(2,1fr)}.monitor-row{min-width:900px}}
+#notifications-bell { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; flex-shrink: 0; color: var(--green, #304600); }
+#notifications-bell:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }

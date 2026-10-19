@@ -49,7 +49,7 @@ function updateChrome(){
   $('#cache-note').textContent=state.catalog.fetchedAt?`${state.catalog.projects.length} proyectos disponibles en este dispositivo.`:'Conecta para descargar tus proyectos.';
   $('#last-sync').textContent=state.catalog.fetchedAt?`DATOS DESCARGADOS · ${prettyDate(state.catalog.fetchedAt)}`:'DATOS AÚN NO DESCARGADOS';
   document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===state.view));
-  $('#breadcrumb-current').textContent=({projects:'Proyectos',employees:'Empleados',reports:'Mis reportes',telegram:'Temas de Telegram',settings:'Conexiones',admin:'Administración',monitor:'Monitoreo',journal:'Bitácora ERP'})[state.view];
+  $('#breadcrumb-current').textContent=({projects:'Proyectos',employees:'Empleados',reports:'Mis reportes',telegram:'Temas de Telegram',settings:'Notificaciones',admin:'Administración',monitor:'Monitoreo',journal:'Bitácora ERP'})[state.view];
 }
 function statusInfo(value){return ({pending:['Pendiente de sincronizar','amber'],conflict:['No registrado: conflicto','amber'],invalid:['No registrado: datos rechazados','red'],erp_sending:['Registrando en ERP','blue'],erp_review:['Verificar en ERP','red'],erp_rejected:['Rechazado por ERP','red'],telegram_pending:['ERP guardado · envío pendiente','blue'],telegram_sending:['Enviando a Telegram','blue'],telegram_failed:['ERP guardado · envío fallido','amber'],telegram_review:['ERP guardado · verificar envío','amber'],published:['Publicado en Telegram','green'],demo_published:['Publicado · simulación','green']})[value] || [value,''];}
 function badge(value){const [label,color]=({photos_pending:['ERP guardado · fotos pendientes','blue'],photos_review:['ERP guardado · verificar fotos','amber']})[value]||statusInfo(value);return `<span class="status ${color}">${esc(label)}</span>`;}
@@ -286,9 +286,7 @@ function renderTelegram(){
   document.querySelectorAll('[data-topic]').forEach(el=>el.onclick=()=>{state.topic=el.dataset.topic;renderTelegram();});
 }
 function renderSettings(){
-   $('#main').innerHTML=heading('Conexiones','Estado de tus datos, acceso y herramientas de prueba.')+`<div class="settings-grid"><section class="setting-card"><h2>Registro de proyectos</h2><span class="status ${state.config.erpMode==='demo'?'amber':'green'}">${state.config.erpMode==='demo'?'ERP de demostración':'ERP real'}</span><p>${state.config.erpMode==='demo'?'Los avances se guardan en la base de datos local del prototipo. No se modifica el ERP real.':'Los avances confirmados se registran en la API externa del ERP.'}</p><p>El avance mostrado por proyecto es el promedio simple de sus tareas, no el cálculo ponderado del ERP.</p></section><section class="setting-card"><h2>Bot de Telegram</h2><span class="status ${state.config.telegramMode==='demo'?'amber':'green'}">${state.config.telegramMode==='demo'?'Envíos simulados':'Envíos reales'}</span><p>Un tema por proyecto. Los reportes de tareas se publican dentro del tema cuando el ERP confirma el registro.</p><p>${state.config.telegramMode==='demo'?'La pestaña Temas de Telegram permite probar el resultado sin un bot.':state.config.telegramConfigured?'Bot y grupo configurados en el servidor.':'Falta configurar el bot y el grupo en el servidor.'}</p></section><section class="setting-card"><h2>Prueba sin señal</h2><p>Suspende las conexiones de la aplicación para probar la captura local. Desactiva la prueba y sincroniza para enviarla.</p><label><input id="simulate" type="checkbox" ${state.simulation?'checked':''}> Simular modo offline</label><p class="storage-info">Esta opción simula la desconexión. La PWA también admite pérdida real de red después de su primera carga.</p></section><section class="setting-card"><h2>Este dispositivo</h2><p>${state.catalog.projects.length} proyectos descargados · ${state.local.length} reportes pendientes.</p><p id="storage-status">Comprobando almacenamiento…</p><button id="persist-storage" class="btn small">Proteger almacenamiento local</button><p class="storage-info">No borres los datos del navegador mientras tengas pendientes. Puedes exportarlos desde Mis reportes.</p></section><section class="setting-card wide"><h2>Acceso y alcance</h2><p>Sesión de ${esc(state.user)}. Las cuentas de campo solo reciben tareas cuyo empleado o asignación coincide con su relación ERP.</p><div class="settings-table"><div><small>Instalación</small><strong>Menú del navegador &gt; Instalar / Añadir a inicio</strong></div><div><small>Acceso desde teléfono o Telegram</small><strong>Requiere una dirección HTTPS</strong></div></div><p class="storage-info">La sesión inicial requiere conexión. Al volver a conectar, se verifican nuevamente los permisos antes de enviar pendientes.</p><button id="settings-logout" class="btn small">Cerrar sesión</button></section></div>`;
-  $('#simulate').onchange=async e=>{state.simulation=e.target.checked;await dbWrite('meta',state.simulation,'simulation');state.reachable=!state.simulation;updateChrome();banner(state.simulation?'Prueba sin señal activa. Los nuevos reportes se guardarán en este dispositivo.':'');if(!state.simulation)await sync();};
-  $('#settings-logout').onclick=logout;
+  $('#main').innerHTML=heading('Notificaciones','Administra los avisos de este dispositivo.')+'<div class="settings-grid"></div>';
   const alerts=document.createElement('section'); alerts.className='setting-card';
   alerts.innerHTML='<h2>Avisos de reportes</h2><p>Lunes a sábado, 21:00 · Ciudad de México. Tareas programadas sin reporte recibido. En iPhone instala primero la PWA en inicio.</p><button id="enable-alerts" class="btn small">Activar avisos</button> <button id="disable-alerts" class="btn small">Desactivar</button><p id="alerts-status" role="status"></p>';
   $('#main .settings-grid').append(alerts);
@@ -307,8 +305,14 @@ function renderSettings(){
     if(sub){await api('/api/notifications/unsubscribe',{endpoint:sub.endpoint});await sub.unsubscribe();}
     $('#alerts-status').textContent='Avisos desactivados.';
   }catch(e){$('#alerts-status').textContent=e.message;}};
-  $('#persist-storage').onclick=async()=>{const granted=await navigator.storage?.persist?.();toast(granted?'Almacenamiento persistente habilitado.':'El navegador decide si concede almacenamiento persistente. Conserva una copia de tus pendientes.');updateStorage();};
-  updateStorage();
+
+  const status=$('#alerts-status');
+  if(!('PushManager' in window)||!('Notification' in window)){
+    status.textContent='Este navegador no admite avisos push. En iPhone, instala la PWA en inicio.';
+    $('#enable-alerts').disabled=true; $('#disable-alerts').disabled=true;
+  }else{
+    status.textContent=Notification.permission==='denied'?'Notificaciones bloqueadas: habilítalas en los permisos del navegador.':'Pulsa Activar avisos para asociar este dispositivo a tu cuenta.';
+  }
 }
 async function updateStorage(){const persisted=await navigator.storage?.persisted?.();if($('#storage-status'))$('#storage-status').textContent=persisted?'Almacenamiento persistente habilitado.':'Almacenamiento local del navegador. El sistema puede eliminarlo si falta espacio.';}
 async function openCapture(taskId){
@@ -465,6 +469,7 @@ if (pwdField) {
 async function logout(){return window.campoAuth.logout({state,api,storage:window.campoStorage,showLogin,toast});}
 function exportPending(){const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),user:state.user,reports:state.local},null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`campo-pendientes-${today()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
 $('#logout').onclick=logout;$('#sync').onclick=()=>sync();
+$('#notifications-bell').onclick=()=>{state.view='settings';render();$('#main').focus();};
 document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>{state.view=el.dataset.view;render();});
 window.addEventListener('offline',()=>{state.reachable=false;updateChrome();banner('Sin conexión. Puedes capturar avances; se guardarán en este dispositivo.');});
 window.addEventListener('online',()=>{state.reachable=true;if(state.user)sync();});
