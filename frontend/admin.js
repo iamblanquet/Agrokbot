@@ -5,9 +5,182 @@
 window.campoAdmin = {
   async render(){
     const { $, esc, heading, api, toast } = window.campoUi;
-    $('#main').innerHTML=heading('Administración','Usuarios de campo y asignaciones ERP.')+`<section class="admin-stats"><div class="admin-stat"><small>USUARIOS TOTALES</small><strong id="admin-total">0</strong><span>Registrados</span></div><div class="admin-stat"><small>USUARIOS ACTIVOS</small><strong id="admin-active">0</strong><span>Con acceso</span></div><div class="admin-stat"><small>EMPLEADOS DISPONIBLES</small><strong id="admin-available">0</strong><span>Desde la API</span></div><div class="admin-stat"><small>ASIGNACIONES</small><strong id="admin-assigned">0</strong><span>Relacionadas</span></div></section><section class="admin-panel"><h3>Conexión ERP</h3><p class="muted">Solo administradores pueden actualizar esta credencial. Nunca se muestra completa.</p><form id="erp-key-form" class="admin-form"><div><label for="erp-api-key">API key del ERP</label><input id="erp-api-key" type="password" autocomplete="new-password" placeholder="pc_ext_…"></div><button class="btn primary" type="submit">Guardar API key</button></form><p id="erp-key-status" class="muted">Comprobando configuración…</p><hr><form id="admin-user-form" class="admin-form"><div><label>Empleado ERP</label><select id="admin-assignment" required><option value="">Cargando empleados de la API…</option></select></div><div><label>PIN de acceso</label><input id="admin-pin" required inputmode="numeric" pattern="[0-9]{4,8}" placeholder="4 a 8 dígitos"></div><button id="admin-submit" class="btn primary" type="submit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Guardar usuario</button><button id="admin-cancel-edit" class="btn" type="button" hidden>Cancelar edición</button></form><p id="admin-selected" class="muted"></p><p id="admin-error" class="error"></p><div class="admin-toolbar"><input id="admin-search" type="search" placeholder="Buscar usuario o empleado…"><select id="admin-status"><option value="all">Todos los estados</option><option value="active">Activos</option><option value="inactive">Inactivos</option></select></div><div id="admin-users">Cargando usuarios…</div><hr><div class="section-heading"><h3>Bitácora administrativa</h3><button id="admin-export-audit" class="btn small" type="button">Exportar bitácora</button></div><div id="admin-audit">Cargando bitácora…</div></section>`;
+    $('#main').innerHTML =
+      heading('Administración', 'Usuarios de campo, permisos operativos, conexión ERP y avisos push.') +
+      `<div class="admin-dashboard">
+        <section class="admin-stats" aria-label="Indicadores de administración">
+          <div class="admin-stat stat-total">
+            <small>USUARIOS TOTALES</small>
+            <strong id="admin-total">0</strong>
+            <span>Registrados en sistema</span>
+          </div>
+          <div class="admin-stat stat-active">
+            <small>USUARIOS ACTIVOS</small>
+            <strong id="admin-active">0</strong>
+            <span>Con acceso habilitado</span>
+          </div>
+          <div class="admin-stat stat-available">
+            <small>EMPLEADOS DISPONIBLES</small>
+            <strong id="admin-available">0</strong>
+            <span>Sincronizados desde ERP</span>
+          </div>
+          <div class="admin-stat stat-assigned">
+            <small>ASIGNACIONES ERP</small>
+            <strong id="admin-assigned">0</strong>
+            <span>Cuentas vinculadas</span>
+          </div>
+        </section>
 
-    $('#main').insertAdjacentHTML('afterbegin', `<section class="admin-panel"><h3>Prueba de notificaciones</h3><p class="muted">Envía una prueba a todos los dispositivos registrados de usuarios activos. Este navegador no necesita tener los avisos activados. No modifica reportes ni publica en Telegram.</p><button id="admin-test-push" class="btn primary" type="button">Enviar prueba a todos los dispositivos</button><p id="admin-test-push-status" class="muted" role="status" aria-live="polite"></p></section>`);
+        <!-- Gestión de Usuarios de Campo -->
+        <section class="admin-panel admin-users-section">
+          <div class="admin-card-header">
+            <div class="admin-card-title-group">
+              <span class="admin-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+              <div>
+                <h3>Usuarios de campo y asignaciones ERP</h3>
+                <p class="muted">Asigna un PIN numérico de 4 a 8 dígitos a cada responsable dado de alta en el ERP.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-user-editor-box">
+            <form id="admin-user-form" class="admin-form">
+              <div>
+                <label for="admin-assignment">Empleado ERP</label>
+                <select id="admin-assignment" required><option value="">Cargando empleados de la API…</option></select>
+              </div>
+              <div>
+                <label for="admin-pin">PIN de acceso</label>
+                <input id="admin-pin" required inputmode="numeric" pattern="[0-9]{4,8}" placeholder="4 a 8 dígitos">
+              </div>
+              <div class="admin-form-actions">
+                <button id="admin-submit" class="btn primary" type="submit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Guardar usuario</button>
+                <button id="admin-cancel-edit" class="btn" type="button" hidden>Cancelar edición</button>
+              </div>
+            </form>
+            <p id="admin-selected" class="admin-selected-hint muted"></p>
+            <p id="admin-error" class="error"></p>
+          </div>
+
+          <div class="admin-toolbar">
+            <div class="admin-search-wrap">
+              <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input id="admin-search" type="search" placeholder="Buscar por usuario, nombre o número de empleado…">
+            </div>
+            <select id="admin-status" aria-label="Filtrar por estado">
+              <option value="all">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
+
+          <div id="admin-users">Cargando usuarios…</div>
+        </section>
+
+        <!-- Cuadrícula de Herramientas Operativas, Permisos y Configuración -->
+        <div class="admin-tools-grid">
+          <!-- Conexión ERP -->
+          <section class="admin-panel admin-tool-card">
+            <div class="admin-card-header">
+              <div class="admin-card-title-group">
+                <span class="admin-card-icon icon-gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></span>
+                <div>
+                  <h3>Conexión ERP</h3>
+                  <p class="muted">Solo administradores pueden actualizar esta credencial. Nunca se muestra completa.</p>
+                </div>
+              </div>
+              <span id="erp-key-status" class="admin-status-pill">Comprobando configuración…</span>
+            </div>
+            <form id="erp-key-form" class="admin-inline-form">
+              <div class="admin-inline-field">
+                <label for="erp-api-key">API key del ERP</label>
+                <input id="erp-api-key" type="password" autocomplete="new-password" placeholder="pc_ext_…">
+              </div>
+              <button class="btn primary" type="submit">Guardar API key</button>
+            </form>
+          </section>
+
+          <!-- Permiso de seguimiento de incidencias -->
+          <section class="admin-panel admin-tool-card">
+            <div class="admin-card-header">
+              <div class="admin-card-title-group">
+                <span class="admin-card-icon icon-amber"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg></span>
+                <div>
+                  <h3>Permiso de seguimiento de incidencias</h3>
+                  <p class="muted">Permite consultar todas las incidencias, comentar, resolver y reabrir sin ser administrador.</p>
+                </div>
+              </div>
+            </div>
+            <div class="admin-permission-controls">
+              <div class="admin-inline-field">
+                <label for="incident-permission-user">Usuario de campo</label>
+                <select id="incident-permission-user" aria-label="Usuario"></select>
+              </div>
+              <div class="admin-permission-row">
+                <label class="admin-check-tile" for="incident-permission-enabled">
+                  <input type="checkbox" id="incident-permission-enabled">
+                  <span>Gestionar incidencias</span>
+                </label>
+                <button type="button" class="btn primary" id="incident-permission-save">Guardar permiso</button>
+              </div>
+              <p id="incident-permission-result" class="admin-feedback-note" role="status"></p>
+            </div>
+          </section>
+
+          <!-- Vista previa de reportes faltantes -->
+          <section class="admin-panel admin-tool-card">
+            <div class="admin-card-header">
+              <div class="admin-card-title-group">
+                <span class="admin-card-icon icon-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span>
+                <div>
+                  <h3>Vista previa de reportes faltantes</h3>
+                  <p class="muted">Consulta actual del ERP, no el corte definitivo de las 21:00. La prueba envía push solo a responsables con tareas faltantes; no publica en Telegram ni modifica el corte nocturno.</p>
+                </div>
+              </div>
+            </div>
+            <div class="admin-btn-group">
+              <button id="reminders-preview" class="btn" type="button">Consultar faltantes y destinatarios</button>
+              <button id="reminders-test" class="btn primary" type="button" disabled>Enviar prueba a responsables</button>
+            </div>
+            <div id="reminders-result" class="admin-preview-result" role="status" aria-live="polite"></div>
+          </section>
+
+          <!-- Prueba de notificaciones -->
+          <section class="admin-panel admin-tool-card">
+            <div class="admin-card-header">
+              <div class="admin-card-title-group">
+                <span class="admin-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></span>
+                <div>
+                  <h3>Prueba de notificaciones</h3>
+                  <p class="muted">Envía una prueba a todos los dispositivos registrados de usuarios activos. Este navegador no necesita tener los avisos activados. No modifica reportes ni publica en Telegram.</p>
+                </div>
+              </div>
+            </div>
+            <div class="admin-btn-group">
+              <button id="admin-test-push" class="btn primary" type="button">Enviar prueba a todos los dispositivos</button>
+            </div>
+            <p id="admin-test-push-status" class="admin-feedback-note muted" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+
+        <!-- Bitácora Administrativa -->
+        <section class="admin-panel admin-audit-section">
+          <div class="admin-card-header">
+            <div class="admin-card-title-group">
+              <span class="admin-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>
+              <div>
+                <h3>Bitácora administrativa</h3>
+                <p class="muted">Historial auditable de movimientos de usuarios, reportes y sincronización.</p>
+              </div>
+            </div>
+            <button id="admin-export-audit" class="btn small" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exportar bitácora
+            </button>
+          </div>
+          <div id="admin-audit">Cargando bitácora…</div>
+        </section>
+      </div>`;
+
     $('#admin-test-push').onclick=async()=>{
       const button=$('#admin-test-push'), status=$('#admin-test-push-status');
       button.disabled=true;status.textContent='Comprobando suscripción…';
@@ -19,7 +192,6 @@ window.campoAdmin = {
       finally{button.disabled=false;}
     };
     let editingUser='';
-    $('#main').insertAdjacentHTML('afterbegin',`<section class="admin-panel"><h3>Permiso de seguimiento de incidencias</h3><p>Permite consultar todas las incidencias, comentar, resolver y reabrir sin ser administrador.</p><select id="incident-permission-user" aria-label="Usuario"></select><label><input type="checkbox" id="incident-permission-enabled"> Gestionar incidencias</label><button type="button" class="btn" id="incident-permission-save">Guardar permiso</button><p id="incident-permission-result" role="status"></p></section>`);
     let permissionUsers=[];
     $('#incident-permission-user').onchange=()=>{$('#incident-permission-enabled').checked=Boolean(permissionUsers.find(u=>u.username===$('#incident-permission-user').value)?.canManageIncidents);};
     $('#incident-permission-save').onclick=async()=>{
@@ -27,10 +199,9 @@ window.campoAdmin = {
       try{await api('/api/admin/incidents/permission',{user:$('#incident-permission-user').value,enabled:$('#incident-permission-enabled').checked});$('#incident-permission-result').textContent='Permiso guardado. El usuario lo verá al sincronizar.';await load();}
       catch(e){$('#incident-permission-result').textContent=e.message;}finally{button.disabled=false;}
     };
-    $('#main').insertAdjacentHTML('afterbegin', `<section class="admin-panel"><h3>Vista previa de reportes faltantes</h3><p>Consulta actual del ERP, no el corte definitivo de las 21:00. La prueba envía push solo a responsables con tareas faltantes; no publica en Telegram ni modifica el corte nocturno.</p><button id="reminders-preview" class="btn" type="button">Consultar faltantes y destinatarios</button> <button id="reminders-test" class="btn" type="button" disabled>Enviar prueba a responsables</button><div id="reminders-result" role="status" aria-live="polite"></div></section>`);
     const previewButton=$('#reminders-preview'),testButton=$('#reminders-test'),resultPanel=$('#reminders-result');
     const showPreview=data=>{
-      resultPanel.innerHTML=`<p>${esc(data.day)} · ${data.tasks.length} tareas sin reporte · ${data.devices} dispositivos destinatarios · ${data.unscheduled} tareas sin fechas válidas.</p><ul>${data.tasks.map(t=>`<li>${esc(t.project)} · ${esc(t.task)} · ${esc(t.responsible)}</li>`).join('')}</ul><p>Destinatarios: ${data.recipients.map(r=>`${esc(r.user)} (${r.tasks} tareas)`).join(', ')||'Sin dispositivos elegibles'}</p>`;
+      resultPanel.innerHTML=`<div class="admin-preview-box"><p class="admin-preview-summary"><strong>${esc(data.day)}</strong> · ${data.tasks.length} tareas sin reporte · ${data.devices} dispositivos destinatarios · ${data.unscheduled} tareas sin fechas válidas.</p>${data.tasks.length?`<ul class="admin-preview-list">${data.tasks.map(t=>`<li><strong>${esc(t.project)}</strong> · ${esc(t.task)} <span class="muted">(${esc(t.responsible)})</span></li>`).join('')}</ul>`:''}<p class="admin-preview-recipients"><strong>Destinatarios:</strong> ${data.recipients.map(r=>`${esc(r.user)} (${r.tasks} tareas)`).join(', ')||'Sin dispositivos elegibles'}</p></div>`;
     };
     previewButton.onclick=async()=>{
       previewButton.disabled=true;testButton.disabled=true;resultPanel.textContent='Consultando ERP…';
@@ -41,7 +212,7 @@ window.campoAdmin = {
     testButton.onclick=async()=>{
       if(!confirm('¿Enviar una notificación marcada como PRUEBA a los responsables elegibles? Se consultará nuevamente el ERP.'))return;
       testButton.disabled=true;previewButton.disabled=true;
-      try{const data=await api('/api/admin/reminders/test',{});showPreview(data);resultPanel.insertAdjacentHTML('beforeend',`<p>Prueba: ${data.sent} aceptadas por el proveedor; ${data.failed} fallidas. No confirma recepción en pantalla.</p>`);}
+      try{const data=await api('/api/admin/reminders/test',{});showPreview(data);resultPanel.insertAdjacentHTML('beforeend',`<p class="admin-feedback-note">Prueba: ${data.sent} aceptadas por el proveedor; ${data.failed} fallidas. No confirma recepción en pantalla.</p>`);}
       catch(error){resultPanel.textContent=error.message;}
       finally{previewButton.disabled=false;}
     };
@@ -55,6 +226,7 @@ window.campoAdmin = {
       try{
         const [people,data,audit,keyStatus]=await Promise.all([api('/api/admin/responsibles').catch(()=>({responsibles:[]})),api('/api/admin/users'),api('/api/admin/audit'),api('/api/admin/integration/erp-key')]);
         $('#erp-key-status').textContent=keyStatus.configured?`Configurada: ${keyStatus.masked}`:'No configurada';
+        $('#erp-key-status').className=`admin-status-pill ${keyStatus.configured?'ok':'warn'}`;
         auditEntries=audit.entries||[];
         permissionUsers=data.users;
         $('#incident-permission-user').innerHTML=data.users.map(u=>`<option value="${esc(u.username)}">${esc(u.responsible_name)} (${esc(u.username)})</option>`).join('');
@@ -68,13 +240,13 @@ window.campoAdmin = {
           $('#admin-total').textContent=data.users.length;
           $('#admin-active').textContent=data.users.filter(u=>u.active).length;
           $('#admin-assigned').textContent=data.users.filter(u=>u.assignment_id).length;
-          $('#admin-users').innerHTML=`<div class="admin-table"><div class="admin-row admin-head"><span>USUARIO</span><span>EMPLEADO</span><span>NÚMERO</span><span>ASIGNACIÓN ERP</span><span>ESTADO</span><span>ACCIONES</span></div>${rows.map(u=>`<div class="admin-row"><span><strong>${esc(u.username)}</strong></span><span>${esc(u.responsible_name)}</span><span>${esc(u.employee_number)}</span><span class="mono">${esc(u.assignment_id)}</span><span><em class="admin-badge ${u.active?'ok':'off'}">${u.active?'Activo':'Inactivo'}</em></span><span><button class="btn small" data-edit-user="${esc(u.username)}">Editar PIN</button> <button class="btn small" data-toggle-user="${esc(u.username)}">${u.active?'Desactivar':'Activar'}</button> <button class="btn small danger" data-delete-user="${esc(u.username)}">Eliminar</button></span></div>`).join('')||'<p class="muted">No hay usuarios que coincidan.</p>'}</div>`;
+          $('#admin-users').innerHTML=`<div class="admin-table"><div class="admin-row admin-head"><span>USUARIO</span><span>EMPLEADO</span><span>NÚMERO</span><span>ASIGNACIÓN ERP</span><span>ESTADO</span><span>ACCIONES</span></div>${rows.map(u=>`<div class="admin-row"><span><strong class="admin-user-chip">${esc(u.username)}</strong></span><span>${esc(u.responsible_name)}</span><span>${esc(u.employee_number)}</span><span class="mono">${esc(u.assignment_id)}</span><span><em class="admin-badge ${u.active?'ok':'off'}">${u.active?'Activo':'Inactivo'}</em></span><span class="admin-row-actions"><button class="btn small" data-edit-user="${esc(u.username)}">Editar PIN</button> <button class="btn small" data-toggle-user="${esc(u.username)}">${u.active?'Desactivar':'Activar'}</button> <button class="btn small danger" data-delete-user="${esc(u.username)}">Eliminar</button></span></div>`).join('')||'<p class="admin-empty-row muted">No hay usuarios que coincidan.</p>'}</div>`;
           document.querySelectorAll('[data-edit-user]').forEach(b=>b.onclick=()=>{const u=data.users.find(item=>item.username===b.dataset.editUser);if(!u)return;editingUser=u.username;$('#admin-assignment').value=u.assignment_id;$('#admin-pin').value='';$('#admin-submit').textContent='Actualizar PIN';$('#admin-cancel-edit').hidden=false;$('#admin-selected').textContent=`Editando ${u.username}. Captura el nuevo PIN.`;$('#admin-error').textContent='';$('#admin-pin').focus();});
           document.querySelectorAll('[data-toggle-user]').forEach(b=>b.onclick=async()=>{await api('/api/admin/users/toggle',{username:b.dataset.toggleUser});await load();});
           document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=async()=>{if(confirm(`¿Eliminar ${b.dataset.deleteUser}?`)){await api('/api/admin/users/delete',{username:b.dataset.deleteUser});await load();}});
           const labels={user_upsert:'Alta / actualización',user_update:'Edición / reasignación',user_toggle:'Cambio de estado',user_delete:'Eliminación lógica',report_created:'Reporte capturado',photo_uploaded:'Fotografía cargada',report_state_changed:'Cambio de estado',monitor_retry_telegram:'Reintento Telegram'};
           const detail=item=>{let data={};try{data=JSON.parse(item.details||'{}');}catch{}const transition=data.from&&data.to?` · ${data.from} -> ${data.to}`:'';const error=data.error?` · ${data.error}`:'';const origin=data.origin?` · Origen: ${data.origin}`:'';return `${transition}${origin}${error}`;};
-          $('#admin-audit').innerHTML=`<div class="admin-table"><div class="admin-row admin-head"><span>FECHA</span><span>ACCIÓN</span><span>REFERENCIA</span><span>ACTOR</span><span>DETALLE</span></div>${audit.entries.map(item=>`<div class="admin-row"><span>${esc(item.created)}</span><span>${esc(labels[item.action]||item.action)}</span><span class="mono">${esc(item.target)}</span><span>${esc(item.actor)}</span><span>${esc(detail(item))}</span></div>`).join('')||'<p class="muted">Sin movimientos registrados.</p>'}</div>`;
+          $('#admin-audit').innerHTML=`<div class="admin-table"><div class="admin-row admin-audit-row admin-head"><span>FECHA</span><span>ACCIÓN</span><span>REFERENCIA</span><span>ACTOR</span><span>DETALLE</span></div>${audit.entries.map(item=>`<div class="admin-row admin-audit-row"><span>${esc(item.created)}</span><span><strong>${esc(labels[item.action]||item.action)}</strong></span><span class="mono">${esc(item.target)}</span><span>${esc(item.actor)}</span><span>${esc(detail(item))}</span></div>`).join('')||'<p class="admin-empty-row muted">Sin movimientos registrados.</p>'}</div>`;
         };
         draw();
         $('#admin-search').oninput=draw;
