@@ -16,6 +16,7 @@ class DeploySafetyTests(unittest.TestCase):
         script=script.replace('cd /home/mblanquet/Agrokbot','cd "$TEST_WORKSPACE"').replace('/var/lock/campo-deploy.lock','deploy.lock').replace('/home/mblanquet/campo-backups/','backups/')
         mocks='''
 node() { echo node-tests >> calls; [ "$TEST_FAILURE" != tests ]; }
+python3() { echo backup-verified >> calls; return 0; }
 flock() { return 0; }
 git() { echo abc1234; }
 docker() {

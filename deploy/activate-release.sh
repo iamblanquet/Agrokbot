@@ -23,7 +23,9 @@ if [ -n "$container" ]; then
   chmod 700 "$backup"
   # SQLite online backup is consistent even with WAL enabled.
   docker exec "$container" python -c 'import sqlite3; s=sqlite3.connect("/data/campo.sqlite3"); d=sqlite3.connect("/tmp/pre-deploy.sqlite3"); s.backup(d); assert d.execute("PRAGMA quick_check").fetchone()[0]=="ok"; d.close(); s.close()'
-  docker cp "$container:/tmp/pre-deploy.sqlite3" "$backup/campo.sqlite3"
+  # docker cp cannot reliably read tmpfs mounts on every daemon; stream via exec.
+  docker exec "$container" python -c 'import sys; from pathlib import Path; sys.stdout.buffer.write(Path("/tmp/pre-deploy.sqlite3").read_bytes())' > "$backup/campo.sqlite3"
+  python3 -c 'import sqlite3,sys; d=sqlite3.connect("file:"+sys.argv[1]+"?mode=ro",uri=True); assert d.execute("PRAGMA quick_check").fetchone()[0]=="ok"; d.close()' "$backup/campo.sqlite3"
   cp .env "$backup/environment"
   if docker exec "$container" test -f /data/push-vapid.pem; then
     docker cp "$container:/data/push-vapid.pem" "$backup/push-vapid.pem"
