@@ -539,6 +539,23 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, {'ok': True})
             if path.startswith("/api/admin/") and not is_admin(user):
                 raise Problem(403, "Solo el administrador puede gestionar usuarios.")
+            if path == '/api/admin/notifications/test':
+                endpoint = body.get('endpoint')
+                if not isinstance(endpoint, str) or not endpoint:
+                    raise Problem(400, 'Activa las notificaciones con la campana en este dispositivo.')
+                with connection() as db:
+                    subscription = db.execute('SELECT payload FROM push_subscriptions WHERE endpoint=? AND user=?', (endpoint, user)).fetchone()
+                if not subscription:
+                    raise Problem(404, 'No hay una suscripción de esta cuenta en este dispositivo. Actívala con la campana.')
+                try:
+                    PUSH.send(json.loads(subscription['payload']), {
+                        'title': 'Campo · Notificación de prueba',
+                        'body': 'Los avisos push funcionan en este dispositivo. Esta prueba no modifica reportes ni envía mensajes a Telegram.',
+                        'tag': 'campo-prueba-admin',
+                    })
+                except Exception:
+                    raise Problem(502, 'No se pudo confirmar el envío al proveedor push. Revisa la conexión y la suscripción.') from None
+                return self.json(200, {'ok': True, 'message': 'El proveedor push aceptó la prueba. Comprueba que aparezca en tu dispositivo; la entrega depende del navegador y sus permisos.'})
             if path == "/api/admin/users":
                 return self.json(200, save_admin_user(body))
             if path == "/api/admin/users/delete":
