@@ -67,9 +67,10 @@ class AdminService:
                 if db.execute("SELECT 1 FROM app_users WHERE username=?", (username,)).fetchone():
                     raise AdminError(409, "El empleado seleccionado ya tiene otro usuario.")
                 db.execute("UPDATE app_users SET username=? WHERE username=?", (username, previous_username))
-                db.execute("UPDATE sessions SET user=? WHERE user=?", (username, previous_username))
+                db.execute("DELETE FROM sessions WHERE user=?", (previous_username,))
                 db.execute("UPDATE user_profiles SET user=? WHERE user=?", (username, previous_username))
                 db.execute("UPDATE user_permissions SET user=? WHERE user=?", (username, previous_username))
+            db.execute("DELETE FROM sessions WHERE user=?", (username,))
             db.execute("INSERT INTO app_users(username,pin_hash,responsible_name,employee_number,assignment_id,created) VALUES (?,?,?,?,?,?) ON CONFLICT(username) DO UPDATE SET pin_hash=excluded.pin_hash,responsible_name=excluded.responsible_name,employee_number=excluded.employee_number,assignment_id=excluded.assignment_id,active=1", (username, self.pin_hash(pin), name.strip(), employee.strip(), assignment.strip(), self.now()))
             db.execute("INSERT INTO user_profiles(user,responsible_name,employee_number,assignment_id,updated) VALUES (?,?,?,?,?) ON CONFLICT(user) DO UPDATE SET responsible_name=excluded.responsible_name,employee_number=excluded.employee_number,assignment_id=excluded.assignment_id,updated=excluded.updated", (username, name.strip(), employee.strip(), assignment.strip(), self.now()))
         self._audit("user_update" if previous_username else "user_upsert", username, {"previousUsername": previous_username, "employeeNumber": employee.strip(), "assignmentId": assignment.strip()})
@@ -81,6 +82,7 @@ class AdminService:
             if not db.execute("SELECT 1 FROM app_users WHERE username=?", (username,)).fetchone():
                 raise AdminError(404, "Usuario no encontrado.")
             db.execute("UPDATE app_users SET active=0 WHERE username=?", (username,))
+            db.execute("DELETE FROM sessions WHERE user=?", (username,))
         self._audit("user_delete", username, {})
         return {"ok": True}
 
@@ -91,6 +93,7 @@ class AdminService:
             if not row:
                 raise AdminError(404, "Usuario no encontrado.")
             db.execute("UPDATE app_users SET active=? WHERE username=?", (0 if row["active"] else 1, username))
+            db.execute("DELETE FROM sessions WHERE user=?", (username,))
         self._audit("user_toggle", username, {"active": not bool(row["active"])})
         return {"ok": True}
 

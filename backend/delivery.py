@@ -47,6 +47,13 @@ class DeliveryService:
                         thread_id = topic["thread_id"]
                     photo_ids = json.loads(report["payload"]).get("photos", [])
                     message_id = report["message_id"]
+                    # Persist the complete text before sending evidence. On retry the
+                    # stored message id prevents duplicate text; each photo has its receipt.
+                    if not message_id and photo_ids and (len(report['message'].encode('utf-16-le'))//2 > 1024 or len(photo_ids)>10):
+                        message_id = ('demo-' + report['id'][:8] if settings['mode']=='demo' else
+                            str(self.telegram('sendMessage', {'chat_id':settings['chat_id'], 'message_thread_id':int(thread_id), 'text':report['message']})['message_id']))
+                        with self.connection() as db:
+                            db.execute('UPDATE reports SET message_id=?,thread_id=? WHERE id=?', (message_id,thread_id,report['id']))
                     if not message_id:
                         if not photo_ids:
                             if settings["mode"] == "demo":

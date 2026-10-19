@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone
-from backend.reminders import due, missing_reports, belongs, Reminders
+from backend.reminders import due, missing_reports, belongs, Reminders, daily_summary
 from backend.push import validate_subscription
 
 
@@ -74,7 +74,7 @@ class ReminderTests(unittest.TestCase):
             self.assertEqual({c.args[0]['endpoint'] for c in push.call_args_list},{'missing','reported'})
             self.assertTrue(all(c.args[1]['refreshCatalog'] for c in push.call_args_list))
             telegram.assert_called_once()
-            self.assertIn('3 tareas planificadas',telegram.call_args.args[1]['text'])
+            self.assertIn('2 tareas planificadas',telegram.call_args.args[1]['text'])
             service.tick(datetime(2026,10,19,13,31,tzinfo=timezone.utc),push)
             self.assertEqual(push.call_count,2)
             telegram.assert_called_once()
@@ -90,6 +90,16 @@ class ReminderTests(unittest.TestCase):
         service.run_slot.reset_mock()
         service.tick(datetime(2026,10,20,4,0,tzinfo=timezone.utc),None)
         self.assertEqual([c.args[1] for c in service.run_slot.call_args_list],['missing','evening'])
+
+    def test_completed_tasks_not_planned_or_missing_but_keep_evening_reports(self):
+        for fields in [{'status':'FINISHED','progressBps':9000}, {'status':'COMPLETED'}, {'status':'IN_PROGRESS','progressBps':10000}]:
+            with self.subTest(fields=fields):
+                projects=self.project(**fields,operationLogs=[{'id':'final','operationDate':'2026-10-19','progressBps':10000}])
+                result=daily_summary(projects,'2026-10-19')
+                self.assertEqual(result['planned'],[])
+                self.assertEqual(result['tasks'],[])
+                self.assertEqual(len(result['reported']),1)
+                self.assertEqual(missing_reports(self.project(**fields),'2026-10-19')[0],[])
 
     def test_success_and_ambiguous_delivery_are_not_duplicated(self):
         import sqlite3

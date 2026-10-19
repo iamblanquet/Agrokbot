@@ -75,7 +75,7 @@ class WorkflowTests(unittest.TestCase):
     def details(self):
         return {'author': 'Abner Díaz', 'title': 'Residente de Campo', 'capturedAt': '2026-09-03T19:20:00Z', 'timezoneOffset': 360, 'offline': True, 'quantity': 2.5, 'unit': 'ha', 'machinery': [{'name': 'Máquina', 'hours': 8, 'liters': 140}]}
 
-    def test_incident_is_in_erp_diary_and_telegram_is_once_after_delivery(self):
+    def test_incident_is_in_erp_diary_and_notifies_without_waiting_for_delivery(self):
         from backend.incidents import IncidentService
         from unittest.mock import Mock
         incident={'description':'Fuga en tubería','priority':'high','stopsWork':True}
@@ -90,7 +90,7 @@ class WorkflowTests(unittest.TestCase):
         with server.connection() as db:
             db.execute("INSERT INTO settings VALUES ('incident_topic','33')")
         service.tick(True);service.tick(True)
-        telegram.assert_not_called()
+        telegram.assert_called_once()
         rows=service.listing()['incidents'];self.assertEqual(len(rows),1)
         self.assertEqual(rows[0]['erp_log_id'],'erp-incident')
         with server.connection() as db:
@@ -251,6 +251,31 @@ class WorkflowTests(unittest.TestCase):
                 server.create_report(data, 'dev')
             self.assertEqual(caught.exception.code, 'conflict')
             self.assertEqual(caught.exception.extra['currentProgressBps'], 6500)
+
+    def test_final_report_allowed_and_idempotent_but_new_reports_blocked(self):
+        body=self.payload(progressBps=10000)
+        receipt=server.create_report(body,'dev')
+        self.assertEqual(server.create_report(body,'dev')['id'],receipt['id'])
+        with patch.object(server,'erp') as erp:
+            with self.assertRaises(server.Problem) as caught:
+                server.create_report(self.payload(baseProgressBps=10000,progressBps=10000),'dev')
+            self.assertEqual(caught.exception.code,'task_completed')
+            erp.assert_not_called()
+        server.deliver()
+        self.assertEqual(server.create_report(body,'dev')['state'],'demo_published')
+        with server.connection() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM reports').fetchone()[0],1)
+
+    def test_completed_status_or_stale_offline_catalog_cannot_bypass_block(self):
+        for status,progress in [('FINISHED',9000),('COMPLETED',9000),('IN_PROGRESS',10000)]:
+            with self.subTest(status=status,progress=progress):
+                with server.connection() as db:
+                    row=db.execute("SELECT payload FROM catalog WHERE kind='task' AND id='demo-t1'").fetchone()
+                    task=json.loads(row[0]);task.update(status=status,progressBps=progress)
+                    db.execute("UPDATE catalog SET payload=? WHERE kind='task' AND id='demo-t1'",(json.dumps(task),))
+                with self.assertRaises(server.Problem) as caught:
+                    server.create_report(self.payload(),'dev')
+                self.assertEqual(caught.exception.code,'task_completed')
 
     def test_one_topic_for_multiple_tasks_in_project(self):
         server.create_report(self.payload(), 'dev')

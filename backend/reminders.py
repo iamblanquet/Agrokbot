@@ -3,6 +3,10 @@ from datetime import date, datetime
 from zoneinfo import ZoneInfo
 import json
 import urllib.parse
+import threading
+from backend.tasks import completed
+
+delivery_lock = threading.RLock()
 
 
 def due(now):
@@ -16,7 +20,7 @@ def missing_reports(projects, day):
     for project in projects:
         for activity in project.get('activities', []):
             for task in activity.get('tasks', []):
-                if task.get('status') in ('FINISHED', 'COMPLETED', 'CANCELLED', 'CANCELED'):
+                if completed(task) or task.get('status') in ('CANCELLED', 'CANCELED'):
                     continue
                 start = (task.get('plannedStartDate') or '')[:10]
                 end = (task.get('plannedEndDate') or '')[:10]
@@ -63,7 +67,7 @@ def daily_summary(projects, day):
                 start, end = (task.get('plannedStartDate') or '')[:10], (task.get('plannedEndDate') or '')[:10]
                 try:
                     date.fromisoformat(start); date.fromisoformat(end)
-                    if start <= day <= end and task.get('status') not in ('CANCELLED','CANCELED'):
+                    if start <= day <= end and not completed(task) and task.get('status') not in ('CANCELLED','CANCELED'):
                         planned.append(item)
                 except ValueError:
                     pass
@@ -88,6 +92,7 @@ class Reminders:
                 CREATE TABLE IF NOT EXISTS reminder_runs(day TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS reminder_deliveries(id TEXT PRIMARY KEY, state TEXT NOT NULL, error TEXT);
                 CREATE TABLE IF NOT EXISTS push_subscriptions(endpoint TEXT PRIMARY KEY, user TEXT NOT NULL, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS notification_jobs(id TEXT PRIMARY KEY, payload TEXT NOT NULL);
             ''')
 
     def snapshot(self, day):
@@ -102,7 +107,14 @@ class Reminders:
         details = [self.erp.request('/external/projects/' + urllib.parse.quote(p['id'], safe=''))['project'] for p in projects]
         return daily_summary(details, day)
 
-    def once(self, key, send):
+    def once(self, key, send, job=None):
+        with delivery_lock:
+            if job is not None:
+                with self.connection() as db:
+                    db.execute('INSERT OR IGNORE INTO notification_jobs VALUES (?,?)',(key,json.dumps(job)))
+            return self._once(key, send)
+
+    def _once(self, key, send):
         # A crash/timeout after send is ambiguous: do not auto-send twice.
         with self.connection() as db:
             db.execute("DELETE FROM reminder_deliveries WHERE id=? AND state='retry'", (key,))
@@ -115,12 +127,17 @@ class Reminders:
             from backend.http_client import RemoteFailure
             retry = isinstance(error, RemoteFailure) and not error.ambiguous
             with self.connection() as db:
-                db.execute("UPDATE reminder_deliveries SET state=?,error=? WHERE id=?", ('retry' if retry else 'review', type(error).__name__, key))
+                state='expired' if getattr(error,'subscription_expired',False) else 'retry' if retry else 'review'
+                db.execute("UPDATE reminder_deliveries SET state=?,error=? WHERE id=?", (state, type(error).__name__, key))
             return
         with self.connection() as db:
             db.execute("UPDATE reminder_deliveries SET state='sent' WHERE id=?", (key,))
 
     def topic(self):
+        with delivery_lock:
+            return self._topic()
+
+    def _topic(self):
         with self.connection() as db:
             row = db.execute("SELECT value FROM settings WHERE key=?", (self.topic_key,)).fetchone()
         if row:
@@ -131,11 +148,65 @@ class Reminders:
             claimed = db.execute("INSERT OR IGNORE INTO settings VALUES (?,'creating')", (self.topic_key,)).rowcount
         if not claimed:
             raise ValueError('Topic creation already in progress')
-        result = self.telegram('createForumTopic', {'chat_id': self.chat_id, 'name': self.topic_name})
+        try:
+            result = self.telegram('createForumTopic', {'chat_id': self.chat_id, 'name': self.topic_name})
+        except Exception as error:
+            from backend.http_client import RemoteFailure
+            if isinstance(error, RemoteFailure) and not error.ambiguous:
+                with self.connection() as db:
+                    db.execute("DELETE FROM settings WHERE key=? AND value='creating'", (self.topic_key,))
+            raise
         topic_id = result['message_thread_id']
         with self.connection() as db:
             db.execute("UPDATE settings SET value=? WHERE key=?", (str(topic_id),self.topic_key))
         return topic_id
+
+    def pending(self):
+        with self.connection() as db:
+            return {'deliveries':[dict(r) for r in db.execute("SELECT id,state,error FROM reminder_deliveries WHERE state IN ('review','sending','retry') ORDER BY id")],
+                    'topics':[dict(r) for r in db.execute("SELECT key,value FROM settings WHERE key IN ('reminder_topic','incident_topic') AND value='creating'")]}
+
+    def send_notice(self, key, payload):
+        self.once(key,lambda:self.telegram('sendMessage',payload),{'kind':'telegram','payload':payload})
+
+    def retry_job(self, key, push):
+        with self.connection() as db:
+            row=db.execute('SELECT payload FROM notification_jobs WHERE id=?',(key,)).fetchone()
+        if not row:
+            return
+        job=json.loads(row[0])
+        if job['kind']=='telegram':
+            self.send_notice(key,job['payload'])
+        else:
+            with self.connection() as db:
+                subscription=db.execute('SELECT s.payload FROM push_subscriptions s JOIN app_users u ON u.username=s.user WHERE s.endpoint=? AND s.user=? AND u.active=1',(job['endpoint'],job['user'])).fetchone()
+            if not subscription:
+                with self.connection() as db:
+                    db.execute("UPDATE reminder_deliveries SET state='expired',error='SubscriptionUnavailable' WHERE id=? AND state='retry'",(key,))
+                return
+            self.once(key,lambda:push(json.loads(subscription[0]),job['data']))
+
+    def resolve(self, body):
+        if not isinstance(body.get('note'),str) or not 1<=len(body['note'].strip())<=2000 or body.get('verified') is not True:
+            raise ValueError('Confirma la verificación externa y escribe una nota de hasta 2000 caracteres.')
+        with delivery_lock, self.connection() as db:
+            if body.get('topic') in ('reminder_topic','incident_topic'):
+                topic_id=body.get('topicId')
+                if type(topic_id) is not int or topic_id<0:
+                    raise ValueError('Indica el tema verificado, o 0 si confirmaste que no fue creado.')
+                if topic_id:
+                    changed=db.execute("UPDATE settings SET value=? WHERE key=? AND value='creating'",(str(topic_id),body['topic'])).rowcount
+                else:
+                    changed=db.execute("DELETE FROM settings WHERE key=? AND value='creating'",(body['topic'],)).rowcount
+            else:
+                if body.get('decision') not in ('sent','retry'):
+                    raise ValueError('Decisión inválida.')
+                if body['decision']=='retry' and not db.execute('SELECT 1 FROM notification_jobs WHERE id=?',(body.get('id'),)).fetchone():
+                    today=datetime.now(ZoneInfo('America/Mexico_City')).date().isoformat()
+                    if not str(body.get('id','')).startswith((today+':','incident:')):
+                        raise ValueError('Aviso antiguo sin contenido recuperable: no se reenviará un mensaje reconstruido.')
+                changed=db.execute("UPDATE reminder_deliveries SET state=?,error=NULL WHERE id=? AND state IN ('review','sending','retry')",(body['decision'],body.get('id'))).rowcount
+        return {'ok':bool(changed)}
 
     def tick(self, now, push):
         local = now.astimezone(ZoneInfo('America/Mexico_City'))
@@ -199,8 +270,8 @@ class Reminders:
         if text:
             chunks.append(text)
         for index, text in enumerate(chunks):
-            self.once(f'{day}:{slot}:telegram:{index}', lambda text=text: self.telegram('sendMessage', {
-                'chat_id': self.chat_id, 'message_thread_id': self.topic(), 'text': text}))
+            self.send_notice(f'{day}:{slot}:telegram:{index}', {
+                'chat_id': self.chat_id, 'message_thread_id': self.topic(), 'text': text})
         if slot == 'evening':
             return
         with self.connection() as db:
@@ -211,9 +282,10 @@ class Reminders:
             mine = [t for t in tasks if belongs(t, subscription)]
             if mine:
                 import hashlib
-                key = day + (':morning:push:' if slot == 'morning' else ':push:') + hashlib.sha256(subscription['endpoint'].encode()).hexdigest()
+                key = day + (':morning:push:' if slot == 'morning' else ':push:') + hashlib.sha256((subscription['user']+'\0'+subscription['endpoint']).encode()).hexdigest()
                 names = '; '.join(t['task'] for t in mine)
                 data = ({'title':'Tus tareas de hoy', 'body':f'{len(mine)} tareas: {names[:600]}. Abre Campo con internet para actualizar tus datos.',
                          'tag':'campo-tareas-' + day, 'refreshCatalog':True}
                         if slot == 'morning' else {'title':'Reportes pendientes', 'body':f'{len(mine)} tareas programadas sin reporte recibido hoy. Revisa la bitácora.', 'tag':'campo-reportes-' + day})
-                self.once(key, lambda s=subscription, data=data: push(json.loads(s['payload']), data))
+                self.once(key, lambda s=subscription, data=data: push(json.loads(s['payload']), data),
+                          {'kind':'push','user':subscription['user'],'endpoint':subscription['endpoint'],'data':data})

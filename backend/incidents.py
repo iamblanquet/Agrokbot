@@ -41,15 +41,16 @@ class IncidentService:
                 if created:
                     db.execute('INSERT INTO incident_events(incident_id,actor,status,note,created) VALUES (?,?,?,?,?)',(row['id'],row['user'],'open','Incidencia registrada en el diario ERP.',self.now()))
 
-    def listing(self):
+    def listing(self, offset=0, limit=500):
         with self.connection() as db:
-            rows=[dict(r) for r in db.execute('SELECT * FROM incidents ORDER BY created DESC LIMIT 500')]
+            limit = min(500,max(1,limit))
+            rows=[dict(r) for r in db.execute('SELECT * FROM incidents ORDER BY created DESC,id DESC LIMIT ? OFFSET ?', (limit,max(0,offset)))]
             for row in rows:
                 row['payload']=json.loads(row['payload'])
                 row['events']=[dict(e) for e in db.execute('SELECT actor,status,note,created FROM incident_events WHERE incident_id=? ORDER BY id',(row['id'],))]
                 sent=db.execute('SELECT state FROM reminder_deliveries WHERE id=?',('incident:'+row['id'],)).fetchone()
                 row['telegramState']=sent[0] if sent else 'pending'
-        return {'incidents':rows}
+        return {'incidents':rows, 'nextOffset':offset+len(rows) if len(rows)==limit else None}
 
     def update(self, body, actor):
         status, note=body.get('status'),body.get('note')
@@ -67,15 +68,16 @@ class IncidentService:
         if not live:
             return
         with self.connection() as db:
-            # Wait for the normal report/photos delivery before posting the incident notice.
+            # The ERP diary must be confirmed, but urgent notices do not wait for photos.
             rows=db.execute("""SELECT i.* FROM incidents i JOIN reports r ON r.id=i.id
                 LEFT JOIN reminder_deliveries d ON d.id='incident:'||i.id
-                WHERE r.state='published' AND (d.id IS NULL OR d.state='retry')""").fetchall()
+                WHERE r.erp_log_id IS NOT NULL AND r.state NOT IN ('erp_sending','erp_review','erp_rejected','demo_published')
+                AND (d.id IS NULL OR d.state='retry')""").fetchall()
         for row in rows:
             data=json.loads(row['payload'])
             text=(f"INCIDENCIA · {row['id']}\nProyecto: {data['project']}\nTarea: {data['task']}\n"
                   f"Reportó: {data['author']}\nFecha: {data['operationDate']}\nPrioridad: {data['priority']}\n"
                   f"Detiene actividad: {'Sí' if data['stopsWork'] else 'No'}\n\n{data['description']}\n\n"
                   f"Asiento ERP: {row['erp_log_id']}\nConsulta el estado actual en la ventana Incidencias.")
-            self.delivery.once('incident:'+row['id'],lambda text=text:self.telegram('sendMessage',{
-                'chat_id':self.chat_id,'message_thread_id':self.delivery.topic(),'text':text[:2000]}))
+            self.delivery.send_notice('incident:'+row['id'],{
+                'chat_id':self.chat_id,'message_thread_id':self.delivery.topic(),'text':text[:2000]})

@@ -1,5 +1,6 @@
 services:
   campo:
+    image: ${CAMPO_IMAGE:-agrokbot-campo:latest}
     build: .
     ports:
       - "127.0.0.1:${APP_PORT:-8787}:8080"

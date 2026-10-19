@@ -10,7 +10,11 @@ class EvidenceService:
     def process(self):
         with self.lock:
             with self.connection() as db:
-                reports = db.execute("SELECT * FROM reports WHERE state IN ('photos_pending','photos_review') LIMIT 15").fetchall()
+                cursor = db.execute("SELECT value FROM settings WHERE key='evidence_cursor'").fetchone()
+                cursor = cursor[0] if cursor else ''
+                reports = db.execute("SELECT * FROM reports WHERE state IN ('photos_pending','photos_review') ORDER BY CASE WHEN id>? THEN 0 ELSE 1 END,id LIMIT 15", (cursor,)).fetchall()
+                if reports:
+                    db.execute("INSERT INTO settings VALUES ('evidence_cursor',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (reports[-1]['id'],))
             for report in reports:
                 if not report['erp_log_id']:
                     continue

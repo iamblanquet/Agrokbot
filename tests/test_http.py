@@ -18,6 +18,35 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_recovery_routes_require_admin_and_audit_real_actor(self):
+        for path in ['/api/admin/health','/api/admin/notifications/pending']:
+            self.assertEqual(self.request(path)[0],401)
+        for path in ['/api/admin/notifications/resolve','/api/admin/monitor/evidence']:
+            self.assertEqual(self.request(path,{})[0],401)
+        self.request('/api/login',{'password':'prueba-ñ'})
+        with patch.object(server,'is_admin',return_value=False):
+            for path in ['/api/admin/health','/api/admin/notifications/pending']:
+                self.assertEqual(self.request(path)[0],403)
+            for path in ['/api/admin/notifications/resolve','/api/admin/monitor/evidence']:
+                self.assertEqual(self.request(path,{})[0],403)
+        with server.connection() as db:
+            db.execute("INSERT INTO reminder_deliveries VALUES ('job','review','Timeout')")
+        status,_=self.request('/api/admin/notifications/resolve',{'id':'job','decision':'sent','note':'Verificado','verified':True})
+        self.assertEqual(status,200)
+        with server.connection() as db:
+            row=db.execute("SELECT actor FROM audit_log WHERE action='notification_resolved'").fetchone()
+            self.assertEqual(row[0],'tester')
+
+    def test_health_probe_is_read_only_and_does_not_claim_delivery(self):
+        self.request('/api/login',{'password':'prueba-ñ'})
+        with patch.object(server,'ERP_MODE','live'),patch.object(server,'TG_MODE','live'),patch.object(server.ERP,'request',return_value={'projects':[]}) as erp,patch.object(server,'telegram',return_value={'id':'group'}) as telegram:
+            status,data=self.request('/api/admin/health')
+        self.assertEqual(status,200)
+        self.assertEqual(data['checks'],{'erp':'reachable','telegram':'reachable'})
+        self.assertFalse(data['deliveryVerified'])
+        erp.assert_called_once_with('/external/projects')
+        telegram.assert_called_once_with('getChat',{'chat_id':server.CHAT_ID})
+
     def test_incident_permission_is_enforced_and_revocable(self):
         self.assertEqual(self.request('/api/incidents')[0],401)
         self.request('/api/login',{'user':'tester','password':'prueba-ñ'})

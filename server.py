@@ -18,7 +18,7 @@ from pathlib import Path
 from backend.admin import AdminError, AdminService
 from backend.access import AccessService
 from backend.auth import AuthError, AuthService
-from backend.audit import AuditService
+from backend.audit import AuditService, current_actor
 from backend.database import DatabaseService
 from backend.reminders import Reminders
 from backend.incidents import IncidentService
@@ -56,6 +56,7 @@ PASSWORD = CONFIG.password
 PUBLIC_URL = CONFIG.public_url
 ALLOWED = set(CONFIG.allowed_users)
 ATTEMPTS = {}
+WORKER_STATUS = {'delivery':0.0,'incidents':0.0,'reminders':0.0}
 
 
 def now():
@@ -249,7 +250,7 @@ def catalog_for_user(data, user):
     return ACCESS.catalog_for_user(data, user)
 
 
-AUDIT = AuditService(connection, now, lambda: USER)
+AUDIT = AuditService(connection, now, current_actor.get)
 
 def audit_event(action, target, details):
     AUDIT.record(action, target, details)
@@ -257,7 +258,7 @@ def audit_event(action, target, details):
 MEDIA = MediaService(connection, LOCK, Problem, audit_event)
 ADMIN = AdminService(connection, catalog, task_responsible, pin_hash, pin_in_use, now, USER, AUDIT)
 
-MONITOR = MonitorService(connection, LOCK, now, AUDIT, USER)
+MONITOR = MonitorService(connection, LOCK, now, AUDIT, USER, ERP)
 
 
 def _admin_result(operation, *args):
@@ -335,11 +336,12 @@ def deliver():
 
 def worker():
     while True:
-        try:
-            deliver()
-            INCIDENTS.tick(TG_MODE == 'live')
-        except Exception as error:
-            print(f"Worker error: {type(error).__name__}", flush=True)
+        for name,operation in [('incidents',lambda:INCIDENTS.tick(TG_MODE=='live')),('delivery',deliver)]:
+            try:
+                operation()
+                WORKER_STATUS[name]=time.monotonic()
+            except Exception as error:
+                print(f"Worker {name} error: {type(error).__name__}", flush=True)
         time.sleep(4)
 
 
@@ -377,7 +379,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def session(self):
         try:
-            return AUTH.session(self.headers.get("Cookie", ""))
+            user = AUTH.session(self.headers.get("Cookie", ""))
+            current_actor.set(user)
+            return user
         except AuthError as error:
             raise Problem(error.status, error.message) from None
 
@@ -386,10 +390,12 @@ class Handler(BaseHTTPRequestHandler):
             payload, cookie = AUTH.login(body, self.client_address[0])
         except AuthError as error:
             raise Problem(error.status, error.message) from None
+        current_actor.set(payload['user'])
         audit_event("session_login", payload.get("user", ""), {"user": payload.get("user", ""), "ip": self.client_address[0]})
         return self.json(200, payload, cookie)
 
     def do_GET(self):
+        current_actor.set('anonymous')
         try:
             path = urllib.parse.urlsplit(self.path).path
             if path == "/api/health":
@@ -402,7 +408,9 @@ class Handler(BaseHTTPRequestHandler):
                 if path == '/api/incidents':
                     if not (is_admin(user) or INCIDENTS.allowed(user)):
                         raise Problem(403, 'No tienes permiso para gestionar incidencias.')
-                    return self.json(200, INCIDENTS.listing())
+                    query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                    offset = (query.get('offset') or ['0'])[0]
+                    return self.json(200, INCIDENTS.listing(int(offset) if offset.isdigit() else 0))
                 if path.startswith("/api/admin/") and not path.startswith("/api/admin/journal/") and not is_admin(user):
                     raise Problem(403, "Solo el administrador puede gestionar usuarios.")
                 if path.startswith('/api/admin/journal/'):
@@ -436,8 +444,23 @@ class Handler(BaseHTTPRequestHandler):
                     raise Problem(404, 'Ruta no encontrada.')
                 if path == "/api/admin/users":
                     return self.json(200, {"users": admin_users()})
+                if path == '/api/admin/notifications/pending':
+                    return self.json(200, REMINDERS.pending())
+                if path == '/api/admin/health':
+                    checks={}
+                    for name,mode,probe in [('erp',ERP_MODE,lambda:ERP.request('/external/projects')),('telegram',TG_MODE,lambda:telegram('getChat',{'chat_id':CHAT_ID}))]:
+                        try:
+                            if mode=='live': probe()
+                            checks[name]='reachable' if mode=='live' else 'demo'
+                        except Exception:
+                            checks[name]='unreachable'
+                    return self.json(200,{'checks':checks,'workers':{k:{'lastSuccess':v,'stale':time.monotonic()-v>300} for k,v in WORKER_STATUS.items()},'deliveryVerified':False})
                 if path == "/api/admin/audit":
-                    return self.json(200, {"entries": admin_audit()})
+                    query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                    offset = (query.get('offset') or ['0'])[0]
+                    offset = int(offset) if offset.isdigit() else 0
+                    rows = AUDIT.entries(offset)
+                    return self.json(200, {"entries": rows, "nextOffset": offset+len(rows) if len(rows)==500 else None})
                 if path == "/api/admin/integration/erp-key":
                     return self.json(200, erp_key_status())
                 if path == "/api/admin/monitor":
@@ -509,6 +532,7 @@ class Handler(BaseHTTPRequestHandler):
             self.json(500, {"error": "Error interno del servidor."})
 
     def do_POST(self):
+        current_actor.set('anonymous')
         try:
             # Same-origin JSON requests only; no CORS or cross-origin state changes.
             origin = self.headers.get("Origin")
@@ -554,6 +578,20 @@ class Handler(BaseHTTPRequestHandler):
                 result = INCIDENTS.set_permission(body,user)
                 audit_event('incident_permission',body['user'],{'enabled':body['enabled']})
                 return self.json(200,result)
+            if path == '/api/admin/notifications/resolve':
+                try:
+                    result=REMINDERS.resolve(body)
+                except ValueError as error:
+                    raise Problem(400,str(error)) from None
+                audit_event('notification_resolved',str(body.get('id') or body.get('topic')),{'note':body['note'],'decision':body.get('decision'),'topicId':body.get('topicId')})
+                if result['ok'] and body.get('decision')=='retry':
+                    REMINDERS.retry_job(body['id'],PUSH.send)
+                return self.json(200,result)
+            if path == '/api/admin/monitor/evidence':
+                try:
+                    return self.json(200,MONITOR.reconcile_evidence(body.get('id'),body.get('note'),body.get('erpLogId')))
+                except ValueError as error:
+                    raise Problem(400,str(error)) from None
             if path in ('/api/admin/reminders/preview', '/api/admin/reminders/test'):
                 from zoneinfo import ZoneInfo
                 from backend.reminders import belongs
@@ -604,7 +642,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json(200, MONITOR.retry_telegram(body.get("id", "")))
             if path == "/api/admin/monitor/resolve":
                 try:
-                    return self.json(200, MONITOR.resolve(body.get("id", ""), body.get("decision", ""), body.get("note", "")))
+                    return self.json(200, MONITOR.resolve(body.get("id", ""), body.get("decision", ""), body.get("note", ""), body.get('erpLogId')))
                 except ValueError as error:
                     raise Problem(400, str(error)) from None
             if path == "/api/admin/integration/erp-key":
@@ -655,13 +693,14 @@ class Handler(BaseHTTPRequestHandler):
 
 REMINDERS = Reminders(connection, ERP, telegram, CHAT_ID)
 INCIDENTS = IncidentService(connection, now, telegram, CHAT_ID, Problem)
-PUSH = Push(DATA, PUBLIC_URL)
+PUSH = Push(DATA, PUBLIC_URL, connection)
 
 
 def reminder_worker():
     while True:
         try:
             REMINDERS.tick(datetime.now(timezone.utc), PUSH.send)
+            WORKER_STATUS['reminders']=time.monotonic()
         except Exception as error:
             print('Reminder worker:', type(error).__name__, flush=True)
         time.sleep(60)

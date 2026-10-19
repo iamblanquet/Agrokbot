@@ -3,7 +3,7 @@ const {test} = require('node:test');
 const {readFileSync} = require('node:fs');
 const vm = require('node:vm');
 
-async function run({offline=false, reject=false, failPhoto=false}={}) {
+async function run({offline=false, reject=false, failPhoto=false, completed=false}={}) {
   const calls=[], queue=new Map();
   const item={id:'report',state:'pending',photos:[{id:'photo',data:'data:image/jpeg;base64,AAAA'}],payload:{id:'report',photos:['photo']}};
   queue.set(item.id,item);
@@ -15,7 +15,10 @@ async function run({offline=false, reject=false, failPhoto=false}={}) {
   const api=async(path,body)=>{
     calls.push(path);
     if(path==='/api/me')return {user:'dev'};
-    if(path==='/api/reports')return body?{id:'report',state:reject?'erp_review':'photos_pending'}:{reports:[],topics:[]};
+    if(path==='/api/reports'){
+      if(body&&completed)throw Object.assign(new Error('La tarea ya está finalizada'),{status:409,code:'task_completed'});
+      return body?{id:'report',state:reject?'erp_review':'photos_pending'}:{reports:[],topics:[]};
+    }
     if(path==='/api/photos'&&failPhoto)throw Object.assign(new Error('sin conexión'),{status:503});
     return {};
   };
@@ -33,6 +36,13 @@ test('fallo de carga conserva el pendiente para reintentar',async()=>{
 });
 test('asiento incierto conserva fotos y bloquea su carga',async()=>{
   const {calls,queue}=await run({reject:true});assert.ok(!calls.includes('/api/photos'));assert.equal(queue.get('report').state,'invalid');
+});
+
+test('completed task rejects stale offline report without losing its photos',async()=>{
+  const {calls,queue}=await run({completed:true});
+  assert.equal(queue.get('report').state,'invalid');
+  assert.equal(queue.get('report').photos.length,1);
+  assert.ok(!calls.includes('/api/photos'));
 });
 
 test('limpieza IndexedDB borra solo reportes publicados del usuario',async()=>{

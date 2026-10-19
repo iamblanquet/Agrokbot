@@ -1,4 +1,4 @@
-const CACHE = 'campo-shell-v52';
+const CACHE = 'campo-shell-v54';
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch (_) {}
@@ -15,8 +15,8 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(clients.openWindow('/'));
 });
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/auth.js', '/storage.js', '/sync.js', '/admin.js', '/monitor.js', '/api-client.js', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/agrokool-mark.png', '/agrokool-mark-white.png', '/agrokool-logo.png', '/agrokool-logo-white.png', '/isologo-agk.png', '/agrokool-verde.png', '/agrokool-gold.png', '/agrokool-horizontal.png'];
+SHELL.push('/journal.js','/journal.css','/incidents.js');
 self.addEventListener('install', event => {
-  SHELL.push('/journal.js','/journal.css','/incidents.js');
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {

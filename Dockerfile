@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS runtime
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 DATA_DIR=/data PORT=8080
 WORKDIR /app
 RUN pip install --no-cache-dir pywebpush==2.0.3 tzdata==2026.2
@@ -12,3 +12,10 @@ USER campo
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=2)"
 CMD ["python", "server.py"]
+
+FROM runtime AS test
+COPY --chown=campo:campo tests /app/tests
+ENV DATA_DIR=/tmp/campo-tests ERP_MODE=demo TELEGRAM_MODE=demo TELEGRAM_POLLING=false REMINDERS_ENABLED=false
+CMD ["python", "-m", "unittest", "discover", "-s", "tests"]
+
+FROM runtime AS production

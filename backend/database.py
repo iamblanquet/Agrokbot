@@ -68,6 +68,12 @@ class DatabaseService:
             )
 
     def _recover_incomplete_operations(self, db):
+        # Quarantine legacy inconsistencies without replaying external writes or deleting bytes.
+        for row in db.execute("SELECT id,payload,erp_log_id FROM reports WHERE state='published'").fetchall():
+            ids=json.loads(row['payload']).get('photos',[])
+            confirmed=all(db.execute("SELECT 1 FROM photos WHERE id=? AND report_id=? AND attachment_id IS NOT NULL AND upload_state='confirmed'",(pid,row['id'])).fetchone() for pid in ids)
+            if not confirmed or not row['erp_log_id']:
+                db.execute("UPDATE reports SET state='evidence_review',error='Requiere conciliación ERP; evidencias locales conservadas. No reenviar automáticamente.' WHERE id=?",(row['id'],))
         db.execute("UPDATE photos SET upload_state='review' WHERE upload_state='sending'")
         db.execute("UPDATE reports SET state='erp_review',error='El proceso se interrumpió durante el registro. Verifica en ERP antes de repetir.' WHERE state='erp_sending'")
         db.execute("UPDATE reports SET state='telegram_review',error='El proceso se interrumpió durante el envío. Verifica en Telegram antes de repetir.' WHERE state='telegram_sending'")

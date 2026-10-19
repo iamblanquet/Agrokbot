@@ -27,9 +27,10 @@ def validate_subscription(value):
 
 
 class Push:
-    def __init__(self, folder, public_url):
+    def __init__(self, folder, public_url, connection=None):
         self.path = folder / 'push-vapid.pem'
         self.public_url = public_url
+        self.connection = connection
 
     def public_key(self):
         from cryptography.hazmat.primitives.asymmetric import ec
@@ -47,7 +48,20 @@ class Push:
         return base64.urlsafe_b64encode(raw).decode().rstrip('=')
 
     def send(self, subscription, data):
-        from pywebpush import webpush
+        from pywebpush import webpush, WebPushException
+        from backend.http_client import RemoteFailure
         validate_subscription(subscription)
-        webpush(subscription, json.dumps(data), vapid_private_key=str(self.path),
-                vapid_claims={'sub': self.public_url}, ttl=10800, timeout=20)
+        try:
+            webpush(subscription, json.dumps(data), vapid_private_key=str(self.path),
+                    vapid_claims={'sub': self.public_url}, ttl=10800, timeout=20)
+        except WebPushException as error:
+            status=error.response.status_code if error.response is not None else None
+            failure=RemoteFailure('El proveedor push rechazó o no confirmó el aviso.',status is None or status>=500)
+            if status in (404,410):
+                failure.subscription_expired=True
+                if self.connection:
+                    with self.connection() as db:
+                        row=db.execute('SELECT payload FROM push_subscriptions WHERE endpoint=?',(subscription['endpoint'],)).fetchone()
+                        if row and json.loads(row[0]).get('keys')==subscription['keys']:
+                            db.execute('DELETE FROM push_subscriptions WHERE endpoint=?',(subscription['endpoint'],))
+            raise failure from None

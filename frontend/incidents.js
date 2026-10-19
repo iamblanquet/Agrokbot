@@ -258,8 +258,13 @@ window.campoIncidents = {
 
     const load = async () => {
       try {
-        const data = await api('/api/incidents');
-        rows = data.incidents || [];
+        let offset = 0, loaded = [];
+        do {
+          const data = await api('/api/incidents?offset=' + offset);
+          loaded.push(...(data.incidents || []));
+          offset = data.nextOffset;
+        } while (offset != null);
+        rows = loaded;
         error.textContent = '';
         draw();
       } catch (e) {

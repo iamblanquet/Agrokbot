@@ -241,10 +241,15 @@ window.campoAdmin = {
     $('#erp-key-form').onsubmit=async e=>{e.preventDefault();const key=$('#erp-api-key').value.trim();if(!key)return;try{const result=await api('/api/admin/integration/erp-key',{apiKey:key});$('#erp-api-key').value='';$('#erp-key-status').textContent=`Configurada: ${result.masked}`;toast('API key ERP actualizada.');await load();}catch(error){$('#erp-key-status').textContent=error.message;}};
     $('#admin-export-audit').onclick=()=>{const rows=auditEntries||[];const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),entries:rows},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`agrokool-bitacora-${new Date().toISOString().slice(0,10)}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Bitácora exportada.');};
     let auditEntries=[];
+    const loadAudit=async()=>{
+      let offset=0,entries=[];
+      do {const data=await api('/api/admin/audit?offset='+offset);entries.push(...(data.entries||[]));offset=data.nextOffset;} while(offset!=null);
+      return {entries};
+    };
 
     const load=async()=>{
       try{
-        const [people,data,audit,keyStatus]=await Promise.all([api('/api/admin/responsibles').catch(()=>({responsibles:[]})),api('/api/admin/users'),api('/api/admin/audit'),api('/api/admin/integration/erp-key')]);
+        const [people,data,audit,keyStatus]=await Promise.all([api('/api/admin/responsibles').catch(()=>({responsibles:[]})),api('/api/admin/users'),loadAudit(),api('/api/admin/integration/erp-key')]);
         $('#erp-key-status').textContent=keyStatus.configured?`Configurada: ${resultMask(keyStatus)}`:'No configurada';
         $('#erp-key-status').className=`admin-status-pill ${keyStatus.configured?'ok':'warn'}`;
         auditEntries=audit.entries||[];

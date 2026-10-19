@@ -6,6 +6,7 @@ import urllib.parse
 from datetime import date, datetime, timezone
 
 from backend.http_client import RemoteFailure
+from backend.tasks import completed
 
 
 class ReportService:
@@ -73,6 +74,8 @@ class ReportService:
                 if linked.get("employee_number") and assignment["employeeNumber"] and linked["employee_number"] != assignment["employeeNumber"]:
                     raise self.problem(403, "Esta tarea está asignada a otro empleado.", "responsible_forbidden")
             current = task.get("progressBps", 0)
+            if completed(task):
+                raise self.problem(409, "La tarea ya está finalizada; no admite reportes adicionales.", "task_completed", {"currentProgressBps": current})
             if current != clean["baseProgressBps"] or clean["progressBps"] < current:
                 raise self.problem(409, "La tarea cambió o el reporte reduciría su avance. Revisa el valor actual.", "conflict", {"currentProgressBps": current})
             project = next(item for item in data["projects"] if item["id"] == task["projectId"])
