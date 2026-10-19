@@ -1,10 +1,10 @@
-const CACHE = 'campo-shell-v43';
+const CACHE = 'campo-shell-v44';
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch (_) {}
   event.waitUntil(self.registration.showNotification(data.title || 'Campo', {
     body: data.body || 'Revisa tus reportes pendientes.', tag: data.tag || 'campo-reportes',
-    icon: '/icon-192.png', data: {url: '/'}
+    icon: '/icon-192.png', badge: '/agrokool-mark-white.png', data: {url: '/'}
   }));
 });
 self.addEventListener('notificationclick', event => {
