@@ -60,8 +60,6 @@ class DeliveryService:
                                 message_id = "demo-" + report["id"][:8]
                             else:
                                 data = {"chat_id": settings["chat_id"], "message_thread_id": int(thread_id), "text": report["message"]}
-                                if settings["public_url"].startswith("https://"):
-                                    data["reply_markup"] = {"inline_keyboard": [[{"text": "Abrir Campo", "url": settings["public_url"]}]]}
                                 message_id = str(self.telegram("sendMessage", data)["message_id"])
                             with self.connection() as db:
                                 db.execute("UPDATE reports SET message_id=?,thread_id=? WHERE id=?", (message_id, thread_id, report["id"]))
@@ -70,11 +68,10 @@ class DeliveryService:
                                 photo = db.execute("SELECT * FROM photos WHERE id=? AND report_id=?", (photo_ids[0], report["id"])).fetchone()
                             if not photo:
                                 raise RemoteFailure("No se encuentra una fotografía del reporte.")
-                            reply_markup = {"inline_keyboard": [[{"text": "Abrir Campo", "url": settings["public_url"]}]]} if settings["public_url"].startswith("https://") else None
                             if settings["mode"] == "demo":
                                 message_id = "demo-" + photo_ids[0][:8]
                             else:
-                                message_id = self.telegram_photo(photo, thread_id, caption=report["message"], reply_markup=reply_markup)
+                                message_id = self.telegram_photo(photo, thread_id, caption=report["message"], reply_markup=None)
                             with self.connection() as db:
                                 db.execute("UPDATE reports SET message_id=?,thread_id=? WHERE id=?", (message_id, thread_id, report["id"]))
                                 db.execute("UPDATE photos SET message_id=? WHERE id=?", (message_id, photo_ids[0]))
@@ -87,8 +84,6 @@ class DeliveryService:
                                         raise RemoteFailure("No se encuentra una fotografía del reporte.")
                                     photos.append(photo)
                             caption = report["message"]
-                            if settings["public_url"].startswith("https://") and (len(caption.encode("utf-16-le")) // 2 + len(settings["public_url"]) + 20 <= 1024):
-                                caption += f"\n\nAbrir Campo: {settings['public_url']}"
                             if settings["mode"] == "demo":
                                 message_ids = ["demo-" + pid[:8] for pid in photo_ids]
                             else:
