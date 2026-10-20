@@ -25,11 +25,14 @@ window.campoAuth={
       await api('/api/logout',{});await storage.clear();state.user=null;state.canManageIncidents=false;state.view='projects';try{if(typeof sessionStorage!=='undefined')sessionStorage.removeItem('campo-active-view');}catch(_){}state.catalog={projects:[],tasks:[]};state.reports=[];state.topics=[];state.simulation=false;showLogin();
     }catch(error){toast(error.message);}
   },
-  async setupTelegram({showLogin,$}){
-    if(!location.hash.includes('tgWebAppData')&&!location.search.includes('tgWebAppData'))return false;
+  async setupTelegram({showLogin,login,$}){
+    const initData=window.Telegram?.WebApp?.initData || new URLSearchParams(location.hash.slice(1)).get('tgWebAppData') || new URLSearchParams(location.search).get('tgWebAppData');
+    if(!initData)return false;
     showLogin();
-    $('#login-form .muted').textContent='Esta Mini App requiere el PIN de tu cuenta de Campo.';
+    $('#login-form .muted').textContent='Verificando tu cuenta vinculada de Telegram…';
     $('#telegram-login').hidden=true;
+    try{await login({initData});}
+    catch(error){$('#login-form .muted').textContent='Puedes entrar con tu PIN.';$('#login-error').textContent=error.message;}
     return true;
   },
   async boot({state,storage,showLogin,showApp,reloadLocal,sync,setupTelegram,banner,$}){

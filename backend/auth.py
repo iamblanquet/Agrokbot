@@ -43,11 +43,12 @@ class AuthService:
         self._check_attempt(ip)
         settings = self.config()
         init_data = body.get("initData")
-        if init_data:
-            raise AuthError(403, "El acceso requiere el PIN de la cuenta. Telegram no sustituye el inicio de sesión.")
-        if not settings["password_login_enabled"]:
-            raise AuthError(403, "El acceso por PIN está deshabilitado en el servidor.")
-        user, responsible_name, employee_number, assignment_id = self._pin_identity(body, settings)
+        if "initData" in body:
+            user, responsible_name, employee_number, assignment_id = self._telegram_identity(init_data, settings)
+        else:
+            if not settings["password_login_enabled"]:
+                raise AuthError(403, "El acceso por PIN está deshabilitado en el servidor.")
+            user, responsible_name, employee_number, assignment_id = self._pin_identity(body, settings)
 
         responsible_name = self.configured_profile(user).get("name") or responsible_name
         configured = self.configured_profile(user)
@@ -75,7 +76,10 @@ class AuthService:
     def _telegram_identity(self, init_data, settings):
         if not settings["bot_token"] or not isinstance(init_data, str):
             raise AuthError(401, "Acceso de Telegram no configurado.")
-        params = dict(urllib.parse.parse_qsl(init_data))
+        pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+        params = dict(pairs)
+        if len(pairs) != len(params) or len(init_data) > 16384:
+            raise AuthError(403, "Identidad de Telegram inválida.")
         received_hash = params.pop("hash", "")
         check = "\n".join(f"{key}={value}" for key, value in sorted(params.items()))
         secret = hmac.new(b"WebAppData", settings["bot_token"].encode(), hashlib.sha256).digest()
@@ -83,17 +87,23 @@ class AuthService:
         try:
             age = time.time() - int(params.get("auth_date", 0))
             tg_user = json.loads(params.get("user", "{}"))
+            if type(tg_user["id"]) is not int or tg_user["id"] <= 0:
+                raise ValueError()
             uid = str(tg_user["id"])
         except (ValueError, KeyError, TypeError):
             raise AuthError(401, "Identidad de Telegram inválida.") from None
-        if not hmac.compare_digest(expected, received_hash) or not -30 <= age <= 3600 or (settings["allowed"] and uid not in settings["allowed"]):
+        if not hmac.compare_digest(expected.encode(), received_hash.encode()) or not -30 <= age <= 3600:
             raise AuthError(403, "Usuario de Telegram no autorizado o sesión vencida.")
-        if not settings["allowed"]:
-            member = self.telegram("getChatMember", {"chat_id": settings["chat_id"], "user_id": int(uid)})
-            if member.get("status") not in ("creator", "administrator", "member") and not (member.get("status") == "restricted" and member.get("is_member")):
-                raise AuthError(403, "Debes pertenecer al grupo de reportes para entrar.")
-        name = " ".join(str(tg_user.get(key, "")).strip() for key in ("first_name", "last_name") if str(tg_user.get(key, "")).strip())
-        return "telegram:" + uid, name
+        with self.connection() as db:
+            link = db.execute("SELECT user FROM telegram_links WHERE telegram_id=?", (uid,)).fetchone()
+            if not link:
+                raise AuthError(403, "Vincula primero tu Telegram desde Campo entrando con tu PIN.")
+            account = db.execute("SELECT * FROM app_users WHERE username=?", (link["user"],)).fetchone()
+            if account and account["active"]:
+                return account["username"], account["responsible_name"], account["employee_number"], account["assignment_id"]
+            if not account and link["user"] == settings["user"]:
+                return settings["user"], settings["app_responsible_name"], "", ""
+        raise AuthError(403, "La cuenta vinculada está inactiva.")
 
     def _pin_identity(self, body, settings):
         login_pin = str(body.get("password", ""))

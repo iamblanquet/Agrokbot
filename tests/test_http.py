@@ -305,6 +305,31 @@ class AuthTests(unittest.TestCase):
         fields['hash'] = hmac.new(secret, check.encode(), hashlib.sha256).hexdigest()
         return urllib.parse.urlencode(fields)
 
+    def test_linked_telegram_login_uses_app_identity_and_permissions(self):
+        with server.connection() as db:
+            db.execute("INSERT INTO app_users VALUES (?,?,?,?,?,?,?)", ('employee',server.pin_hash('1234'),'Ana','E1','A1',1,server.now()))
+            db.execute("INSERT INTO telegram_links VALUES ('employee','123','ana')")
+        status, result = self.request('/api/login', {'initData':self.signed()})
+        self.assertEqual(status,200)
+        self.assertEqual(result['user'],'employee')
+        self.assertFalse(result['isAdmin'])
+        self.assertEqual(self.request('/api/admin/users')[0],403)
+        with server.connection() as db:
+            db.execute("UPDATE app_users SET active=0 WHERE username='employee'")
+        self.assertEqual(self.request('/api/me')[0],401)
+        self.assertEqual(self.request('/api/login', {'initData':self.signed()})[0],403)
+
+    def test_linked_telegram_rejects_tampered_expired_duplicate_and_unlinked(self):
+        with server.connection() as db:
+            db.execute("INSERT INTO telegram_links VALUES ('tester','123','admin')")
+        for value in (self.signed().replace('test','tampered'), self.signed(timestamp=time.time()-7200),
+                      self.signed(timestamp=time.time()+120), self.signed()+'&auth_date=1'):
+            self.assertEqual(self.request('/api/login', {'initData':value})[0],403)
+        self.assertEqual(self.request('/api/login', {'initData':self.signed()})[0],200)
+        self.assertTrue(self.request('/api/me')[1]['isAdmin'])
+        self.request('/api/telegram/unlink',{})
+        self.assertEqual(self.request('/api/login', {'initData':self.signed()})[0],403)
+
     def test_miniapp_does_not_bypass_pin_and_disabled_password(self):
         with patch.object(server, 'ALLOWED', set()), patch.object(server, 'telegram', return_value={'status':'member'}) as call:
             self.assertEqual(self.request('/api/login', {'initData': self.signed()})[0], 403)
