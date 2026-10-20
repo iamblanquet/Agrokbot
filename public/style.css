@@ -2726,6 +2726,250 @@ tbody tr:hover {
 }
 
 /* ==========================================================================
+   Telegram Account Topbar Button & Modal (UI/UX AgroKool)
+   ========================================================================== */
+
+#telegram-account.topbar-telegram-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid #d2decb;
+  background: #fbfdf9;
+  color: #2AABEE;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+#telegram-account.topbar-telegram-btn:hover {
+  background: #eef7fc;
+  border-color: #2AABEE;
+  color: #229ED9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(42, 171, 238, 0.18);
+}
+
+#telegram-account.topbar-telegram-btn:focus-visible {
+  outline: 2px solid #2AABEE;
+  outline-offset: 2px;
+}
+
+#telegram-account.topbar-telegram-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Telegram Dialog */
+#telegram-account-dialog.telegram-modal {
+  width: min(480px, calc(100% - 28px));
+  border-radius: 24px;
+  padding: 0;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 25px 70px -12px rgba(15, 23, 42, 0.35);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.telegram-modal-header {
+  padding: 20px 24px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-bottom: 1px solid #edf2f7;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.telegram-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.telegram-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #e7f5fc;
+  color: #2AABEE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(42, 171, 238, 0.15);
+}
+
+.telegram-icon-badge svg {
+  width: 24px;
+  height: 24px;
+}
+
+.telegram-modal-title-group .dialog-eyebrow {
+  margin: 0 0 2px 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #2AABEE;
+  text-transform: uppercase;
+}
+
+#telegram-account-heading {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.telegram-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.telegram-status-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.telegram-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.telegram-status-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+#telegram-account-status {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: #ecf0df;
+  color: #284411;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.3;
+}
+
+.telegram-info-box {
+  background: #fbfdf9;
+  border: 1px solid #e6eedb;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.telegram-info-icon {
+  color: #4f6624;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.telegram-info-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #45483c;
+}
+
+.telegram-info-text strong {
+  color: #191d13;
+}
+
+.telegram-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.telegram-primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 20px;
+  border-radius: 12px;
+}
+
+.telegram-open-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #2AABEE;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(42, 171, 238, 0.35);
+}
+
+.telegram-open-btn:hover {
+  background: #229ED9;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(42, 171, 238, 0.45);
+}
+
+.telegram-modal-footer {
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #edf2f7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.telegram-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.telegram-refresh-btn:hover {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* ==========================================================================
    Telegram & Settings Views
    ========================================================================== */
 
@@ -4662,6 +4906,42 @@ footer {
   }
   .btn.small {
     font-size: 11px;
+  }
+  .topbar #telegram-account.topbar-telegram-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    box-shadow: none;
+  }
+  .topbar #telegram-account.topbar-telegram-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transform: none;
+  }
+  .topbar #telegram-account.topbar-telegram-btn svg {
+    width: 17px;
+    height: 17px;
+  }
+  #telegram-account-dialog.telegram-modal {
+    width: calc(100% - 20px);
+    margin: auto;
+    border-radius: 20px;
+  }
+  .telegram-modal-header {
+    padding: 16px 18px;
+  }
+  .telegram-modal-body {
+    padding: 18px;
+    gap: 14px;
+  }
+  .telegram-modal-footer {
+    padding: 12px 18px;
   }
   .topbar #notifications-bell {
     width: 34px;

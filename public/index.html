@@ -210,7 +210,12 @@
           <span class="breadcrumb">Operaciones <span class="breadcrumb-sep">/</span> <strong id="breadcrumb-current">Proyectos</strong></span>
         </div>
         <div class="topbar-actions">
-          <button id="telegram-account" type="button" class="btn small" title="Vincular tu cuenta de Telegram">Telegram</button>
+          <button id="telegram-account" type="button" class="icon-btn topbar-telegram-btn" aria-label="Mi cuenta de Telegram" title="Mi cuenta de Telegram">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+            </svg>
+            <span class="sr-only">Mi cuenta de Telegram</span>
+          </button>
           <button id="notifications-bell" type="button" class="icon-btn" aria-label="Notificaciones" title="Notificaciones"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
           <span id="network" class="connection online" title="Con conexión" aria-label="Con conexión"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg><span class="sr-only">Con conexión</span></span>
           <button id="sync" class="btn small sync-btn" title="Sincronizar" aria-label="Sincronizar"><svg class="sync-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> <span>Sincronizar</span></button>
@@ -425,15 +430,65 @@
     <h2 id="delete-employee-heading">Eliminar empleado</h2><p id="delete-employee-description"></p><p class="muted">Sus participaciones en reportes anteriores y pendientes se conservan.</p><p id="delete-employee-error" class="error" role="alert"></p><div class="employee-actions"><button id="cancel-delete-employee" class="btn">Cancelar</button><button id="confirm-delete-employee" class="btn danger">Eliminar empleado</button></div>
   </dialog>
   <dialog id="photo-dialog" aria-label="Evidencia fotográfica"><div class="sheet-handle photo-sheet-handle"></div><button id="close-photo" type="button" class="btn small">Cerrar foto</button><img id="full-photo" alt="Evidencia fotográfica ampliada"></dialog>
-  <dialog id="telegram-account-dialog" aria-labelledby="telegram-account-heading">
-    <h2 id="telegram-account-heading">Mi cuenta de Telegram</h2>
-    <p id="telegram-account-status" role="status"></p>
-    <p>Tu acceso sigue siendo por PIN. No compartas el enlace de vinculación.</p>
-    <button id="telegram-link-create" type="button" class="btn primary">Vincular Telegram</button>
-    <a id="telegram-link-open" hidden target="_blank" rel="noopener noreferrer">Abrir Telegram y confirmar</a>
-    <button id="telegram-link-remove" type="button" class="btn" hidden>Desvincular Telegram</button>
-    <button id="telegram-link-refresh" type="button" class="btn">Actualizar estado</button>
-    <form method="dialog"><button class="btn" type="submit">Cerrar</button></form>
+  <dialog id="telegram-account-dialog" class="modern-sheet-dialog telegram-modal" aria-labelledby="telegram-account-heading">
+    <div class="telegram-modal-header">
+      <div class="telegram-modal-title-group">
+        <div class="telegram-icon-badge" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="dialog-eyebrow">INTEGRACIÓN OFICIAL</span>
+          <h2 id="telegram-account-heading">Mi cuenta de Telegram</h2>
+        </div>
+      </div>
+      <form method="dialog"><button class="close-dialog-btn" type="submit" aria-label="Cerrar ventana">✕</button></form>
+    </div>
+
+    <div class="telegram-modal-body">
+      <div class="telegram-status-card">
+        <div class="telegram-status-header">
+          <span class="telegram-status-label">Estado de vinculación:</span>
+          <span id="telegram-account-status" role="status">Consultando…</span>
+        </div>
+      </div>
+
+      <div class="telegram-info-box">
+        <span class="telegram-info-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </span>
+        <p class="telegram-info-text">
+          Tu acceso a Campo sigue siendo por <strong>PIN</strong>. Vincular tu cuenta te permite recibir recordatorios directos y usar la Mini App sin volver a autenticarte. No compartas tu enlace.
+        </p>
+      </div>
+
+      <div class="telegram-actions-stack">
+        <button id="telegram-link-create" type="button" class="btn primary full telegram-primary-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+          <span>Vincular con Telegram</span>
+        </button>
+        <a id="telegram-link-open" class="btn full telegram-open-btn" hidden target="_blank" rel="noopener noreferrer">
+          <span>Abrir Telegram y confirmar</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        <button id="telegram-link-remove" type="button" class="btn danger full" hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          <span>Desvincular Telegram</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="telegram-modal-footer">
+      <button id="telegram-link-refresh" type="button" class="btn telegram-refresh-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span>Actualizar estado</span>
+      </button>
+      <form method="dialog"><button class="btn" type="submit">Cerrar</button></form>
+    </div>
   </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
