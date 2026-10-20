@@ -104,6 +104,25 @@ class ReportBot:
         message = callback.get("message", {}) if callback else update.get("message", {})
         user = callback.get("from", {}) if callback else message.get("from", {})
         chat = message.get("chat", {})
+        link_text = message.get("text", "").strip()
+        link_callback = str((callback or {}).get("data", ""))
+        if link_text.startswith("/start link_") or link_callback.startswith("link:"):
+            if chat.get("type") != "private" or not user.get("id") or user.get("is_bot") or chat.get("id") != user["id"]:
+                return
+            if callback:
+                try:
+                    self.b.TELEGRAM_LINKS.confirm(link_callback[5:], user["id"], user.get("username"))
+                    reply = "Telegram vinculado a tu cuenta de Campo. Tu acceso sigue siendo por PIN."
+                except self.b.Problem as error:
+                    reply = error.message
+                self.b.telegram("answerCallbackQuery", {"callback_query_id": callback["id"]})
+                self.b.telegram("sendMessage", {"chat_id": chat["id"], "text": reply})
+            else:
+                token = link_text[len("/start link_"):]
+                if not re.fullmatch(r"[A-Za-z0-9_-]{32}", token):
+                    return
+                self.b.telegram("sendMessage", {"chat_id": chat["id"], "text": "Confirma solo si tú solicitaste vincular tu cuenta desde Campo. El enlace vence en 10 minutos.", "reply_markup": {"inline_keyboard": [[{"text": "Confirmar vinculación", "callback_data": "link:"+token}]]}})
+            return
         if not chat.get("id") or user.get("is_bot"):
             return
         if chat.get("type") != "private" and str(chat["id"]) != str(self.b.CHAT_ID):

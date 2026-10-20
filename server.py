@@ -18,6 +18,7 @@ from pathlib import Path
 from backend.admin import AdminError, AdminService
 from backend.access import AccessService
 from backend.auth import AuthError, AuthService
+from backend.telegram_links import TelegramLinks
 from backend.audit import AuditService, current_actor
 from backend.database import DatabaseService
 from backend.reminders import Reminders
@@ -494,6 +495,8 @@ class Handler(BaseHTTPRequestHandler):
                 if path == "/api/me":
                     profile = profile_for(user)
                     return self.json(200, {"user": user, "responsibleName": profile.get("responsible_name", ""), "isAdmin": is_admin(user), 'canManageIncidents':is_admin(user) or INCIDENTS.allowed(user)})
+                if path == "/api/telegram/link":
+                    return self.json(200, TELEGRAM_LINKS.status(user))
                 if path == "/api/config":
                     scope = "Todos los proyectos de la integración" if is_admin(user) else "Tareas asignadas al empleado ERP"
                     return self.json(200, {"erpMode": ERP_MODE, "telegramMode": TG_MODE, "telegramConfigured": bool(BOT_TOKEN and CHAT_ID), "publicUrl": PUBLIC_URL, "authScope": scope})
@@ -548,6 +551,14 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/login":
                 return self.login(body)
             user = self.session()
+            if path == "/api/telegram/link":
+                if TG_MODE != "live" or not BOT_TOKEN:
+                    raise Problem(503, "Telegram no está configurado.")
+                bot_name = telegram("getMe", {})["username"]
+                token = TELEGRAM_LINKS.issue(user)
+                return self.json(200, {"url": f"https://t.me/{bot_name}?start=link_{token}", "expiresIn": 600})
+            if path == "/api/telegram/unlink":
+                return self.json(200, TELEGRAM_LINKS.unlink(user))
             if path == '/api/incidents/update':
                 if not (is_admin(user) or INCIDENTS.allowed(user)):
                     raise Problem(403, 'No tienes permiso para gestionar incidencias.')
@@ -697,6 +708,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 REMINDERS = Reminders(connection, ERP, telegram, CHAT_ID)
+TELEGRAM_LINKS = TelegramLinks(connection, lambda: USER, Problem)
 INCIDENTS = IncidentService(connection, now, telegram, CHAT_ID, Problem,
     lambda photo,thread_id,caption='':telegram_photo(photo,thread_id,caption=caption),
     lambda attachment_id:ERP.attachment_file(attachment_id))

@@ -18,6 +18,20 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_telegram_link_requires_session_and_unlinks_only_self(self):
+        self.assertEqual(self.request('/api/telegram/link')[0], 401)
+        self.assertEqual(self.request('/api/telegram/link', {})[0], 401)
+        self.assertEqual(self.request('/api/telegram/unlink', {})[0], 401)
+        self.request('/api/login', {'password': 'prueba-ñ'})
+        with patch.object(server, 'TG_MODE', 'live'), patch.object(server, 'BOT_TOKEN', 'test'), patch.object(server, 'telegram', return_value={'username':'test_bot'}):
+            status, result = self.request('/api/telegram/link', {})
+        self.assertEqual(status, 200)
+        token = result['url'].split('link_')[1]
+        server.TELEGRAM_LINKS.confirm(token, 123, 'test')
+        self.assertTrue(self.request('/api/telegram/link')[1]['linked'])
+        self.assertEqual(self.request('/api/telegram/unlink', {'user':'someone_else'})[0], 200)
+        self.assertFalse(self.request('/api/telegram/link')[1]['linked'])
+
     def test_recovery_routes_require_admin_and_audit_real_actor(self):
         for path in ['/api/admin/health','/api/admin/notifications/pending']:
             self.assertEqual(self.request(path)[0],401)

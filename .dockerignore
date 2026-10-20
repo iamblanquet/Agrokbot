@@ -5,3 +5,4 @@ data
 *.sqlite*
 *.md
 .venv-notifications/
+.venv-link-tests/

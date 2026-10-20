@@ -210,6 +210,7 @@
           <span class="breadcrumb">Operaciones <span class="breadcrumb-sep">/</span> <strong id="breadcrumb-current">Proyectos</strong></span>
         </div>
         <div class="topbar-actions">
+          <button id="telegram-account" type="button" class="btn small" title="Vincular tu cuenta de Telegram">Telegram</button>
           <button id="notifications-bell" type="button" class="icon-btn" aria-label="Notificaciones" title="Notificaciones"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
           <span id="network" class="connection online" title="Con conexión" aria-label="Con conexión"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg><span class="sr-only">Con conexión</span></span>
           <button id="sync" class="btn small sync-btn" title="Sincronizar" aria-label="Sincronizar"><svg class="sync-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> <span>Sincronizar</span></button>
@@ -424,6 +425,16 @@
     <h2 id="delete-employee-heading">Eliminar empleado</h2><p id="delete-employee-description"></p><p class="muted">Sus participaciones en reportes anteriores y pendientes se conservan.</p><p id="delete-employee-error" class="error" role="alert"></p><div class="employee-actions"><button id="cancel-delete-employee" class="btn">Cancelar</button><button id="confirm-delete-employee" class="btn danger">Eliminar empleado</button></div>
   </dialog>
   <dialog id="photo-dialog" aria-label="Evidencia fotográfica"><div class="sheet-handle photo-sheet-handle"></div><button id="close-photo" type="button" class="btn small">Cerrar foto</button><img id="full-photo" alt="Evidencia fotográfica ampliada"></dialog>
+  <dialog id="telegram-account-dialog" aria-labelledby="telegram-account-heading">
+    <h2 id="telegram-account-heading">Mi cuenta de Telegram</h2>
+    <p id="telegram-account-status" role="status"></p>
+    <p>Tu acceso sigue siendo por PIN. No compartas el enlace de vinculación.</p>
+    <button id="telegram-link-create" type="button" class="btn primary">Vincular Telegram</button>
+    <a id="telegram-link-open" hidden target="_blank" rel="noopener noreferrer">Abrir Telegram y confirmar</a>
+    <button id="telegram-link-remove" type="button" class="btn" hidden>Desvincular Telegram</button>
+    <button id="telegram-link-refresh" type="button" class="btn">Actualizar estado</button>
+    <form method="dialog"><button class="btn" type="submit">Cerrar</button></form>
+  </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
 </html>

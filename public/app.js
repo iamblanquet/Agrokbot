@@ -1,4 +1,43 @@
 'use strict';
+
+async function refreshTelegramAccount(){
+  const label=document.querySelector('#telegram-account-status');
+  document.querySelector('#telegram-link-open').hidden=true;
+  document.querySelector('#telegram-link-create').hidden=true;
+  document.querySelector('#telegram-link-remove').hidden=true;
+  label.textContent='Consultando…';
+  try{
+    const result=await window.campoApi('/api/telegram/link');
+    label.textContent=result.linked?`Vinculado: ${result.telegram.username?'@'+result.telegram.username:result.telegram.telegram_id}`:'Sin vincular.';
+    document.querySelector('#telegram-link-create').hidden=result.linked;
+    document.querySelector('#telegram-link-remove').hidden=!result.linked;
+  }catch(error){label.textContent=error.message;}
+}
+document.querySelector('#telegram-account').onclick=()=>{
+  document.querySelector('#telegram-account-dialog').showModal();refreshTelegramAccount();
+};
+document.querySelector('#telegram-link-refresh').onclick=refreshTelegramAccount;
+document.querySelector('#telegram-link-create').onclick=async function(){
+  this.disabled=true;
+  document.querySelector('#telegram-link-open').hidden=true;
+  try{
+    const result=await window.campoApi('/api/telegram/link',{});
+    const link=document.querySelector('#telegram-link-open');
+    link.href=result.url;link.hidden=false;
+    document.querySelector('#telegram-account-status').textContent='Abre el enlace y confirma en Telegram. Vence en 10 minutos.';
+  }catch(error){document.querySelector('#telegram-account-status').textContent=error.message;}
+  finally{this.disabled=false;}
+};
+document.querySelector('#telegram-link-remove').onclick=async function(){
+  if(!confirm('¿Desvincular tu cuenta de Telegram?'))return;
+  this.disabled=true;
+  try{await window.campoApi('/api/telegram/unlink',{});await refreshTelegramAccount();}
+  catch(error){document.querySelector('#telegram-account-status').textContent=error.message;}
+  finally{this.disabled=false;}
+};
+window.addEventListener('focus',()=>{
+  if(document.querySelector('#telegram-account-dialog').open)refreshTelegramAccount();
+});
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pct = value => `${new Intl.NumberFormat('es-MX', {maximumFractionDigits:2}).format((value || 0) / 100)} %`;

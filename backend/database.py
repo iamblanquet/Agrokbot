@@ -20,6 +20,8 @@ class DatabaseService:
             CREATE TABLE IF NOT EXISTS submissions (id TEXT PRIMARY KEY, user TEXT NOT NULL, payload TEXT NOT NULL, created TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS clarifications (id TEXT PRIMARY KEY, report_id TEXT NOT NULL, user TEXT NOT NULL, note TEXT NOT NULL, created TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS telegram_links (user TEXT PRIMARY KEY, telegram_id TEXT NOT NULL UNIQUE, username TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS telegram_link_tokens (token TEXT PRIMARY KEY, user TEXT NOT NULL UNIQUE, expires REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS user_permissions(user TEXT PRIMARY KEY, incidents INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS incidents(id TEXT PRIMARY KEY, user TEXT NOT NULL, erp_log_id TEXT NOT NULL, project_id TEXT NOT NULL, task_id TEXT NOT NULL, payload TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', version INTEGER NOT NULL DEFAULT 1, created TEXT NOT NULL, updated TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS incident_events(id INTEGER PRIMARY KEY AUTOINCREMENT, incident_id TEXT NOT NULL, actor TEXT NOT NULL, status TEXT NOT NULL, note TEXT NOT NULL, created TEXT NOT NULL);
