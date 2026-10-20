@@ -254,33 +254,56 @@ class Reminders:
                 db.execute('INSERT OR IGNORE INTO reminder_runs VALUES (?,?)', (run_key, json.dumps(snapshot)))
         tasks = snapshot['planned'] if slot == 'morning' else snapshot['tasks']
         lines = []
-        def task_line(task):
-            return f"{task['responsible']} · {task['project']} · {task['task']}"
+        def task_block(task, icon='👤', extra=None):
+            block = [
+                f"{icon} {task['responsible']}",
+                f"   📍 {task['project']}",
+                f"   🔹 {task['task']}",
+            ]
+            if extra:
+                block.append(f"   {extra}")
+            return '\n'.join(block)
         if slot == 'morning':
-            lines = [f'Tablero · {day} · planificación 07:30 (hora de Campeche)',
-                     f'{len(tasks)} tareas planificadas para hoy.']
-            lines.extend(task_line(t) for t in sorted(tasks, key=lambda t:(t['responsible'],t['project'],t['task'])))
+            lines = [
+                f"📋 Tablero · {day} · planificación 07:30 (hora de Campeche)\n"
+                f"☀️ {len(tasks)} tareas planificadas para hoy."
+            ]
+            lines.extend(
+                task_block(t, icon='👤')
+                for t in sorted(tasks, key=lambda t: (t['responsible'], t['project'], t['task']))
+            )
         elif slot == 'evening':
             reported = snapshot['reported']
-            lines = [f'Tablero · {day} · resumen 21:30 (hora de Campeche)',
-                     f"{len(reported)} tareas con reporte; {sum(t['reports'] for t in reported)} reportes recibidos para hoy.",
-                     'El avance es acumulado según el último reporte del día; reportar no significa finalizar.']
-            for task in sorted(reported, key=lambda t:(t['responsible'],t['project'],t['task'])):
+            lines = [
+                f"📋 Tablero · {day} · resumen 21:30 (hora de Campeche)\n"
+                f"📊 {len(reported)} tareas con reporte; {sum(t['reports'] for t in reported)} reportes recibidos para hoy.\n"
+                f"ℹ️ El avance es acumulado según el último reporte del día; reportar no significa finalizar."
+            ]
+            for task in sorted(reported, key=lambda t: (t['responsible'], t['project'], t['task'])):
                 value = task.get('progressBps')
-                progress = f'{value / 100:g} %' if isinstance(value,(int,float)) else 'no informado'
-                finished = task.get('status') in ('FINISHED','COMPLETED')
-                lines.append(f"{task_line(task)} · {task['reports']} reportes · avance {progress} · {'Finalizada en ERP' if finished else 'No finalizada en ERP'}")
-            lines.append(f'{len(tasks)} tareas programadas sin reporte recibido:')
-            lines.extend(task_line(t) for t in tasks)
+                progress = f'{value / 100:g} %' if isinstance(value, (int, float)) else 'no informado'
+                finished = task.get('status') in ('FINISHED', 'COMPLETED')
+                erp_status = '✅ Finalizada en ERP' if finished else '⏳ No finalizada en ERP'
+                lines.append(
+                    task_block(
+                        task,
+                        icon='✅' if finished else '🔄',
+                        extra=f"📈 Avance: {progress} ({task['reports']} reportes) · {erp_status}",
+                    )
+                )
+            pending_icon = '⚠️' if tasks else '✅'
+            lines.append(f"{pending_icon} {len(tasks)} tareas programadas sin reporte recibido:")
+            lines.extend(task_block(t, icon='⏳') for t in tasks)
         if lines:
-            lines.append(f"Sin fechas válidas (no evaluadas para pendientes): {snapshot['unscheduled']}.")
+            lines.append(f"🗓️ Sin fechas válidas (no evaluadas para pendientes): {snapshot['unscheduled']}.")
         # Each chunk has a stable delivery key and stays below Telegram's UTF-16 limit.
         chunks, text = [], ''
         for line in lines:
             line = line[:900]
-            if len((text + '\n' + line).encode('utf-16-le')) // 2 > 3500:
-                chunks.append(text); text = ''
-            text += ('\n' if text else '') + line
+            sep = '\n\n' if text else ''
+            if len((text + sep + line).encode('utf-16-le')) // 2 > 3500:
+                chunks.append(text); text = ''; sep = ''
+            text += sep + line
         if text:
             chunks.append(text)
         if slot != 'evening':
@@ -316,16 +339,16 @@ class Reminders:
             mine = sorted((t for t in tasks if belongs(t,recipient)), key=lambda t:(t['project'],t['task'],t['id']))
             if not mine:
                 continue
-            title = 'Tus tareas de hoy' if slot == 'morning' else 'Reportes pendientes'
-            heading = f"{title} · {day} (hora de Campeche)\n"
+            title = '☀️ Tus tareas de hoy' if slot == 'morning' else '⚠️ Reportes pendientes'
+            heading = f"{title} · {day} (hora de Campeche)\n\n"
             chunks, text = [], heading
             for task in mine:
-                line = f"• {task['project'][:300]} · {task['task'][:600]}\n"
+                line = f"📍 {task['project'][:300]}\n   🔹 {task['task'][:600]}\n\n"
                 if len((text+line).encode('utf-16-le'))//2 > 3300:
                     chunks.append(text); text=heading
                 text += line
-            text += ('Abre Campo con internet para actualizar los datos antes de salir al campo.'
-                     if slot == 'morning' else 'No se recibió reporte de estas tareas programadas. Revisa la bitácora.')
+            text += ('📲 Abre Campo con internet para actualizar los datos antes de salir al campo.'
+                     if slot == 'morning' else '📝 No se recibió reporte de estas tareas programadas. Revisa la bitácora.')
             chunks.append(text)
             identity = hashlib.sha256((recipient['user']+'\0'+recipient['telegram_id']).encode()).hexdigest()
             for index, content in enumerate(chunks):
