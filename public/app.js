@@ -358,7 +358,7 @@ function renderTelegram(){
 function renderSettings(){
   $('#main').innerHTML=heading('Notificaciones','Administra los avisos de este dispositivo.')+'<div class="settings-grid"></div>';
   const alerts=document.createElement('section'); alerts.className='setting-card';
-  alerts.innerHTML='<h2>Avisos de reportes</h2><p>Lunes a sábado, 21:00 · Ciudad de México. Tareas programadas sin reporte recibido. En iPhone instala primero la PWA en inicio.</p><button id="enable-alerts" class="btn small">Activar avisos</button> <button id="disable-alerts" class="btn small">Desactivar</button><p id="alerts-status" role="status"></p>';
+  alerts.innerHTML='<h2>Avisos de reportes</h2><p>Lunes a sábado, 21:00 · Hora de Campeche. Tareas programadas sin reporte recibido. En iPhone instala primero la PWA en inicio.</p><button id="enable-alerts" class="btn small">Activar avisos</button> <button id="disable-alerts" class="btn small">Desactivar</button><p id="alerts-status" role="status"></p>';
   $('#main .settings-grid').append(alerts);
   $('#enable-alerts').onclick=async()=>{try{
     if(!('PushManager' in window)||!('Notification' in window))throw Error('Este navegador no admite notificaciones push.');

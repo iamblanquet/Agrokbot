@@ -29,6 +29,7 @@ class ReminderTests(unittest.TestCase):
                 db.executescript('''CREATE TABLE settings(key TEXT PRIMARY KEY,value TEXT);
                     INSERT INTO settings VALUES ('reminder_topic','22');
                     CREATE TABLE app_users(username TEXT PRIMARY KEY,active INTEGER);
+                    CREATE TABLE telegram_links(user TEXT PRIMARY KEY,telegram_id TEXT UNIQUE,username TEXT);
                     CREATE TABLE user_profiles(user TEXT,assignment_id TEXT,employee_number TEXT);''')
                 for user, assignment, active in [('missing','a1',1),('reported','a2',1),('disabled','a1',0),('unrelated','a3',1)]:
                     db.execute('INSERT INTO app_users VALUES (?,?)',(user,active))

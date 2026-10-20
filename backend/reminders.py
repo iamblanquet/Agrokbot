@@ -169,13 +169,27 @@ class Reminders:
     def send_notice(self, key, payload):
         self.once(key,lambda:self.telegram('sendMessage',payload),{'kind':'telegram','payload':payload})
 
+    def private_notice(self, key, user, payload):
+        # Recheck the link on every attempt: never send a queued notice after unlinking.
+        with self.connection() as db:
+            linked = db.execute('''SELECT 1 FROM telegram_links l JOIN app_users u ON u.username=l.user
+                WHERE l.user=? AND l.telegram_id=? AND u.active=1''',
+                (user, str(payload['chat_id']))).fetchone()
+            if not linked:
+                db.execute("UPDATE reminder_deliveries SET state='expired',error='TelegramLinkUnavailable' WHERE id=? AND state='retry'", (key,))
+                return
+        self.once(key, lambda:self.telegram('sendMessage',payload),
+                  {'kind':'telegram_private','user':user,'payload':payload})
+
     def retry_job(self, key, push):
         with self.connection() as db:
             row=db.execute('SELECT payload FROM notification_jobs WHERE id=?',(key,)).fetchone()
         if not row:
             return
         job=json.loads(row[0])
-        if job['kind']=='telegram':
+        if job['kind']=='telegram_private':
+            self.private_notice(key,job['user'],job['payload'])
+        elif job['kind']=='telegram':
             self.send_notice(key,job['payload'])
         else:
             with self.connection() as db:
@@ -243,12 +257,12 @@ class Reminders:
         def task_line(task):
             return f"{task['responsible']} · {task['project']} · {task['task']}"
         if slot == 'morning':
-            lines = [f'Tablero · {day} · planificación 07:30 (Ciudad de México)',
+            lines = [f'Tablero · {day} · planificación 07:30 (hora de Campeche)',
                      f'{len(tasks)} tareas planificadas para hoy.']
             lines.extend(task_line(t) for t in sorted(tasks, key=lambda t:(t['responsible'],t['project'],t['task'])))
         elif slot == 'evening':
             reported = snapshot['reported']
-            lines = [f'Tablero · {day} · resumen 21:30 (Ciudad de México)',
+            lines = [f'Tablero · {day} · resumen 21:30 (hora de Campeche)',
                      f"{len(reported)} tareas con reporte; {sum(t['reports'] for t in reported)} reportes recibidos para hoy.",
                      'El avance es acumulado según el último reporte del día; reportar no significa finalizar.']
             for task in sorted(reported, key=lambda t:(t['responsible'],t['project'],t['task'])):
@@ -269,6 +283,8 @@ class Reminders:
             text += ('\n' if text else '') + line
         if text:
             chunks.append(text)
+        if slot != 'evening':
+            self.private_reminders(day, slot, tasks)
         for index, text in enumerate(chunks):
             self.send_notice(f'{day}:{slot}:telegram:{index}', {
                 'chat_id': self.chat_id, 'message_thread_id': self.topic(), 'text': text})
@@ -289,3 +305,29 @@ class Reminders:
                         if slot == 'morning' else {'title':'Reportes pendientes', 'body':f'{len(mine)} tareas programadas sin reporte recibido hoy. Revisa la bitácora.', 'tag':'campo-reportes-' + day})
                 self.once(key, lambda s=subscription, data=data: push(json.loads(s['payload']), data),
                           {'kind':'push','user':subscription['user'],'endpoint':subscription['endpoint'],'data':data})
+
+    def private_reminders(self, day, slot, tasks):
+        import hashlib
+        with self.connection() as db:
+            recipients = [dict(r) for r in db.execute('''SELECT l.user,l.telegram_id,p.assignment_id,p.employee_number
+                FROM telegram_links l JOIN app_users u ON u.username=l.user
+                JOIN user_profiles p ON p.user=l.user WHERE u.active=1''')]
+        for recipient in recipients:
+            mine = sorted((t for t in tasks if belongs(t,recipient)), key=lambda t:(t['project'],t['task'],t['id']))
+            if not mine:
+                continue
+            title = 'Tus tareas de hoy' if slot == 'morning' else 'Reportes pendientes'
+            heading = f"{title} · {day} (hora de Campeche)\n"
+            chunks, text = [], heading
+            for task in mine:
+                line = f"• {task['project'][:300]} · {task['task'][:600]}\n"
+                if len((text+line).encode('utf-16-le'))//2 > 3300:
+                    chunks.append(text); text=heading
+                text += line
+            text += ('Abre Campo con internet para actualizar los datos antes de salir al campo.'
+                     if slot == 'morning' else 'No se recibió reporte de estas tareas programadas. Revisa la bitácora.')
+            chunks.append(text)
+            identity = hashlib.sha256((recipient['user']+'\0'+recipient['telegram_id']).encode()).hexdigest()
+            for index, content in enumerate(chunks):
+                self.private_notice(f'{day}:{slot}:telegram-private:{identity}:{index}',
+                                    recipient['user'], {'chat_id':recipient['telegram_id'],'text':content})

@@ -78,7 +78,7 @@ class ReportBot:
                 text = "No hay proyectos o tareas disponibles. Usa /reportar cuando el catálogo esté actualizado."
             self.send(draft, text, rows)
         elif step == "date":
-            self.send(draft, "3/5 · Fecha del trabajo\nResponde a este mensaje con la fecha AAAA-MM-DD (por ejemplo, 2026-09-26) o pulsa Hoy.", self.buttons(draft, [("Hoy (hora de Ciudad de México)", "today"), ("Cancelar", "cancel")]))
+            self.send(draft, "3/5 · Fecha del trabajo\nResponde a este mensaje con la fecha AAAA-MM-DD (por ejemplo, 2026-09-26) o pulsa Hoy.", self.buttons(draft, [("Hoy (hora de Campeche)", "today"), ("Cancelar", "cancel")]))
         elif step == "progress":
             self.send(draft, f"4/5 · {draft['task_name']}\nAvance actual: {draft['baseProgressBps']/100:g} %\nEscribe el avance acumulado entre {draft['baseProgressBps']/100:g} y 100 (ejemplo: 65.5).\nResponde a este mensaje. /cancelar para salir.", force=True)
         elif step == "notes":
@@ -209,7 +209,7 @@ class ReportBot:
                         return
                     draft.update(taskId=task["id"], task_name=selected["label"], baseProgressBps=task["progressBps"], step="date")
             elif action == "today" and draft["step"] == "date":
-                # Mexico City is UTC-6 year round. Keep this fixed choice explicit in the UI.
+                # Campeche is UTC-6 year round. Keep this fixed choice explicit in the UI.
                 draft.update(operationDate=datetime.now(timezone(timedelta(hours=-6))).date().isoformat(), step="progress")
             elif action == "edit" and draft["step"] == "confirm":
                 draft["step"] = "progress"
