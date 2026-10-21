@@ -167,7 +167,7 @@ function renderProjects(){
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
         </div>`:''}
-        <span class="catalog-badge">${state.config.erpMode==='demo'?'Datos de demostración':'Catálogo del ERP'}</span>
+        <span class="catalog-badge ${state.config.erpMode==='demo'?'is-demo':''}"><span class="catalog-badge-dot" aria-hidden="true"></span>${state.config.erpMode==='demo'?'Datos de demostración':'Catálogo del ERP'}</span>
       </div>
     </div>
     <div class="project-slider-wrapper">
