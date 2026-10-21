@@ -1,6 +1,6 @@
 'use strict';
 window.campoJournal = {
-  project: '', rows: [], projects: [], fetched: '', page: 1, selected: null,
+  project: '', rows: [], projects: [], allProjects: [], projectStatusFilter: 'active', fetched: '', page: 1, selected: null,
   filters: { from: '', to: '', task: '', author: '', status: '', search: '', hasPhotos: false },
   filtersOpen: false,
 
@@ -61,21 +61,102 @@ window.campoJournal = {
       ? `${(n / 100).toLocaleString('es-MX', { maximumFractionDigits: 1 })} %`
       : '0 %';
 
+    const isProjectDone = p => {
+      const bps = p?.progressBps;
+      const status = String(p?.status || '').toUpperCase();
+      return (typeof bps === 'number' && bps >= 10000) || status === 'FINISHED' || status === 'DONE' || status === 'FINALIZADO';
+    };
+
+    const getFilteredProjects = () => {
+      const filter = self.projectStatusFilter || 'active';
+      const all = self.allProjects || [];
+      return all.filter(p => {
+        const done = isProjectDone(p);
+        if (filter === 'active') return !done;
+        if (filter === 'done') return done;
+        return true;
+      });
+    };
+
+    const applyProjectFilter = (newFilter, autoReload = true) => {
+      self.projectStatusFilter = newFilter;
+      self.projects = getFilteredProjects();
+
+      // If active project is not in filtered list, select first available
+      if (!self.projects.some(p => p.id === self.project)) {
+        self.project = self.projects[0]?.id || '';
+        self.rows = [];
+        self.fetched = '';
+        self.page = 1;
+        self.filters = { from: '', to: '', task: '', author: '', status: '', search: '', hasPhotos: false };
+      }
+
+      const hiddenSelectEl = find('#journal-project');
+      if (hiddenSelectEl) {
+        hiddenSelectEl.innerHTML = '<option value="">Selecciona un proyecto</option>' +
+          self.projects.map(p => `<option value="${esc(p.id)}">${esc(p.folio || p.code || '')} · ${esc(p.name)}</option>`).join('');
+        hiddenSelectEl.value = self.project;
+      }
+
+      initJournalSlider();
+      find('#journal-message').textContent = self.projects.length ? '' : 'No hay proyectos disponibles con este filtro.';
+      if (autoReload && self.project) {
+        load();
+      } else {
+        draw();
+      }
+    };
+
     const activeProject = () => self.projects.find(p => p.id === self.project);
 
     const renderProjectSliderHtml = () => {
       const projects = self.projects;
-      if (!projects.length) return '';
+      const filterVal = self.projectStatusFilter || 'active';
+
+      if (!projects.length) {
+        return `
+          <div class="section-heading project-section-heading journal-project-heading">
+            <div class="project-heading-info">
+              <h2>Proyectos en ERP</h2>
+              <span class="project-count-badge">0 proyectos</span>
+            </div>
+            <div class="project-slider-nav-wrap">
+              <select id="journal-project-filter" class="project-filter-select" aria-label="Filtrar proyectos por estado">
+                <option value="active" ${filterVal === 'active' ? 'selected' : ''}>Activos</option>
+                <option value="done" ${filterVal === 'done' ? 'selected' : ''}>Finalizados</option>
+                <option value="all" ${filterVal === 'all' ? 'selected' : ''}>Todos</option>
+              </select>
+              <button id="journal-refresh" class="btn small primary btn-refresh-journal" title="Actualizar datos desde el ERP">
+                <svg class="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                <span>Actualizar ERP</span>
+              </button>
+            </div>
+          </div>
+          <div class="empty" style="margin: 12px 0;">
+            <h3>No hay proyectos con este filtro</h3>
+            <p>Selecciona ${filterVal === 'active' ? 'Finalizados o Todos' : 'Activos o Todos'} para consultar el historial en el ERP.</p>
+          </div>
+        `;
+      }
+
       const cardsHtml = projects.map(p => {
         const isSel = self.project === p.id;
+        const isDone = isProjectDone(p);
+        const statusChip = isDone
+          ? `<span class="chip" style="background:#eaf5d8;color:#2c5908;border:1px solid #b8dc92;">Finalizado</span>`
+          : `<span class="chip ${isSel ? '' : 'chip-inactive'}">${isSel ? 'En consulta' : 'Activo'}</span>`;
+        const progressText = typeof p.progressBps === 'number' ? ` · ${(p.progressBps / 100).toFixed(0)} %` : '';
         return `
           <button class="project-card ${isSel ? 'selected' : ''}" data-project-card="${esc(p.id)}" aria-pressed="${isSel ? 'true' : 'false'}">
             <div class="project-meta">
               <span class="project-code">${esc(p.folio || p.code || 'PRJ')}</span>
-              <span class="chip ${isSel ? '' : 'chip-inactive'}">${isSel ? 'En consulta' : 'Disponible'}</span>
+              ${statusChip}
             </div>
             <h3>${esc(p.name)}</h3>
-            <p class="subline">Folio: ${esc(p.folio || p.code || 'S/N')} · Catálogo central ERP</p>
+            <p class="subline">Folio: ${esc(p.folio || p.code || 'S/N')}${progressText} · Catálogo central ERP</p>
             <div class="project-foot">
               <span class="project-journal-label">${isSel ? 'Bitácora cargada' : 'Consultar asientos'}</span>
               <span class="selected-label">${isSel ? 'Seleccionado' : 'Ver bitácora <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>'}</span>
@@ -90,6 +171,11 @@ window.campoJournal = {
             <span class="project-count-badge">${projects.length} ${projects.length === 1 ? 'proyecto' : 'proyectos'}</span>
           </div>
           <div class="project-slider-nav-wrap">
+            <select id="journal-project-filter" class="project-filter-select" aria-label="Filtrar proyectos por estado">
+              <option value="active" ${filterVal === 'active' ? 'selected' : ''}>Activos</option>
+              <option value="done" ${filterVal === 'done' ? 'selected' : ''}>Finalizados</option>
+              <option value="all" ${filterVal === 'all' ? 'selected' : ''}>Todos</option>
+            </select>
             <button id="journal-refresh" class="btn small primary btn-refresh-journal" title="Actualizar datos desde el ERP">
               <svg class="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 4 23 10 17 10"></polyline>
@@ -1248,8 +1334,28 @@ window.campoJournal = {
       if (!container) return;
       container.innerHTML = renderProjectSliderHtml();
 
+      const filterSelect = find('#journal-project-filter');
+      if (filterSelect) {
+        filterSelect.onchange = e => applyProjectFilter(e.target.value);
+      }
+
       const refreshBtn = find('#journal-refresh');
-      if (refreshBtn) refreshBtn.onclick = load;
+      if (refreshBtn) {
+        refreshBtn.onclick = async () => {
+          refreshBtn.disabled = true;
+          try {
+            const data = await api('/api/admin/journal/projects');
+            self.allProjects = data.projects || [];
+            self.projects = getFilteredProjects();
+            initJournalSlider();
+            await load();
+          } catch (e) {
+            await load();
+          } finally {
+            if (refreshBtn) refreshBtn.disabled = false;
+          }
+        };
+      }
 
       const track = find('#journal-slider-track');
       if (!track) return;
@@ -1363,10 +1469,21 @@ window.campoJournal = {
         const isSel = c.dataset.projectCard === self.project;
         c.classList.toggle('selected', isSel);
         c.setAttribute('aria-pressed', isSel ? 'true' : 'false');
+        const proj = (self.allProjects || self.projects).find(p => p.id === c.dataset.projectCard);
+        const isDone = isProjectDone(proj);
         const chip = c.querySelector('.chip');
         if (chip) {
-          chip.textContent = isSel ? 'En consulta' : 'Disponible';
-          chip.classList.toggle('chip-inactive', !isSel);
+          if (isDone) {
+            chip.textContent = 'Finalizado';
+            chip.className = 'chip';
+            chip.style.background = '#eaf5d8';
+            chip.style.color = '#2c5908';
+            chip.style.border = '1px solid #b8dc92';
+          } else {
+            chip.textContent = isSel ? 'En consulta' : 'Activo';
+            chip.className = `chip ${isSel ? '' : 'chip-inactive'}`;
+            chip.removeAttribute('style');
+          }
         }
         const footLabel = c.querySelector('.project-journal-label');
         if (footLabel) footLabel.textContent = isSel ? 'Bitácora cargada' : 'Consultar asientos';
@@ -1469,7 +1586,15 @@ window.campoJournal = {
     try {
       const data = await api('/api/admin/journal/projects');
       if (!active()) return;
-      self.projects = data.projects || [];
+      self.allProjects = data.projects || [];
+      self.projects = getFilteredProjects();
+
+      // If 'active' yielded no projects, default to 'all' so user sees something
+      if (!self.projects.length && self.allProjects.length) {
+        self.projectStatusFilter = 'all';
+        self.projects = getFilteredProjects();
+      }
+
       const hiddenSelectEl = find('#journal-project');
       if (hiddenSelectEl) {
         hiddenSelectEl.innerHTML = '<option value="">Selecciona un proyecto</option>' +

@@ -46,7 +46,7 @@ class JournalService:
 
     def projects(self):
         projects = self.erp.request('/external/projects')['projects']
-        return {'projects': [{k: p.get(k) for k in ('id', 'folio', 'code', 'name')} for p in projects]}
+        return {'projects': [{k: p.get(k) for k in ('id', 'folio', 'code', 'name', 'status', 'progressBps')} for p in projects]}
 
     def entries(self, project_id):
         if not project_id or len(project_id) > 200:
@@ -73,7 +73,7 @@ class JournalService:
                         'attachments': attachments,
                     })
         entries.sort(key=lambda row: (row['operationDate'] or '', row['createdAt'] or '', row['id']), reverse=True)
-        return {'project': {k: project.get(k) for k in ('id', 'folio', 'code', 'name')}, 'entries': entries}
+        return {'project': {k: project.get(k) for k in ('id', 'folio', 'code', 'name', 'status', 'progressBps')}, 'entries': entries}
 
     def attachment(self, project_id, log_id, attachment_id, preview=True):
         # Validate membership using the ERP on every access; no arbitrary file proxy.

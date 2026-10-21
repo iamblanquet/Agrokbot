@@ -2051,7 +2051,9 @@ main {
   gap: 10px;
 }
 
-#project-filter {
+#project-filter,
+#journal-project-filter,
+.project-filter-select {
   appearance: none;
   -webkit-appearance: none;
   width: auto;
@@ -2077,13 +2079,17 @@ main {
   transition: all var(--transition-fast, 0.15s ease);
 }
 
-#project-filter:hover {
+#project-filter:hover,
+#journal-project-filter:hover,
+.project-filter-select:hover {
   border-color: var(--brand-primary-border);
   background-color: var(--bg-subtle);
   transform: translateY(-0.5px);
 }
 
-#project-filter:focus-visible {
+#project-filter:focus-visible,
+#journal-project-filter:focus-visible,
+.project-filter-select:focus-visible {
   outline: 2px solid var(--brand-gold);
   outline-offset: 2px;
   border-color: var(--brand-gold);
