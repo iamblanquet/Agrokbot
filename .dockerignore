@@ -6,3 +6,5 @@ data
 *.md
 .venv-notifications/
 .venv-link-tests/
+output/
+tmp/

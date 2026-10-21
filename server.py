@@ -19,6 +19,7 @@ from backend.admin import AdminError, AdminService
 from backend.access import AccessService
 from backend.auth import AuthError, AuthService
 from backend.telegram_links import TelegramLinks
+from backend.project_archives import ProjectArchives
 from backend.audit import AuditService, current_actor
 from backend.database import DatabaseService
 from backend.reminders import Reminders
@@ -134,6 +135,7 @@ DATABASE = DatabaseService(DATA, connection, now)
 def initialize():
     DATABASE.initialize(ERP_MODE, TG_MODE, ERP_URL, CHAT_ID)
     REMINDERS.initialize()
+    ARCHIVES.initialize()
 
 
 EMPLOYEES = EmployeeService(connection, LOCK, Problem)
@@ -414,6 +416,25 @@ class Handler(BaseHTTPRequestHandler):
                     return self.json(200, INCIDENTS.listing(int(offset) if offset.isdigit() else 0))
                 if path.startswith("/api/admin/") and not path.startswith("/api/admin/journal/") and not is_admin(user):
                     raise Problem(403, "Solo el administrador puede gestionar usuarios.")
+                if path == '/api/admin/project-archives':
+                    return self.json(200, ARCHIVES.listing())
+                if path == '/api/admin/project-archives/pdf':
+                    query=urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                    project_id=(query.get('projectId') or [''])[0]
+                    with connection() as db:
+                        row=db.execute('SELECT pdf,sha256 FROM project_archives WHERE project_id=?',(project_id,)).fetchone()
+                    if not row or not row['pdf']:
+                        raise Problem(404,'Expediente no disponible.')
+                    if hashlib.sha256(row['pdf']).hexdigest()!=row['sha256']:
+                        raise Problem(409,'La integridad del expediente no coincide.')
+                    self.send_response(200)
+                    self.send_header('Content-Type','application/pdf')
+                    self.send_header('Content-Disposition','attachment; filename="expediente.pdf"')
+                    self.send_header('Cache-Control','private, no-store')
+                    self.send_header('Content-Length',str(len(row['pdf'])))
+                    self.end_headers()
+                    self.wfile.write(row['pdf'])
+                    return
                 if path.startswith('/api/admin/journal/'):
                     query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
                     param = lambda name: (query.get(name) or [''])[0]
@@ -551,6 +572,15 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/login":
                 return self.login(body)
             user = self.session()
+            if path == '/api/admin/project-archives/resolve':
+                if not is_admin(user):
+                    raise Problem(403,'Solo el administrador puede conciliar expedientes.')
+                try:
+                    result=ARCHIVES.resolve(body)
+                except ValueError as error:
+                    raise Problem(400,str(error)) from None
+                audit_event('project_archive_resolved',str(body.get('projectId') or 'topic'),{'step':body.get('step'),'decision':body.get('decision'),'note':body.get('note')})
+                return self.json(200,result)
             if path == "/api/telegram/link":
                 if TG_MODE != "live" or not BOT_TOKEN:
                     raise Problem(503, "Telegram no está configurado.")
@@ -708,6 +738,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 REMINDERS = Reminders(connection, ERP, telegram, CHAT_ID)
+ARCHIVES = ProjectArchives(connection, ERP, telegram, TELEGRAM.document, CHAT_ID, now)
 TELEGRAM_LINKS = TelegramLinks(connection, lambda: USER, Problem)
 INCIDENTS = IncidentService(connection, now, telegram, CHAT_ID, Problem,
     lambda photo,thread_id,caption='':telegram_photo(photo,thread_id,caption=caption),
@@ -725,9 +756,21 @@ def reminder_worker():
         time.sleep(60)
 
 
+def archive_worker():
+    while True:
+        try:
+            ARCHIVES.tick()
+            WORKER_STATUS['archives']=time.monotonic()
+        except Exception as error:
+            print('Archive worker:',type(error).__name__,flush=True)
+        time.sleep(300)
+
+
 if __name__ == "__main__":
     initialize()
     threading.Thread(target=worker, daemon=True).start()
+    if ERP_MODE=='live' and TG_MODE=='live' and os.getenv('PROJECT_ARCHIVES_ENABLED','true')=='true':
+        threading.Thread(target=archive_worker,daemon=True).start()
     if ERP_MODE == 'live' and TG_MODE == 'live' and os.getenv('REMINDERS_ENABLED', 'false') == 'true':
         PUSH.public_key()
         threading.Thread(target=reminder_worker, daemon=True).start()

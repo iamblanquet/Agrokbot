@@ -18,6 +18,36 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_project_archives_require_admin(self):
+        routes=['/api/admin/project-archives','/api/admin/project-archives/pdf?projectId=p1']
+        for route in routes:
+            self.assertEqual(self.request(route)[0],401)
+        self.assertEqual(self.request('/api/admin/project-archives/resolve',{})[0],401)
+        self.request('/api/login',{'user':'tester','password':'prueba-ñ'})
+        with patch.object(server,'is_admin',return_value=False):
+            for route in routes:
+                self.assertEqual(self.request(route)[0],403)
+            self.assertEqual(self.request('/api/admin/project-archives/resolve',{})[0],403)
+        with patch.object(server,'is_admin',return_value=True):
+            self.assertEqual(self.request(routes[0]),(200,{'archives':[],'topic':None}))
+            self.assertEqual(self.request(routes[1])[0],404)
+            self.assertEqual(self.request('/api/admin/project-archives/resolve',{})[0],400)
+
+    def test_project_archive_download_checks_integrity(self):
+        self.request('/api/login',{'user':'tester','password':'prueba-ñ'})
+        pdf=b'%PDF-synthetic'
+        with server.connection() as db:
+            db.execute('INSERT INTO project_archives(project_id,state,pdf,sha256,updated) VALUES (?,?,?,?,?)',
+                       ('p1','closed',pdf,hashlib.sha256(pdf).hexdigest(),'now'))
+        with patch.object(server,'is_admin',return_value=True):
+            with self.client.open(self.url+'/api/admin/project-archives/pdf?projectId=p1') as response:
+                self.assertEqual(response.read(),pdf)
+                self.assertEqual(response.headers['Content-Type'],'application/pdf')
+                self.assertIn('no-store',response.headers['Cache-Control'])
+            with server.connection() as db:
+                db.execute("UPDATE project_archives SET sha256='corrupt'")
+            self.assertEqual(self.request('/api/admin/project-archives/pdf?projectId=p1')[0],409)
+
     def test_telegram_link_requires_session_and_unlinks_only_self(self):
         self.assertEqual(self.request('/api/telegram/link')[0], 401)
         self.assertEqual(self.request('/api/telegram/link', {})[0], 401)

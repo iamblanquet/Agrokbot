@@ -59,6 +59,36 @@ class TelegramClient:
         except (OSError, ValueError, KeyError, TypeError):
             raise RemoteFailure("No se pudo confirmar el envío de la fotografía. Verifica en Telegram antes de repetir.", True) from None
 
+    def document(self, data, thread_id, filename, caption):
+        """Upload a verified dossier; uncertain responses require manual reconciliation."""
+        settings = self.settings()
+        if not settings['token'] or not settings['chat_id']:
+            raise RemoteFailure('Falta configurar Telegram.')
+        if not data.startswith(b'%PDF-') or len(data)>45000000:
+            raise RemoteFailure('PDF inválido o demasiado grande.')
+        import re
+        if not re.fullmatch(r'[a-zA-Z0-9_-]+\.pdf',filename):
+            raise RemoteFailure('Nombre de documento inválido.')
+        boundary='Campo'+secrets.token_hex(16)
+        parts=[]
+        for key,value in {'chat_id':settings['chat_id'],'message_thread_id':str(thread_id),'caption':safe_caption(caption)}.items():
+            parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode())
+        parts.extend([f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="{filename}"\r\nContent-Type: application/pdf\r\n\r\n'.encode(),data,f'\r\n--{boundary}--\r\n'.encode()])
+        request=urllib.request.Request(f"https://api.telegram.org/bot{settings['token']}/sendDocument",data=b''.join(parts),headers={'Content-Type':f'multipart/form-data; boundary={boundary}'})
+        try:
+            with urllib.request.urlopen(request,timeout=90) as response:
+                result=json.load(response)
+            if not result.get('ok'):
+                raise RemoteFailure('Telegram rechazó el PDF.')
+            message=result['result']
+            if not message.get('message_id') or not message.get('document',{}).get('file_id'):
+                raise RemoteFailure('Respuesta incompleta al enviar PDF.',True)
+            return {'message_id':message['message_id'],'file_id':message['document']['file_id']}
+        except urllib.error.HTTPError as error:
+            raise RemoteFailure(f'Telegram respondió HTTP {error.code} al enviar PDF.',error.code>=500) from None
+        except (OSError,ValueError,KeyError,TypeError):
+            raise RemoteFailure('No se pudo confirmar el envío del PDF.',True) from None
+
     def media_group(self, photos, thread_id, caption=""):
         settings = self.settings()
         if not settings["token"] or not settings["chat_id"]:
