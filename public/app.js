@@ -114,9 +114,19 @@ window.campoUi={ $, esc, heading, api, toast };
 function taskById(id){return state.catalog.tasks.find(t=>t.id===id);}
 function projectById(id){return state.catalog.projects.find(p=>p.id===id);}
 function render(){if((state.view==='admin'||state.view==='monitor')&&!state.isAdmin)state.view='projects';try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem('campo-active-view',state.view);}catch(_){}updateChrome();if(state.view==='incidents'){$('#breadcrumb-current').textContent='Incidencias';if(!(state.isAdmin||state.canManageIncidents)){$('#main').textContent='No tienes permiso para gestionar incidencias.';return;}if($('#incident-list'))return;return window.campoIncidents.render();}if(state.view==='journal'){$('#breadcrumb-current').textContent='Bitácora ERP';if($('#journal'))return;return window.campoJournal.render();}({projects:renderProjects,employees:renderEmployees,reports:renderReports,telegram:renderTelegram,settings:renderSettings,admin:()=>window.campoAdmin?.render?.(),monitor:()=>window.campoMonitor?.render?.()})[state.view]();}
+function projectCompleted(project){
+  return !['CANCELLED','CANCELED'].includes(project.status)&&(['FINISHED','COMPLETED'].includes(project.status)||Number(project.progressBps)>=10000);
+}
+function visibleProjects(){
+  const filter=state.projectFilter||'active';
+  return state.catalog.projects.filter(p=>filter==='all'||(filter==='done'?projectCompleted(p):!projectCompleted(p)&&!['CANCELLED','CANCELED'].includes(p.status)));
+}
 function renderProjects(){
-  const projects=state.catalog.projects,tasks=state.catalog.tasks;
-  if(!state.selected||!projectById(state.selected))state.selected=projects[0]?.id;
+  const projects=visibleProjects(),tasks=state.catalog.tasks;
+  if(!projects.some(p=>p.id===state.selected)){
+    state.selected=projects[0]?.id||null;
+    state.search='';state.taskPage=1;
+  }
 
   const projectCardsHtml=projects.map(p=>{
     const pt=tasks.filter(t=>t.projectId===p.id);
@@ -126,7 +136,7 @@ function renderProjects(){
     return `<button class="project-card ${state.selected===p.id?'selected':''}" data-project="${esc(p.id)}" aria-pressed="${state.selected===p.id}">
       <div class="project-meta">
         <span class="project-code">${esc(p.folio||p.code)}</span>
-        <span class="chip">${pt.length&&pt.every(t=>t.progressBps===10000)?'Completado':'En seguimiento'}</span>
+        <span class="chip">${projectCompleted(p)?'Completado':['CANCELLED','CANCELED'].includes(p.status)?'Cancelado':'En seguimiento'}</span>
       </div>
       <h3>${esc(p.name)}</h3>
       <p class="subline">${loc}${line} · ${pt.length} tareas</p>
@@ -146,6 +156,7 @@ function renderProjects(){
         <span class="project-count-badge">${projects.length} ${projects.length===1?'proyecto':'proyectos'}</span>
       </div>
       <div class="project-slider-nav-wrap">
+        <select id="project-filter" aria-label="Filtrar proyectos"><option value="active">Activos</option><option value="done">Finalizados</option><option value="all">Todos</option></select>
         ${projects.length>1?`
         <div class="slider-arrow-controls" aria-label="Navegación de proyectos">
           <button class="slider-nav-btn prev" data-slider-action="prev" aria-label="Proyecto anterior" title="Proyecto anterior">
@@ -182,7 +193,10 @@ function renderProjects(){
 
   $('#main').innerHTML=heading('Cada avance cuenta.','Consulta tus proyectos y registra el trabajo de hoy.')+`
     <section class="stats" aria-label="Resumen"><div class="stat"><span class="stat-label">Proyectos disponibles</span><strong>${projects.length.toString().padStart(2,'0')}</strong><small>en tu espacio</small></div><div class="stat"><span class="stat-label">Tareas por completar</span><strong>${tasks.filter(t=>t.progressBps<10000).length.toString().padStart(2,'0')}</strong><small>en seguimiento</small></div><div class="stat"><span class="stat-label">Reportes en este dispositivo</span><strong class="${state.local.length?'amber':''}">${state.local.length.toString().padStart(2,'0')}</strong><small>por sincronizar</small></div></section>
-    ${!projects.length?'<div class="empty"><h3>Aún no hay proyectos descargados</h3><p>Conecta al servidor y pulsa Sincronizar.</p></div>':sliderHtml+`<section class="task-panel"><div class="task-panel-head"><div><h2>Tareas del proyecto</h2><p>${esc(projectById(state.selected)?.name)}</p></div><div class="filters"><input id="task-search" type="search" placeholder="Buscar tarea…" aria-label="Buscar tarea" value="${esc(state.search)}"><select id="task-filter" aria-label="Filtrar estado"><option value="all">Todos los estados</option><option value="active">Por completar</option><option value="done">Finalizadas</option></select></div></div><div id="task-table"></div></section>`}`;
+    ${sliderHtml}${!projects.length?`<div class="empty"><h3>${state.catalog.projects.length?'No hay proyectos con este filtro':'Aún no hay proyectos descargados'}</h3><p>${state.catalog.projects.length?'Selecciona Finalizados o Todos para consultar el historial.':'Conecta al servidor y pulsa Sincronizar.'}</p></div>`:`<section class="task-panel"><div class="task-panel-head"><div><h2>Tareas del proyecto</h2><p>${esc(projectById(state.selected)?.name)}</p></div><div class="filters"><input id="task-search" type="search" placeholder="Buscar tarea…" aria-label="Buscar tarea" value="${esc(state.search)}"><select id="task-filter" aria-label="Filtrar estado"><option value="all">Todos los estados</option><option value="active">Por completar</option><option value="done">Finalizadas</option></select></div></div><div id="task-table"></div></section>`}`;
+
+  $('#project-filter').value=state.projectFilter||'active';
+  $('#project-filter').onchange=e=>{state.projectFilter=e.target.value;state.search='';state.taskFilter='all';state.taskPage=1;renderProjects();};
 
   if(projects.length){
     initProjectSlider();

@@ -2046,8 +2046,15 @@ main {
 
 .project-slider-nav-wrap {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
+}
+
+#project-filter {
+  width: auto;
+  min-width: 140px;
+  min-height: 44px;
 }
 
 .slider-arrow-controls {

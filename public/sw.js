@@ -1,4 +1,4 @@
-const CACHE = 'campo-shell-v68';
+const CACHE = 'campo-shell-v69';
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch (_) {}
