@@ -70,9 +70,9 @@ class ReportService:
             settings = self.settings()
             if user != settings["user"] and (linked.get("assignment_id") or linked.get("employee_number")):
                 if linked.get("assignment_id") and assignment["assignmentId"] and linked["assignment_id"] != assignment["assignmentId"]:
-                    raise self.problem(403, "Esta tarea está asignada a otro empleado.", "responsible_forbidden")
+                    raise self.problem(403, "Esta tarea está asignada a otro colaborador.", "responsible_forbidden")
                 if linked.get("employee_number") and assignment["employeeNumber"] and linked["employee_number"] != assignment["employeeNumber"]:
-                    raise self.problem(403, "Esta tarea está asignada a otro empleado.", "responsible_forbidden")
+                    raise self.problem(403, "Esta tarea está asignada a otro colaborador.", "responsible_forbidden")
             current = task.get("progressBps", 0)
             if completed(task):
                 raise self.problem(409, "La tarea ya está finalizada; no admite reportes adicionales.", "task_completed", {"currentProgressBps": current})

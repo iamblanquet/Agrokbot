@@ -5258,7 +5258,7 @@ footer {
     font-size: 12px;
     padding: 6px 12px;
   }
-  /* Empleados: Clean Directory Cards on Mobile (single-row horizontal layout) */
+  /* Colaboradores: Clean Directory Cards on Mobile (single-row horizontal layout) */
   #employee-list .table-wrap {
     overflow-x: visible;
     border: 0;
@@ -6540,7 +6540,7 @@ footer {
 }
 
 /* ==========================================================================
-   Empleados Directory Redesign (Desktop & Mobile)
+   Colaboradores Directory Redesign (Desktop & Mobile)
    ========================================================================== */
 .employees-panel {
   display: flex;

@@ -25,7 +25,7 @@ Configura los valores `sync: false` en el Dashboard, nunca en el repositorio:
 
 La configuración de Blueprint deja `ERP_ALLOW_HTTP=false`. Antes de enviar reportes reales, `ERP_API_URL` debe usar HTTPS. No se recomienda desplegar la clave del ERP por HTTP.
 
-Campo utiliza la API del ERP para las evidencias; la clave requiere `operation_logs:create` y `projects:read`. S3, RDS y sus permisos se configuran exclusivamente en el ERP. Campo no requiere credenciales AWS ni boto3. Conserva el volumen SQLite para usuarios, empleados, reportes, imágenes pendientes y estados de entrega. Las imágenes locales se eliminan automáticamente tras confirmar ERP y Telegram.
+Campo utiliza la API del ERP para las evidencias; la clave requiere `operation_logs:create` y `projects:read`. S3, RDS y sus permisos se configuran exclusivamente en el ERP. Campo no requiere credenciales AWS ni boto3. Conserva el volumen SQLite para usuarios, colaboradores, reportes, imágenes pendientes y estados de entrega. Las imágenes locales se eliminan automáticamente tras confirmar ERP y Telegram.
 
 ## Después del primer despliegue
 

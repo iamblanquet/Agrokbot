@@ -36,7 +36,7 @@ class AccessService:
                 if filtered:
                     data = {**data, "tasks": filtered}
             except (RemoteFailure, KeyError, TypeError) as error:
-                raise self.problem(502, getattr(error, "message", "No se pudo consultar las tareas del empleado en el ERP.")) from None
+                raise self.problem(502, getattr(error, "message", "No se pudo consultar las tareas del colaborador en el ERP.")) from None
         tasks = [task for task in data.get("tasks", []) if ((self.task_responsible(task)["assignmentId"] == assignment_id) or (self.task_responsible(task)["employeeNumber"] == employee_number))]
         project_ids = {task.get("projectId") for task in tasks}
         return {**data, "tasks": tasks, "projects": [project for project in data.get("projects", []) if project.get("id") in project_ids]}

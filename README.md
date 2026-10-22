@@ -21,7 +21,7 @@ docker compose up --build -d
 Abre **http://localhost:8787**.
 
 - Administrador: `USER` y el PIN administrativo (`APP_PASSWORD`) definidos en `.env`.
-- Usuarios de campo: el PIN creado desde **Administración**; el empleado y su asignación se seleccionan desde el catálogo ERP.
+- Usuarios de campo: el PIN creado desde **Administración**; el colaborador y su asignación se seleccionan desde el catálogo ERP.
 
 No requiere instalar paquetes de Python o Node. El servidor usa Python 3.12 y su biblioteca estándar. La base SQLite y la cola del bot viven en el volumen `campo-data`; sobreviven a reinicios y a `docker compose down` sin `-v`.
 
@@ -143,7 +143,7 @@ En **Administración → Monitoreo** se pueden filtrar los reportes por estado y
 
 Los estados ambiguos tienen la acción **Resolver**. El administrador debe elegir **Confirmar** o **Rechazar** y escribir una nota con la evidencia revisada. La decisión queda registrada en la bitácora y no modifica el contenido inmutable del reporte.
 
-En **Administración → Bitácora administrativa** se registran sesiones, reportes capturados, fotografías, aclaraciones, empleados, reintentos y resoluciones. El botón **Exportar bitácora** descarga un JSON para respaldo o auditoría.
+En **Administración → Bitácora administrativa** se registran sesiones, reportes capturados, fotografías, aclaraciones, colaboradores, reintentos y resoluciones. El botón **Exportar bitácora** descarga un JSON para respaldo o auditoría.
 
 La PWA conserva pendientes offline con intentos, fecha del último intento, error y próximo reintento. Los errores temporales no bloquean los demás reportes; los conflictos y errores definitivos se conservan para revisión.
 
@@ -164,7 +164,7 @@ El servidor HTTP de biblioteca estándar es una decisión del prototipo. Antes d
 
 ### Vinculación del usuario con el responsable del ERP
 
-La administración crea cada cuenta a partir del empleado y la asignación devueltos por la API ERP; esos valores se guardan en `user_profiles`. Para identidades Telegram, puedes relacionar `telegram:ID` mediante `USER_RESPONSIBLE_MAP`. Los reportes usan el responsable de la tarea del ERP como responsable operativo y conservan el usuario autenticado en el mensaje y en `externalUserId`.
+La administración crea cada cuenta a partir del colaborador y la asignación devueltos por la API ERP; esos valores se guardan en `user_profiles`. Para identidades Telegram, puedes relacionar `telegram:ID` mediante `USER_RESPONSIBLE_MAP`. Los reportes usan el responsable de la tarea del ERP como responsable operativo y conservan el usuario autenticado en el mensaje y en `externalUserId`.
 
 Las cuentas de campo solo reciben y pueden registrar tareas cuyo `assignmentId` o `employeeNumber` coincide con su relación ERP. El administrador conserva acceso completo.
 
@@ -191,15 +191,15 @@ Instancia campo-telegram configurada en ERP_MODE=live con API base http://78.13.
 El volumen activo es campo-telegram_erp-live-data; campo-telegram_campo-data conserva el historial demo sin migrar sus reportes. Cierra y vuelve a abrir la Mini App para iniciar sesión en la nueva base y descargar el catálogo del ERP.
 
 
-## Empleados y cuadrilla
+## Colaboradores y cuadrilla
 
-En **Empleados**, registra nombre y uno o varios roles (operador, técnico, auxiliar). Puedes buscar, editar y eliminar personas con sesión y conexión. El catálogo es compartido entre los usuarios autorizados de esta instancia y se almacena en su volumen SQLite; no crea empleados en el ERP.
+En **Colaboradores**, registra nombre y uno o varios roles (operador, técnico, auxiliar). Puedes buscar, editar y eliminar personas con sesión y conexión. El catálogo es compartido entre los usuarios autorizados de esta instancia y se almacena en su volumen SQLite; no crea colaboradores en el ERP.
 
 En **Reportar → Personal en campo**, busca y selecciona hasta 30 personas. Una persona solo puede participar una vez por reporte, en uno de sus roles. El catálogo descargado y la selección funcionan sin conexión. Los cambios al catálogo requieren conexión y se descargan con Sincronizar o Actualizar catálogo.
 
 El reporte conserva la versión del nombre y roles elegida durante la captura. Eliminar una persona la retira del catálogo, pero conserva el historial y permite sincronizar los reportes pendientes. Las ediciones simultáneas se rechazan para evitar sobrescribir cambios de otro usuario.
 
-La cuadrilla aparece en Mis reportes, en el mensaje de Telegram y en `metadataJson.crew` / `metadataJson.personnelCount` del registro ERP. La API externa documentada no incluye un catálogo de empleados, por eso se administra en Campo. La captura conversacional por mensajes del bot conserva su flujo anterior; utiliza la Mini App para seleccionar personal.
+La cuadrilla aparece en Mis reportes, en el mensaje de Telegram y en `metadataJson.crew` / `metadataJson.personnelCount` del registro ERP. La API externa documentada no incluye un catálogo de colaboradores, por eso se administra en Campo. La captura conversacional por mensajes del bot conserva su flujo anterior; utiliza la Mini App para seleccionar personal.
 
 
 ## Reporte de campo con fotografías
@@ -210,7 +210,7 @@ Se admiten hasta seis fotografías JPG/PNG/WebP de hasta 20 MB de entrada. El na
 
 Al sincronizar, primero se registra el asiento en el ERP y se conserva `operationLog.id`. Campo recibe las fotos en SQLite y su worker envía cada una mediante `POST /external/project-operation-logs/{operationLogId}/attachments`, multipart con campo `file`, usando `ERP_API_URL` y la API key del servidor. El ERP administra S3 y RDS. Campo guarda cada `attachment_id` y consulta `GET /external/projects/{projectId}` para verificar que todos aparecen en el mismo asiento antes de habilitar Telegram. El modo demo simula estas confirmaciones sin conexiones externas.
 
-El reporte permanece en `photos_pending` mientras falten fotos o confirmaciones. Las cargas confirmadas no se repiten. Ante timeout, error 5xx o reinicio durante una carga, queda en `photos_review`: el worker busca la referencia con el nombre único `{photoId}.jpg`, tipo y tamaño dentro del asiento. Si no puede identificarla inequívocamente, conserva el pendiente para revisión en ERP, sin repetir el POST porque la API no documenta idempotencia. Telegram solo procesa reportes completos. Tras confirmar entrega real en Telegram y adjuntos reales en ERP, el worker vacía los BLOB locales y conserva los identificadores, hashes y relaciones. La consulta posterior obtiene el archivo del ERP mediante un proxy autenticado con `Cache-Control: private, no-store`; no se guarda otra copia. IndexedDB elimina las fotos confirmadas al siguiente refresco conectado de ese dispositivo. Los fallos y simulaciones conservan sus fotos pendientes. Los usuarios y empleados permanecen en las tablas locales existentes. Los archivos SQLite pueden mantener su tamaño para reutilizar páginas libres; esta limpieza no modifica respaldos externos anteriores.
+El reporte permanece en `photos_pending` mientras falten fotos o confirmaciones. Las cargas confirmadas no se repiten. Ante timeout, error 5xx o reinicio durante una carga, queda en `photos_review`: el worker busca la referencia con el nombre único `{photoId}.jpg`, tipo y tamaño dentro del asiento. Si no puede identificarla inequívocamente, conserva el pendiente para revisión en ERP, sin repetir el POST porque la API no documenta idempotencia. Telegram solo procesa reportes completos. Tras confirmar entrega real en Telegram y adjuntos reales en ERP, el worker vacía los BLOB locales y conserva los identificadores, hashes y relaciones. La consulta posterior obtiene el archivo del ERP mediante un proxy autenticado con `Cache-Control: private, no-store`; no se guarda otra copia. IndexedDB elimina las fotos confirmadas al siguiente refresco conectado de ese dispositivo. Los fallos y simulaciones conservan sus fotos pendientes. Los usuarios y colaboradores permanecen en las tablas locales existentes. Los archivos SQLite pueden mantener su tamaño para reutilizar páginas libres; esta limpieza no modifica respaldos externos anteriores.
 
 Los reintentos de fallos definitivos omiten texto/fotos previamente confirmados. Un resultado ambiguo o un reinicio durante el envío requiere verificar Telegram y no reenvía automáticamente. Las imágenes del servidor requieren sesión y solo las consulta su autor. No hay servicio de almacenamiento externo ni limpieza automática del archivo local; respaldar el volumen incluye las fotografías.
 

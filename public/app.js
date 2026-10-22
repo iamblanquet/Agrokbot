@@ -104,7 +104,7 @@ function updateChrome(){
   $('#cache-note').textContent=saved?`${state.catalog.projects.length} proyectos guardados para uso sin conexión.${savedDay!==currentDay?' Datos de un día anterior: se actualizarán al conectar.':''}`:'Conecta para confirmar la descarga automática de tus datos.';
   $('#last-sync').textContent=saved?`DATOS GUARDADOS · ${prettyDate(saved)}`:'DESCARGA AÚN NO CONFIRMADA';
   document.querySelectorAll('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===state.view));
-  $('#breadcrumb-current').textContent=({projects:'Proyectos',employees:'Empleados',reports:'Mis reportes',telegram:'Temas de Telegram',settings:'Notificaciones',admin:'Administración',monitor:'Monitoreo',incidents:'Incidencias',journal:'Bitácora ERP'})[state.view];
+  $('#breadcrumb-current').textContent=({projects:'Proyectos',employees:'Colaboradores',reports:'Mis reportes',telegram:'Temas de Telegram',settings:'Notificaciones',admin:'Administración',monitor:'Monitoreo',incidents:'Incidencias',journal:'Bitácora ERP'})[state.view];
 }
 function statusInfo(value){return ({pending:['Pendiente de sincronizar','amber'],conflict:['No registrado: conflicto','amber'],invalid:['No registrado: datos rechazados','red'],erp_sending:['Registrando en ERP','blue'],erp_review:['Verificar en ERP','red'],erp_rejected:['Rechazado por ERP','red'],telegram_pending:['ERP guardado · envío pendiente','blue'],telegram_sending:['Enviando a Telegram','blue'],telegram_failed:['ERP guardado · envío fallido','amber'],telegram_review:['ERP guardado · verificar envío','amber'],published:['Publicado en Telegram','green'],demo_published:['Publicado · simulación','green']})[value] || [value,''];}
 function badge(value){const [label,color]=({photos_pending:['ERP guardado · fotos pendientes','blue'],photos_review:['ERP guardado · verificar fotos','amber'],evidence_review:['Publicado · evidencias ERP por conciliar','amber']})[value]||statusInfo(value);return `<span class="status ${color}">${esc(label)}</span>`;}
@@ -660,20 +660,20 @@ function empInitials(name){
 }
 function renderEmployees(){
   state.employeeRoleFilter=state.employeeRoleFilter||'all';
-  $('#main').innerHTML=heading('Empleados','Directorio de cuadrilla y asignación de roles operativos en campo.')+`
+  $('#main').innerHTML=heading('Colaboradores','Directorio de cuadrilla y asignación de roles operativos en campo.')+`
     <section class="employees-panel">
       <div id="employees-stats" class="employees-stats"></div>
       <div class="employees-toolbar">
         <div class="employees-search-row">
           <div class="emp-search-box">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input id="employee-search" type="search" placeholder="Buscar integrante por nombre…" aria-label="Buscar empleados" value="${esc(state.employeeSearch||'')}">
+            <input id="employee-search" type="search" placeholder="Buscar integrante por nombre…" aria-label="Buscar colaboradores" value="${esc(state.employeeSearch||'')}">
           </div>
           <button id="refresh-employees" class="btn small subtle emp-refresh-btn" title="Actualizar catálogo" aria-label="Actualizar catálogo">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
             <span>Actualizar</span>
           </button>
-          <button id="new-employee" class="btn primary emp-new-btn" title="Nuevo empleado" aria-label="Nuevo empleado">
+          <button id="new-employee" class="btn primary emp-new-btn" title="Nuevo colaborador" aria-label="Nuevo colaborador">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
           </button>
         </div>
@@ -773,11 +773,11 @@ function renderEmployeeList(){
               <td class="status-column"><span class="status green">Habilitado</span></td>
               <td class="table-action" style="text-align:right">
                 <div class="action-btn-group emp-actions">
-                  <button class="btn small subtle emp-btn-edit" data-edit-employee="${esc(e.id)}" title="Editar empleado" aria-label="Editar ${esc(e.name)}">
+                  <button class="btn small subtle emp-btn-edit" data-edit-employee="${esc(e.id)}" title="Editar colaborador" aria-label="Editar ${esc(e.name)}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     <span class="emp-btn-label">Editar</span>
                   </button>
-                  <button class="btn small danger emp-btn-delete" data-delete-employee="${esc(e.id)}" title="Eliminar empleado" aria-label="Eliminar ${esc(e.name)}">
+                  <button class="btn small danger emp-btn-delete" data-delete-employee="${esc(e.id)}" title="Eliminar colaborador" aria-label="Eliminar ${esc(e.name)}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     <span class="emp-btn-label">Eliminar</span>
                   </button>
@@ -795,15 +795,15 @@ function renderEmployeeList(){
         <button type="button" class="btn subtle small" id="emp-page-next" ${state.employeePage>=totalPages?'disabled':''}>Siguiente &gt;</button>
       </div>
     </div>
-  `:`<div class="empty"><h3>${all.length?'No hay coincidencias':'Aún no hay empleados'}</h3><p>${all.length?'Prueba otro nombre o filtro de rol.':'Pulsa Nuevo empleado para registrar a la primera persona de tu cuadrilla.'}</p></div>`;
+  `:`<div class="empty"><h3>${all.length?'No hay coincidencias':'Aún no hay colaboradores'}</h3><p>${all.length?'Prueba otro nombre o filtro de rol.':'Pulsa Nuevo colaborador para registrar a la primera persona de tu cuadrilla.'}</p></div>`;
   if($('#emp-page-prev'))$('#emp-page-prev').onclick=()=>{if(state.employeePage>1){state.employeePage--;renderEmployeeList();}};
   if($('#emp-page-next'))$('#emp-page-next').onclick=()=>{if(state.employeePage<totalPages){state.employeePage++;renderEmployeeList();}};
   document.querySelectorAll('[data-edit-employee]').forEach(el=>el.onclick=()=>openEmployee(all.find(e=>e.id===el.dataset.editEmployee)));
   document.querySelectorAll('[data-delete-employee]').forEach(el=>el.onclick=()=>{state.deletingEmployee=all.find(e=>e.id===el.dataset.deleteEmployee);$('#delete-employee-description').textContent=`¿Eliminar a ${state.deletingEmployee.name} del catálogo?`;$('#delete-employee-error').textContent='';$('#delete-employee-dialog').showModal();});
 }
 function openEmployee(employee=null){
-  if(!online()){toast('Conecta a internet para gestionar empleados.');return;}
-  state.editingEmployee=employee;$('#employee-heading').textContent=employee?'Editar empleado':'Nuevo empleado';$('#employee-name').value=employee?.name||'';$('#employee-error').textContent='';
+  if(!online()){toast('Conecta a internet para gestionar colaboradores.');return;}
+  state.editingEmployee=employee;$('#employee-heading').textContent=employee?'Editar colaborador':'Nuevo colaborador';$('#employee-name').value=employee?.name||'';$('#employee-error').textContent='';
   document.querySelectorAll('[name="employee-role"]').forEach(el=>el.checked=employee?.roles.includes(el.value)||false);$('#employee-dialog').showModal();
 }
 $('#close-employee').onclick=()=>$('#employee-dialog').close();
@@ -814,14 +814,14 @@ $('#employee-form').onsubmit=async event=>{
     if(!name||!roles.length)throw new Error('Escribe el nombre y selecciona al menos un rol.');
     const saved=await api('/api/employees/save',{...(state.editingEmployee||{}),name,roles});
     state.catalog.employees=[...(state.catalog.employees||[]).filter(e=>e.id!==saved.id),saved];
-    $('#employee-dialog').close();renderEmployeeList();toast('Empleado guardado.');
+    $('#employee-dialog').close();renderEmployeeList();toast('Colaborador guardado.');
     await refreshEmployees();renderEmployeeList();
   }catch(error){if($('#employee-dialog').open)$('#employee-error').textContent=error.message;else toast(error.message);}finally{button.disabled=false;}
 };
 $('#cancel-delete-employee').onclick=()=>$('#delete-employee-dialog').close();
 $('#confirm-delete-employee').onclick=async()=>{
   const button=$('#confirm-delete-employee');button.disabled=true;
-  try{await api('/api/employees/delete',{id:state.deletingEmployee.id,version:state.deletingEmployee.version});state.catalog.employees=(state.catalog.employees||[]).filter(e=>e.id!==state.deletingEmployee.id);$('#delete-employee-dialog').close();renderEmployeeList();toast('Empleado eliminado del catálogo.');await refreshEmployees();renderEmployeeList();}catch(error){if($('#delete-employee-dialog').open)$('#delete-employee-error').textContent=error.message;else toast(error.message);}finally{button.disabled=false;}
+  try{await api('/api/employees/delete',{id:state.deletingEmployee.id,version:state.deletingEmployee.version});state.catalog.employees=(state.catalog.employees||[]).filter(e=>e.id!==state.deletingEmployee.id);$('#delete-employee-dialog').close();renderEmployeeList();toast('Colaborador eliminado del catálogo.');await refreshEmployees();renderEmployeeList();}catch(error){if($('#delete-employee-dialog').open)$('#delete-employee-error').textContent=error.message;else toast(error.message);}finally{button.disabled=false;}
 };
 function renderCrew(){
   const container = $('#crew-picker');
@@ -847,7 +847,7 @@ function renderCrew(){
       <p class="muted">Selecciona a los integrantes de la cuadrilla mediante la lista desplegable y asigna su rol de hoy.</p>
     </div>
 
-    ${!allEmployees.length ? '<p class="error">No hay empleados registrados en el catálogo. Regístralos en la sección Empleados.</p>' : ''}
+    ${!allEmployees.length ? '<p class="error">No hay colaboradores registrados en el catálogo. Regístralos en la sección Colaboradores.</p>' : ''}
 
     <div class="crew-droplist-container" id="crew-droplist-container">
       <!-- Droplist Input Trigger -->
@@ -996,7 +996,7 @@ function renderCrewDroplistItems() {
   });
 
   if (!filtered.length) {
-    listContainer.innerHTML = `<div class="crew-droplist-empty">${search ? 'No se encontraron empleados con ese nombre.' : 'No hay empleados en esta categoría.'}</div>`;
+    listContainer.innerHTML = `<div class="crew-droplist-empty">${search ? 'No se encontraron colaboradores con ese nombre.' : 'No hay colaboradores en esta categoría.'}</div>`;
     return;
   }
 

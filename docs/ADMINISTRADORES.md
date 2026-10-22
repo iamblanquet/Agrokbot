@@ -13,6 +13,6 @@ Los PIN se guardan con scrypt. No guardar credenciales en Git.
 
 La cuenta adicional accede al catálogo completo, Administración, Monitoreo e
 Incidencias. Puede desactivarse desde el listado de usuarios; la desactivación
-invalida las sesiones. No se permite convertirla en empleado mediante la edición
+invalida las sesiones. No se permite convertirla en colaborador mediante la edición
 de asignación ERP. La creación de administradores tiene por ahora API, no un
 formulario nuevo. El acceso a reportes personales mantiene su propietario.

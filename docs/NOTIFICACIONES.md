@@ -51,7 +51,7 @@ se agrupan durante 30 segundos. El push matutino solicita sincronizar a ventanas
 abiertas. Con la PWA cerrada no se garantiza ejecución en segundo plano; al abrir
 se descarga, siempre que haya internet y sesión válida.
 
-Antes de procesar la cola se descargan catálogo, tareas, empleados, configuración
+Antes de procesar la cola se descargan catálogo, tareas, colaboradores, configuración
 y reportes. El snapshot y la fecha offlineSavedAt se confirman en IndexedDB antes
 de mostrar datos guardados. Un fallo de red o almacenamiento conserva el catálogo
 anterior y muestra el error. Se advierte si los datos guardados son de otro día.

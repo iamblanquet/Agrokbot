@@ -45,7 +45,7 @@ class AuditFixTests(unittest.TestCase):
         return {'project':{'activities':[{'tasks':[{'id':'t','operationLogs':[log]}]}]}}
 
     def test_pin_reset_and_toggle_revoke_existing_sessions(self):
-        person={'assignmentId':'a','employeeNumber':'EMP001','name':'Empleado'}
+        person={'assignmentId':'a','employeeNumber':'EMP001','name':'Colaborador'}
         with patch.object(server.ADMIN,'responsibles',return_value=[person]):
             server.ADMIN.save({'pin':'56781234','assignmentId':'a'})
             for action in ('save','toggle','delete'):

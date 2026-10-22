@@ -18,9 +18,9 @@ class EmployeeService:
     def save(self, body, delete=False):
         employee_id = body.get("id")
         if employee_id is not None and (not isinstance(employee_id, str) or not re.fullmatch(r"[a-zA-Z0-9-]{16,80}", employee_id)):
-            raise self.problem(400, "Empleado inválido.")
+            raise self.problem(400, "Colaborador inválido.")
         if delete and not employee_id:
-            raise self.problem(400, "Selecciona un empleado.")
+            raise self.problem(400, "Selecciona un colaborador.")
         name, roles = body.get("name"), body.get("roles")
         if not delete:
             if not isinstance(name, str) or not 1 <= len(name.strip()) <= 80:
@@ -31,9 +31,9 @@ class EmployeeService:
         with self.lock, self.connection() as db:
             prior = db.execute("SELECT * FROM employees WHERE id=? AND deleted=0", (employee_id,)).fetchone() if employee_id else None
             if employee_id and not prior:
-                raise self.problem(404, "El empleado ya no está disponible. Actualiza el catálogo.")
+                raise self.problem(404, "El colaborador ya no está disponible. Actualiza el catálogo.")
             if prior and body.get("version") != prior["version"]:
-                raise self.problem(409, "Otro usuario modificó al empleado. Actualiza el catálogo antes de editar.")
+                raise self.problem(409, "Otro usuario modificó al colaborador. Actualiza el catálogo antes de editar.")
             if delete:
                 db.execute("UPDATE employees SET deleted=1 WHERE id=?", (employee_id,))
                 return {"ok": True}
@@ -54,7 +54,7 @@ class EmployeeService:
                     raise self.problem(400, "Personal del reporte inválido.")
                 row = db.execute("SELECT * FROM employee_versions WHERE id=? AND version=?", (item["id"], item["version"])).fetchone()
                 if not row or item["role"] not in json.loads(row["roles"]) or item["id"] in seen:
-                    raise self.problem(400, "Revisa la cuadrilla: empleado o rol inválido, o persona repetida.")
+                    raise self.problem(400, "Revisa la cuadrilla: colaborador o rol inválido, o persona repetida.")
                 seen.add(item["id"])
                 result.append({"id": item["id"], "version": item["version"], "name": row["name"], "role": item["role"]})
         return sorted(result, key=lambda item: item["id"])

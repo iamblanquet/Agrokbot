@@ -47,7 +47,7 @@ class AuthTests(unittest.TestCase):
 
     def test_employee_cannot_create_admin_or_claim_role(self):
         with server.connection() as db:
-            db.execute('INSERT INTO app_users VALUES (?,?,?,?,?,?,?)',('employee',server.pin_hash('674829'),'Empleado','','',1,'now'))
+            db.execute('INSERT INTO app_users VALUES (?,?,?,?,?,?,?)',('employee',server.pin_hash('674829'),'Colaborador','','',1,'now'))
         status,body=self.request('/api/login',{'password':'674829','isAdmin':True})
         self.assertEqual(status,200)
         self.assertFalse(body['isAdmin'])

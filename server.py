@@ -518,7 +518,7 @@ class Handler(BaseHTTPRequestHandler):
                 if path == "/api/telegram/link":
                     return self.json(200, TELEGRAM_LINKS.status(user))
                 if path == "/api/config":
-                    scope = "Todos los proyectos de la integración" if is_admin(user) else "Tareas asignadas al empleado ERP"
+                    scope = "Todos los proyectos de la integración" if is_admin(user) else "Tareas asignadas al colaborador ERP"
                     return self.json(200, {"erpMode": ERP_MODE, "telegramMode": TG_MODE, "telegramConfigured": bool(BOT_TOKEN and CHAT_ID), "publicUrl": PUBLIC_URL, "authScope": scope})
                 if path == "/api/employees":
                     return self.json(200, {"employees": employees()})

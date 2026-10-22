@@ -20,7 +20,7 @@ window.campoAdmin = {
             <span>Con acceso habilitado</span>
           </div>
           <div class="admin-stat stat-available">
-            <small>EMPLEADOS DISPONIBLES</small>
+            <small>COLABORADORES DISPONIBLES</small>
             <strong id="admin-available">0</strong>
             <span>Sincronizados desde ERP</span>
           </div>
@@ -46,8 +46,8 @@ window.campoAdmin = {
           <div class="admin-user-editor-box">
             <form id="admin-user-form" class="admin-form">
               <div>
-                <label for="admin-assignment">Empleado ERP</label>
-                <select id="admin-assignment" required><option value="">Cargando empleados de la API…</option></select>
+                <label for="admin-assignment">Colaborador ERP</label>
+                <select id="admin-assignment" required><option value="">Cargando colaboradores de la API…</option></select>
               </div>
               <div>
                 <label for="admin-pin">PIN de acceso</label>
@@ -65,7 +65,7 @@ window.campoAdmin = {
           <div class="admin-toolbar">
             <div class="admin-search-wrap">
               <svg class="admin-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input id="admin-search" type="search" placeholder="Buscar por usuario, nombre o número de empleado…">
+              <input id="admin-search" type="search" placeholder="Buscar por usuario, nombre o número de colaborador…">
             </div>
             <select id="admin-status" aria-label="Filtrar por estado">
               <option value="all">Todos los estados</option>
@@ -256,7 +256,7 @@ window.campoAdmin = {
         permissionUsers=data.users;
         $('#incident-permission-user').innerHTML=data.users.map(u=>`<option value="${esc(u.username)}">${esc(u.responsible_name)} (${esc(u.username)})</option>`).join('');
         $('#incident-permission-user').onchange();
-        $('#admin-assignment').innerHTML='<option value="">Selecciona un empleado</option>'+people.responsibles.map(p=>`<option value="${esc(p.assignmentId)}">${esc(p.name)} · ${esc(p.employeeNumber)}</option>`).join('');
+        $('#admin-assignment').innerHTML='<option value="">Selecciona un colaborador</option>'+people.responsibles.map(p=>`<option value="${esc(p.assignmentId)}">${esc(p.name)} · ${esc(p.employeeNumber)}</option>`).join('');
         $('#admin-available').textContent=people.responsibles.length;
         $('#admin-assignment').onchange=()=>{const p=people.responsibles.find(x=>x.assignmentId===$('#admin-assignment').value);$('#admin-selected').textContent=p?`Usuario generado: ${p.employeeNumber.toLowerCase()} · Asignación: ${p.assignmentId}`:'';};
         const labels={user_upsert:'Alta / actualización',user_update:'Edición / reasignación',user_toggle:'Cambio de estado',user_delete:'Eliminación lógica',report_created:'Reporte capturado',photo_uploaded:'Fotografía cargada',report_state_changed:'Cambio de estado',monitor_retry_telegram:'Reintento Telegram'};
@@ -274,7 +274,7 @@ window.campoAdmin = {
           const start=(userPage-1)*USER_PAGE_SIZE;
           const pageRows=rows.slice(start,start+USER_PAGE_SIZE);
 
-          $('#admin-users').innerHTML=`<div class="admin-table"><div class="admin-row admin-head"><span>USUARIO</span><span>EMPLEADO</span><span>NÚMERO</span><span>ASIGNACIÓN ERP</span><span>ESTADO</span><span>ACCIONES</span></div>${pageRows.map(u=>`<div class="admin-row"><span><strong class="admin-user-chip">${esc(u.username)}</strong></span><span>${esc(u.responsible_name)}</span><span>${esc(u.employee_number)}</span><span class="mono">${esc(u.assignment_id)}</span><span><em class="admin-badge ${u.active?'ok':'off'}">${u.active?'Activo':'Inactivo'}</em></span><span class="admin-row-actions"><button class="btn small" data-edit-user="${esc(u.username)}">Editar PIN</button> <button class="btn small" data-toggle-user="${esc(u.username)}">${u.active?'Desactivar':'Activar'}</button> <button class="btn small danger" data-delete-user="${esc(u.username)}">Eliminar</button></span></div>`).join('')||'<p class="admin-empty-row muted">No hay usuarios que coincidan.</p>'}</div>
+          $('#admin-users').innerHTML=`<div class="admin-table"><div class="admin-row admin-head"><span>USUARIO</span><span>COLABORADOR</span><span>NÚMERO</span><span>ASIGNACIÓN ERP</span><span>ESTADO</span><span>ACCIONES</span></div>${pageRows.map(u=>`<div class="admin-row"><span><strong class="admin-user-chip">${esc(u.username)}</strong></span><span>${esc(u.responsible_name)}</span><span>${esc(u.employee_number)}</span><span class="mono">${esc(u.assignment_id)}</span><span><em class="admin-badge ${u.active?'ok':'off'}">${u.active?'Activo':'Inactivo'}</em></span><span class="admin-row-actions"><button class="btn small" data-edit-user="${esc(u.username)}">Editar PIN</button> <button class="btn small" data-toggle-user="${esc(u.username)}">${u.active?'Desactivar':'Activar'}</button> <button class="btn small danger" data-delete-user="${esc(u.username)}">Eliminar</button></span></div>`).join('')||'<p class="admin-empty-row muted">No hay usuarios que coincidan.</p>'}</div>
           <div class="table-caption table-pagination-bar">
             <span>${rows.length?`Mostrando ${start+1}–${Math.min(rows.length,start+pageRows.length)} de ${rows.length} usuario(s) · Página ${userPage} de ${totalPages}`:'0 usuarios · Página 1 de 1'}</span>
             <div class="pagination-btns">

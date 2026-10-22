@@ -74,19 +74,19 @@ class AdminService:
             raise AdminError(400, "El PIN debe tener entre 4 y 8 dígitos.")
         selected = next((item for item in self.responsibles() if item["assignmentId"] == assignment), None)
         if not selected:
-            raise AdminError(400, "Selecciona un empleado válido de la API.")
+            raise AdminError(400, "Selecciona un colaborador válido de la API.")
         name, employee = selected["name"], selected["employeeNumber"]
         username = re.sub(r"[^a-z0-9]+", "", employee.casefold())
         with self.connection() as db:
             if db.execute('SELECT 1 FROM administrators WHERE user IN (?,?)',(previous_username,username)).fetchone():
-                raise AdminError(400,'Una cuenta administradora no se convierte en empleado desde este formulario.')
+                raise AdminError(400,'Una cuenta administradora no se convierte en colaborador desde este formulario.')
             if self.pin_in_use(db, pin, excluding=previous_username or username):
                 raise AdminError(409, "Ese PIN ya está asignado a otro usuario.")
             if previous_username and previous_username != username:
                 if not db.execute("SELECT 1 FROM app_users WHERE username=?", (previous_username,)).fetchone():
                     raise AdminError(404, "Usuario a actualizar no encontrado.")
                 if db.execute("SELECT 1 FROM app_users WHERE username=?", (username,)).fetchone():
-                    raise AdminError(409, "El empleado seleccionado ya tiene otro usuario.")
+                    raise AdminError(409, "El colaborador seleccionado ya tiene otro usuario.")
                 db.execute("UPDATE app_users SET username=? WHERE username=?", (username, previous_username))
                 db.execute("DELETE FROM sessions WHERE user=?", (previous_username,))
                 db.execute("UPDATE user_profiles SET user=? WHERE user=?", (username, previous_username))
