@@ -243,10 +243,9 @@ def profile_for(user):
 
 
 def is_admin(user):
-    if user != USER:
-        return False
+    from backend.permissions import administrator
     with connection() as db:
-        return not db.execute("SELECT 1 FROM app_users WHERE username=?", (user,)).fetchone()
+        return administrator(db,user,USER)
 
 
 def catalog_for_user(data, user):
@@ -572,6 +571,12 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/login":
                 return self.login(body)
             user = self.session()
+            if path == '/api/admin/administrators':
+                if user != USER or not is_admin(user):
+                    raise Problem(403,'Solo el administrador principal puede crear administradores.')
+                if body.get('pin') == PASSWORD:
+                    raise Problem(409,'Ese PIN ya está en uso.')
+                return self.json(200,_admin_result(ADMIN.create_administrator,body,USER))
             if path == '/api/admin/project-archives/resolve':
                 if not is_admin(user):
                     raise Problem(403,'Solo el administrador puede conciliar expedientes.')

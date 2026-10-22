@@ -30,6 +30,25 @@ class AdminService:
     def audit_entries(self):
         return self.audit.entries()
 
+    def create_administrator(self, body, owner):
+        username=body.get('username')
+        pin=body.get('pin')
+        if not isinstance(username,str) or not re.fullmatch(r'[a-z0-9]{3,32}',username) or username==owner:
+            raise AdminError(400,'Nombre de administrador inválido.')
+        if not isinstance(pin,str) or not re.fullmatch(r'[0-9]{6,8}',pin):
+            raise AdminError(400,'El PIN de administrador debe tener entre 6 y 8 dígitos.')
+        with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if db.execute('SELECT 1 FROM app_users WHERE username=?',(username,)).fetchone():
+                raise AdminError(409,'Ese usuario ya existe; no se modificó.')
+            if self.pin_in_use(db,pin):
+                raise AdminError(409,'Ese PIN ya está en uso.')
+            db.execute('INSERT INTO app_users VALUES (?,?,?,?,?,?,?)',(username,self.pin_hash(pin),username,'','',1,self.now()))
+            db.execute('INSERT INTO administrators VALUES (?,?)',(username,self.now()))
+            db.execute('INSERT INTO user_profiles VALUES (?,?,?,?,?)',(username,username,'','',self.now()))
+        self._audit('administrator_created',username,{})
+        return {'username':username,'isAdmin':True,'active':1}
+
     def responsibles(self):
         data = self.catalog()
         found = {}
@@ -59,6 +78,8 @@ class AdminService:
         name, employee = selected["name"], selected["employeeNumber"]
         username = re.sub(r"[^a-z0-9]+", "", employee.casefold())
         with self.connection() as db:
+            if db.execute('SELECT 1 FROM administrators WHERE user IN (?,?)',(previous_username,username)).fetchone():
+                raise AdminError(400,'Una cuenta administradora no se convierte en empleado desde este formulario.')
             if self.pin_in_use(db, pin, excluding=previous_username or username):
                 raise AdminError(409, "Ese PIN ya está asignado a otro usuario.")
             if previous_username and previous_username != username:

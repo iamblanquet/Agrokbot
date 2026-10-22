@@ -18,6 +18,41 @@ import server
 
 
 class AuthTests(unittest.TestCase):
+    def test_secondary_admin_login_permissions_and_revocation(self):
+        path='/api/admin/administrators'
+        body={'username':'admin2','pin':'583729'}
+        self.assertEqual(self.request(path,body)[0],401)
+        self.request('/api/login',{'password':'prueba-ñ'})
+        self.assertEqual(self.request(path,body)[0],200)
+        self.assertEqual(self.request(path,body)[0],409)
+        self.assertEqual(self.request(path,{'username':'admin3','pin':'583729'})[0],409)
+        with server.connection() as db:
+            stored=db.execute("SELECT pin_hash FROM app_users WHERE username='admin2'").fetchone()[0]
+            self.assertTrue(stored.startswith('scrypt$'))
+            self.assertNotIn('583729',stored)
+        self.request('/api/logout',{})
+        status,identity=self.request('/api/login',{'password':'583729'})
+        self.assertEqual(status,200)
+        self.assertTrue(identity['isAdmin'])
+        self.assertTrue(self.request('/api/me')[1]['isAdmin'])
+        self.assertEqual(self.request('/api/admin/users')[0],200)
+        self.assertEqual(len(self.request('/api/catalog')[1]['projects']),2)
+        self.assertEqual(self.request(path,{'username':'admin3','pin':'582731'})[0],403)
+        with server.connection() as db:
+            db.execute("UPDATE app_users SET active=0 WHERE username='admin2'")
+        self.assertFalse(server.is_admin('admin2'))
+        self.assertEqual(self.request('/api/admin/users')[0],401)
+        self.assertEqual(self.request('/api/login',{'password':'583729'})[0],401)
+        self.assertTrue(self.request('/api/login',{'password':'prueba-ñ'})[1]['isAdmin'])
+
+    def test_employee_cannot_create_admin_or_claim_role(self):
+        with server.connection() as db:
+            db.execute('INSERT INTO app_users VALUES (?,?,?,?,?,?,?)',('employee',server.pin_hash('674829'),'Empleado','','',1,'now'))
+        status,body=self.request('/api/login',{'password':'674829','isAdmin':True})
+        self.assertEqual(status,200)
+        self.assertFalse(body['isAdmin'])
+        self.assertEqual(self.request('/api/admin/administrators',{'username':'other','pin':'582731'})[0],403)
+
     def test_project_archives_require_admin(self):
         routes=['/api/admin/project-archives','/api/admin/project-archives/pdf?projectId=p1']
         for route in routes:

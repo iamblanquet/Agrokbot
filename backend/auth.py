@@ -6,6 +6,7 @@ import secrets
 import time
 import urllib.parse
 from http.cookies import SimpleCookie
+from backend.permissions import administrator
 
 
 class AuthError(Exception):
@@ -60,7 +61,7 @@ class AuthService:
             db.execute("INSERT INTO sessions VALUES (?,?,?)", (hashlib.sha256(token.encode()).hexdigest(), user, time.time() + 7 * 86400))
             if responsible_name or employee_number or assignment_id:
                 db.execute("INSERT INTO user_profiles(user,responsible_name,employee_number,assignment_id,updated) VALUES (?,?,?,?,?) ON CONFLICT(user) DO UPDATE SET responsible_name=excluded.responsible_name,employee_number=excluded.employee_number,assignment_id=excluded.assignment_id,updated=excluded.updated", (user, responsible_name, employee_number, assignment_id, self.now()))
-            is_admin = user == settings["user"] and not db.execute("SELECT 1 FROM app_users WHERE username=?", (user,)).fetchone()
+            is_admin = administrator(db,user,settings['user'])
         secure = "; Secure" if settings["cookie_secure"] else ""
         same_site = "None" if secure else "Strict"
         return {"user": user, "isAdmin": bool(is_admin)}, f"campo_session={token}; HttpOnly; SameSite={same_site}; Path=/; Max-Age=604800{secure}"

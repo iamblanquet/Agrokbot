@@ -2,6 +2,7 @@
 import urllib.parse
 
 from backend.http_client import RemoteFailure
+from backend.permissions import administrator
 
 
 class AccessService:
@@ -22,8 +23,9 @@ class AccessService:
 
     def catalog_for_user(self, data, user):
         """Devuelve únicamente las tareas ERP relacionadas con la sesión."""
-        if user == self.admin_user():
-            return data
+        with self.connection() as db:
+            if administrator(db,user,self.admin_user()):
+                return data
         profile = self.profile_for(user)
         assignment_id, employee_number = profile.get("assignment_id", ""), profile.get("employee_number", "")
         if not assignment_id and not employee_number:
