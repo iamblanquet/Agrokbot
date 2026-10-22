@@ -15,6 +15,8 @@ test('terminology change preserves integration and offline identifiers',()=>{
   const app=fs.readFileSync('public/app.js','utf8');
   const html=fs.readFileSync('public/index.html','utf8');
   assert.match(app,/heading\('Colaboradores'/);
+  assert.match(app,/<span class="emp-stat-label">Total de colaboradores<\/span>/);
+  assert.doesNotMatch(app,/Total cuadrilla/);
   assert.match(app,/\/api\/employees\/delete/);
   assert.match(html,/data-view="employees"/);
   assert.match(html,/Guardar colaborador/);

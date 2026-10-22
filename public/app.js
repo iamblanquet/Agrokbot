@@ -713,7 +713,7 @@ function renderEmployeeList(){
     const countRole=r=>all.filter(e=>Array.isArray(e.roles)&&e.roles.includes(r)).length;
     statsEl.innerHTML=`
       <article class="emp-stat-card">
-        <span class="emp-stat-label">Total cuadrilla</span>
+        <span class="emp-stat-label">Total de colaboradores</span>
         <strong class="emp-stat-value">${all.length}</strong>
       </article>
       <article class="emp-stat-card emp-stat-operator">
